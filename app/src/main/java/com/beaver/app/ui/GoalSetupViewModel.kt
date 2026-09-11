@@ -82,17 +82,36 @@ class GoalSetupViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- debug helpers, surfaced only in debug builds ----
 
-    /** Plausible-looking history so the colour ramp can be judged before real data exists. */
+    /**
+     * Plausible-looking history so the colour ramp can be judged before real data
+     * exists.
+     *
+     * An earlier version ticked every goal independently at a flat 62%, which put
+     * almost every day at 3-5 of 5 and made the grid a solid slab - useless for
+     * judging the frosted empty tile or the low end of the ramp. This walks the
+     * daily rate around instead, so engagement drifts and there are genuine quiet
+     * stretches, which is what real use looks like.
+     */
     fun fillSampleHistory() {
         viewModelScope.launch {
             val random = Random(today.toEpochDay())
+            var rate = 0.55f
             val generated = buildList {
                 var date = historyRange.start
                 while (!date.isAfter(today)) {
-                    var mask = 0
-                    for (slot in 0 until GOAL_COUNT) {
-                        if (random.nextFloat() < SAMPLE_COMPLETION_RATE) mask = mask or (1 shl slot)
+                    rate = (rate + (random.nextFloat() - 0.5f) * 0.34f).coerceIn(0.04f, 0.95f)
+
+                    val mask = if (random.nextFloat() < QUIET_DAY_CHANCE) {
+                        // An off day: nothing, or a single thing.
+                        if (random.nextBoolean()) 0 else 1 shl random.nextInt(GOAL_COUNT)
+                    } else {
+                        var bits = 0
+                        for (slot in 0 until GOAL_COUNT) {
+                            if (random.nextFloat() < rate) bits = bits or (1 shl slot)
+                        }
+                        bits
                     }
+
                     add(DayProgress(date, mask))
                     date = date.plusDays(1)
                 }
@@ -118,6 +137,6 @@ class GoalSetupViewModel(app: Application) : AndroidViewModel(app) {
     private companion object {
         const val SAVE_DEBOUNCE_MS = 350L
         const val STOP_TIMEOUT_MS = 5_000L
-        const val SAMPLE_COMPLETION_RATE = 0.62f
+        const val QUIET_DAY_CHANCE = 0.16f
     }
 }

@@ -1,101 +1,105 @@
 package com.beaver.app.widget
 
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters
-import kotlin.math.floor
-import kotlin.math.max
 import kotlin.math.min
 
 /**
  * Where everything sits on the widget face, derived purely from its pixel size.
  *
- * There is no panel: the grid of tiles and the row of five marks beneath it are
- * the whole widget, floating directly on the wallpaper. Bands are allocated as
- * fractions of the height rather than fixed dp, so the face stays balanced at any
- * size the user drags to.
+ * A frosted pane fills the widget. Inside it sit thirty day tiles in a 10x3
+ * block and a row of five element chips. Thirty was chosen over the old 182-tile
+ * half-year because the grid had become a solid slab of colour, and shrinking it
+ * buys the tile size and the chip size that make the kanji readable.
+ *
+ * Dropping the seven-row week structure is the cost: weekday patterns ("every
+ * Tuesday is empty") are no longer visible. The trade was made deliberately.
  */
 class FaceLayout(
     val widthPx: Int,
     val heightPx: Int,
     private val density: Float
 ) {
-    val hairline: Float = max(1f, density)
+    val hairline: Float = kotlin.math.max(1f, density)
 
-    private val padding: Float = 8f * density
+    // ---- the pane ----
 
-    private val innerWidth: Float = widthPx - padding * 2
-    private val innerHeight: Float = heightPx - padding * 2
+    private val paneInset: Float = 3f * density
+    val paneLeft: Float = paneInset
+    val paneTop: Float = paneInset
+    val paneRight: Float = widthPx - paneInset
+    val paneBottom: Float = heightPx - paneInset
+    val paneRadius: Float = 26f * density
 
-    /** Vertical bands: grid, gap, marks. */
-    val footerHeight: Float = innerHeight * 0.22f
-    private val bandGap: Float = innerHeight * 0.07f
-    private val gridHeight: Float = innerHeight - footerHeight - bandGap
+    private val panePadding: Float = 13f * density
 
-    val gridTop: Float = padding
-    val footerTop: Float = padding + gridHeight + bandGap
+    private val innerLeft: Float = paneLeft + panePadding
+    private val innerTop: Float = paneTop + panePadding
+    private val innerWidth: Float = (paneRight - panePadding) - innerLeft
+    private val innerHeight: Float = (paneBottom - panePadding) - innerTop
 
-    /** Cell and gap solve 7*cell + 6*gap = gridHeight with gap = 24% of a cell. */
-    val cell: Float = max(1f, gridHeight / (ROWS + (ROWS - 1) * GAP_RATIO))
+    // ---- bands ----
+
+    val chipBandHeight: Float = innerHeight * 0.34f
+    private val bandGap: Float = innerHeight * 0.08f
+    private val gridBandHeight: Float = innerHeight - chipBandHeight - bandGap
+
+    val chipBandTop: Float = innerTop + gridBandHeight + bandGap
+
+    /**
+     * Tiles are square, so the cell size is whichever of width and height binds
+     * first; the block is then centred in whatever slack the other axis has.
+     */
+    val cell: Float = min(
+        innerWidth / (COLUMNS + (COLUMNS - 1) * GAP_RATIO),
+        gridBandHeight / (ROWS + (ROWS - 1) * GAP_RATIO)
+    ).coerceAtLeast(1f)
+
     val gap: Float = cell * GAP_RATIO
     val cellRadius: Float = cell * 0.30f
 
-    /**
-     * As many whole weeks as fit, newest flush right. A hairline of clearance is
-     * kept on the right so the ring around today is not clipped by the edge.
-     */
-    val columns: Int = min(
-        MAX_COLUMNS,
-        max(1, floor((innerWidth - hairline * 2 + gap) / (cell + gap)).toInt())
-    )
+    private val gridWidth: Float = COLUMNS * cell + (COLUMNS - 1) * gap
+    private val gridHeight: Float = ROWS * cell + (ROWS - 1) * gap
+    private val gridLeft: Float = innerLeft + (innerWidth - gridWidth) / 2
+    private val gridTop: Float = innerTop + (gridBandHeight - gridHeight) / 2
 
-    private val gridUsedWidth: Float = columns * (cell + gap) - gap
-    private val gridStartX: Float = padding + innerWidth - hairline * 2 - gridUsedWidth
-
-    fun cellLeft(column: Int): Float = gridStartX + column * (cell + gap)
+    fun cellLeft(column: Int): Float = gridLeft + column * (cell + gap)
 
     fun cellTop(row: Int): Float = gridTop + row * (cell + gap)
 
-    // ---- the five marks ----
+    // ---- the five element chips ----
 
     val slotWidth: Float = innerWidth / GOAL_SLOTS
-    val markCenterY: Float = footerTop + footerHeight * 0.5f
-    val markRadius: Float = footerHeight * 0.26f
+    val chipCenterY: Float = chipBandTop + chipBandHeight * 0.5f
+    val chipRadius: Float = min(chipBandHeight * 0.46f, slotWidth * 0.34f)
+    val kanjiSize: Float = chipRadius * 1.22f
 
-    /** Horizontal centre of the nth mark, spread evenly across the width. */
-    fun slotCenterX(index: Int): Float = padding + slotWidth * (index + 0.5f)
+    fun slotCenterX(index: Int): Float = innerLeft + slotWidth * (index + 0.5f)
 
     // ---- the same geometry in dp, for the tap targets layered over the bitmap ----
-    //
-    // The bitmap is drawn in pixels but Glance positions views in dp, so the two
-    // have to be reconciled or the invisible tap targets drift off the marks.
 
-    val paddingDp: Float = padding / density
-    val footerTopDp: Float = footerTop / density
-    val footerHeightDp: Float = (heightPx - padding - footerTop) / density
+    val chipBandTopDp: Float = chipBandTop / density
+    val chipBandHeightDp: Float = chipBandHeight / density
+    val innerLeftDp: Float = innerLeft / density
 
     // ---- dates ----
 
-    /** Oldest date shown, given [columns] weeks ending with the week holding [today]. */
-    fun firstDate(today: LocalDate): LocalDate =
-        mondayOf(today).minusWeeks((columns - 1).toLong())
-
-    fun dateAt(today: LocalDate, column: Int, row: Int): LocalDate =
-        firstDate(today).plusWeeks(column.toLong()).plusDays(row.toLong())
+    /**
+     * Row-major, oldest first: index 0 is 29 days ago and the last cell is today.
+     */
+    fun dateAt(today: LocalDate, column: Int, row: Int): LocalDate {
+        val index = row * COLUMNS + column
+        return today.minusDays((DAYS - 1 - index).toLong())
+    }
 
     companion object {
-        const val ROWS = 7
+        const val COLUMNS = 10
+        const val ROWS = 3
+        const val DAYS = COLUMNS * ROWS
         const val GOAL_SLOTS = 5
-        const val MAX_COLUMNS = 26
-        private const val GAP_RATIO = 0.24f
+        private const val GAP_RATIO = 0.26f
 
-        fun mondayOf(date: LocalDate): LocalDate =
-            date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-
-        /** Widest range any layout could ask for, fetched once so rendering stays synchronous. */
-        fun maxRange(today: LocalDate): ClosedRange<LocalDate> {
-            val start = mondayOf(today).minusWeeks((MAX_COLUMNS - 1).toLong())
-            return start..mondayOf(today).plusDays(6)
-        }
+        /** Exactly the window the grid shows; nothing older is ever needed. */
+        fun maxRange(today: LocalDate): ClosedRange<LocalDate> =
+            today.minusDays((DAYS - 1).toLong())..today
     }
 }

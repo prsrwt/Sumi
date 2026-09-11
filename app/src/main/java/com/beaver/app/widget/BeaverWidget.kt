@@ -92,12 +92,12 @@ class BeaverWidget : GlanceAppWidget() {
         val todayMask = days.firstOrNull { it.date == today }?.doneMask ?: 0
 
         Column(modifier = GlanceModifier.fillMaxSize()) {
-            Spacer(modifier = GlanceModifier.height(layout.footerTopDp.dp))
+            Spacer(modifier = GlanceModifier.height(layout.chipBandTopDp.dp))
             Row(
                 modifier = GlanceModifier
                     .fillMaxWidth()
-                    .height(layout.footerHeightDp.dp)
-                    .padding(horizontal = layout.paddingDp.dp)
+                    .height(layout.chipBandHeightDp.dp)
+                    .padding(horizontal = layout.innerLeftDp.dp)
             ) {
                 for (slot in 0 until FaceLayout.GOAL_SLOTS) {
                     val done = (todayMask shr slot) and 1 == 1

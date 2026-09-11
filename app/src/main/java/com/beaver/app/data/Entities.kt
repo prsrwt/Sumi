@@ -31,7 +31,12 @@ data class DayEntryEntity(
 /** Domain view of a goal slot. */
 data class Goal(
     val slot: Int,
-    val name: String
+    val name: String,
+    /**
+     * Which element represents this goal on the widget. Defaulted by slot for
+     * now; Phase B stores the user's own assignment and makes it bijective.
+     */
+    val element: Element = Element.forSlot(slot)
 ) {
     /** What the widget and setup screen show when the user hasn't named it yet. */
     val displayName: String get() = name.ifBlank { "Goal ${slot + 1}" }

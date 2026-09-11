@@ -5,30 +5,44 @@ import android.graphics.Color
 /**
  * Colours for the widget face.
  *
- * There is no panel any more - the grid itself is the widget. Each untouched day
- * is a small frosted tile, and days with goals ticked warm up through a yellow
- * ramp. Android cannot blur what is behind a widget, so "frosted" here is a pale
- * translucent fill with a highlight down its top edge, which is what actually
- * reads as glass at this size.
+ * A frosted pane holds a grid of frosted day tiles and a row of frosted element
+ * chips. Android cannot blur what sits behind a widget, so none of this is
+ * optically frosted - it is milky translucent white with a lit top edge and a
+ * specular sweep, which is what actually reads as frosted glass at this size.
+ *
+ * The pane is deliberately dimmer than the tiles that sit on it. Make them the
+ * same milkiness and the tiles vanish into their own background.
  */
 data class GlassTheme(
-    /** Top of the frosted tile gradient - the lit edge. */
+    // ---- backing pane ----
+    val paneFill: Int,
+    val paneSheenHigh: Int,
+    val paneSheenLow: Int,
+    val paneRim: Int,
+    val paneTopHighlight: Int,
+
+    // ---- day tiles ----
     val frostTop: Int,
-    /** Bottom of the frosted tile gradient. */
     val frostBottom: Int,
-    /** Hairline around an untouched tile. */
     val frostEdge: Int,
-    /** Gloss laid over a filled tile so it stays glassy rather than flat paint. */
     val glossTop: Int,
     val glossBottom: Int,
-    /** Ring drawn around today. */
     val todayRing: Int,
-    /** Days that have not happened yet. */
     val futureCell: Int,
-    /** Kanji when its goal is still open. */
-    val kanjiIdle: Int,
-    /** Kanji when its goal is done. */
-    val kanjiDone: Int,
+
+    // ---- element chips ----
+    val chipTop: Int,
+    val chipBottom: Int,
+    val chipRim: Int,
+    /** Ink for a kanji whose goal is done, sitting on its element colour. */
+    val kanjiOnColor: Int,
+    /** How much of the element colour fills a completed chip. */
+    val chipFillAlpha: Int,
+    /** How strongly an untouched chip shows its element colour. */
+    val kanjiIdleAlpha: Int,
+    /** Darkens an untouched chip so its glyph has contrast on any wallpaper. */
+    val chipIdleScrim: Int,
+
     /** Index is the number of goals completed, 1..5; index 0 is unused. */
     val ramp: IntArray
 ) {
@@ -41,38 +55,54 @@ data class GlassTheme(
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is GlassTheme) return false
-        return frostTop == other.frostTop &&
+        return paneFill == other.paneFill &&
+            frostTop == other.frostTop &&
             frostBottom == other.frostBottom &&
-            frostEdge == other.frostEdge &&
-            glossTop == other.glossTop &&
-            glossBottom == other.glossBottom &&
-            todayRing == other.todayRing &&
-            futureCell == other.futureCell &&
-            kanjiIdle == other.kanjiIdle &&
-            kanjiDone == other.kanjiDone &&
+            chipTop == other.chipTop &&
+            chipFillAlpha == other.chipFillAlpha &&
             ramp.contentEquals(other.ramp)
     }
 
-    override fun hashCode(): Int = 31 * frostTop + ramp.contentHashCode()
+    override fun hashCode(): Int = 31 * paneFill + ramp.contentHashCode()
 
     companion object {
         val Default = GlassTheme(
-            frostTop = Color.argb(64, 255, 255, 255),
-            frostBottom = Color.argb(26, 255, 255, 255),
-            frostEdge = Color.argb(54, 255, 255, 255),
-            glossTop = Color.argb(72, 255, 255, 255),
+            paneFill = Color.argb(34, 255, 255, 255),
+            paneSheenHigh = Color.argb(44, 255, 255, 255),
+            paneSheenLow = Color.argb(0, 255, 255, 255),
+            paneRim = Color.argb(56, 255, 255, 255),
+            paneTopHighlight = Color.argb(120, 255, 255, 255),
+
+            frostTop = Color.argb(88, 255, 255, 255),
+            frostBottom = Color.argb(44, 255, 255, 255),
+            frostEdge = Color.argb(76, 255, 255, 255),
+            glossTop = Color.argb(86, 255, 255, 255),
             glossBottom = Color.argb(0, 255, 255, 255),
-            todayRing = Color.argb(235, 255, 255, 255),
-            futureCell = Color.argb(14, 255, 255, 255),
-            kanjiIdle = Color.argb(115, 255, 255, 255),
-            kanjiDone = Color.rgb(255, 214, 79),
+            todayRing = Color.argb(240, 255, 255, 255),
+            futureCell = Color.argb(20, 255, 255, 255),
+
+            chipTop = Color.argb(116, 255, 255, 255),
+            chipBottom = Color.argb(58, 255, 255, 255),
+            chipRim = Color.argb(90, 255, 255, 255),
+            kanjiOnColor = Color.argb(255, 28, 22, 12),
+            chipFillAlpha = 226,
+            kanjiIdleAlpha = 240,
+            chipIdleScrim = Color.argb(54, 18, 16, 12),
+
+            // Pale cream through to rich gold. Two earlier attempts failed here:
+            // mixing brown into the low end looked like dirt, and dropping the
+            // alpha instead let the wallpaper show through, so a light day took
+            // on whatever colour happened to be behind it and read muddy. Every
+            // step now stays opaque enough to hold its own hue, and "less" is
+            // expressed by blending toward cream rather than toward the
+            // wallpaper.
             ramp = intArrayOf(
-                Color.TRANSPARENT,       // 0 - unused, frosted tile is drawn instead
-                Color.rgb(122, 95, 18),  // 1 of 5
-                Color.rgb(168, 131, 15), // 2
-                Color.rgb(217, 165, 20), // 3
-                Color.rgb(242, 192, 39), // 4
-                Color.rgb(255, 221, 87)  // 5 - a full day
+                Color.TRANSPARENT,             // 0 - unused, frosted tile is drawn
+                Color.argb(152, 250, 238, 196),// 1 of 5
+                Color.argb(182, 251, 228, 158),// 2
+                Color.argb(208, 252, 218, 124),// 3
+                Color.argb(230, 253, 208, 94), // 4
+                Color.argb(252, 255, 198, 66)  // 5 - a full day
             )
         )
     }
