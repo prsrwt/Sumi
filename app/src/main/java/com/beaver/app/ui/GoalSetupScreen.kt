@@ -66,23 +66,20 @@ private fun GoalList(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "Your five things",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Text(
-            text = "Five goals, every day. Tick them off on the widget.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
         WidgetFacePreview(
             goals = previewGoals,
             history = history,
             today = LocalDate.now()
+        )
+
+        Text(
+            text = "Five things a day. Tick them off on the widget.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         if (BuildConfig.DEBUG) {
