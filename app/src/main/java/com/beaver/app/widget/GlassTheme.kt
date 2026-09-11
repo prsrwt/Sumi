@@ -5,66 +5,47 @@ import android.graphics.Color
 /**
  * Colours for the widget face.
  *
- * A frosted pane holds a grid of frosted day tiles and a row of frosted element
- * chips. Android cannot blur what sits behind a widget, so none of this is
- * optically frosted - it is milky translucent white with a lit top edge and a
- * specular sweep, which is what actually reads as frosted glass at this size.
+ * Two rules hold this together, both learned the hard way:
  *
- * The pane is deliberately dimmer than the tiles that sit on it. Make them the
- * same milkiness and the tiles vanish into their own background.
+ * 1. There is exactly one source of hue - the five element glyphs. The day grid
+ *    is monochrome. An earlier version had a saturated yellow ramp competing
+ *    with five saturated element discs, and two colour systems fighting for
+ *    attention is most of what made the widget read as cartoony rather than
+ *    minimal.
+ *
+ * 2. Nothing here is optically frosted. Android cannot blur what sits behind a
+ *    widget, so the glass is milky translucency, a lit rim and fine grain, which
+ *    is what actually reads as glass at this size.
  */
 data class GlassTheme(
-    // ---- backing pane ----
+    // ---- the slab ----
     val paneFill: Int,
-    val paneSheenHigh: Int,
-    val paneSheenLow: Int,
     val paneRim: Int,
-    val paneTopHighlight: Int,
-    /** Contact shadow that lifts the slab off the wallpaper. */
-    val paneShadow: Int,
-    /** Soft ambient halo around the slab, the way OxygenOS lights its glass. */
-    val paneHalo: Int,
+    val paneBevelDark: Int,
     /** Tight specular glint on the rim. Real glass lights at its edges. */
     val paneGlint: Int,
-    /** Inner bevel line, implying the slab has thickness. */
-    val paneBevelDark: Int,
+    val paneShadow: Int,
+    /** Soft ambient halo, the way OxygenOS lights its glass. */
+    val paneHalo: Int,
     /** Strength of the surface grain; frosted glass is not optically smooth. */
     val grainAlpha: Int,
 
-    // ---- day tiles ----
+    // ---- day dots, monochrome ----
     val frostTop: Int,
     val frostBottom: Int,
     val frostEdge: Int,
-    val glossTop: Int,
-    val glossBottom: Int,
     val todayRing: Int,
     val futureCell: Int,
+    /** Index is goals completed, 1..5; index 0 unused, an empty day is frosted. */
+    val ramp: IntArray,
 
-    // ---- element chips ----
-    val chipTop: Int,
-    val chipBottom: Int,
-    val chipRim: Int,
-    /** Ink for a kanji whose goal is done, sitting on its element colour. */
-    val kanjiOnColor: Int,
-    /** How much of the element colour fills a completed chip. */
-    val chipFillAlpha: Int,
-    /** How strongly an untouched chip shows its element colour. */
+    // ---- element glyphs, the only hue on the face ----
+    /** Opacity of a glyph whose goal is still open. */
     val kanjiIdleAlpha: Int,
-    /** Darkens an untouched chip so its glyph has contrast on any wallpaper. */
-    val chipIdleScrim: Int,
-    /** Bloom around a completed chip. */
-    val chipBloomAlpha: Int,
-
-    // ---- bloom ----
-    /** Blur radius of a lit dot's halo, as a fraction of the dot's size. */
-    val bloomRadiusRatio: Float,
-    /** How much of a dot's own opacity carries into its halo. */
-    val bloomStrength: Float,
-
-    /** Index is the number of goals completed, 1..5; index 0 is unused. */
-    val ramp: IntArray
+    /** Opacity of the soft halo behind a completed glyph. */
+    val kanjiGlowAlpha: Int
 ) {
-    /** Null means draw the frosted-glass treatment rather than a flat colour. */
+    /** Null means draw the frosted treatment rather than a flat colour. */
     fun cellColor(completed: Int): Int? =
         if (completed <= 0) null else ramp[completed.coerceAtMost(ramp.lastIndex)]
 
@@ -75,62 +56,68 @@ data class GlassTheme(
         if (other !is GlassTheme) return false
         return paneFill == other.paneFill &&
             frostTop == other.frostTop &&
-            frostBottom == other.frostBottom &&
-            chipTop == other.chipTop &&
-            chipFillAlpha == other.chipFillAlpha &&
+            todayRing == other.todayRing &&
+            kanjiIdleAlpha == other.kanjiIdleAlpha &&
             ramp.contentEquals(other.ramp)
     }
 
     override fun hashCode(): Int = 31 * paneFill + ramp.contentHashCode()
 
     companion object {
-        val Default = GlassTheme(
+        /** Light glass on a dark wallpaper. */
+        val OnDarkWallpaper = GlassTheme(
             paneFill = Color.argb(34, 255, 255, 255),
-            paneSheenHigh = Color.argb(44, 255, 255, 255),
-            paneSheenLow = Color.argb(0, 255, 255, 255),
             paneRim = Color.argb(56, 255, 255, 255),
-            paneTopHighlight = Color.argb(120, 255, 255, 255),
+            paneBevelDark = Color.argb(44, 0, 0, 0),
+            paneGlint = Color.argb(150, 255, 255, 255),
             paneShadow = Color.argb(92, 0, 0, 0),
             paneHalo = Color.argb(46, 255, 255, 255),
-            paneGlint = Color.argb(150, 255, 255, 255),
-            paneBevelDark = Color.argb(44, 0, 0, 0),
             grainAlpha = 9,
 
-            frostTop = Color.argb(74, 255, 255, 255),
-            frostBottom = Color.argb(58, 255, 255, 255),
-            frostEdge = Color.argb(76, 255, 255, 255),
-            glossTop = Color.argb(34, 255, 255, 255),
-            glossBottom = Color.argb(0, 255, 255, 255),
+            frostTop = Color.argb(60, 255, 255, 255),
+            frostBottom = Color.argb(46, 255, 255, 255),
+            frostEdge = Color.argb(64, 255, 255, 255),
             todayRing = Color.argb(240, 255, 255, 255),
-            futureCell = Color.argb(20, 255, 255, 255),
-
-            chipTop = Color.argb(96, 255, 255, 255),
-            chipBottom = Color.argb(78, 255, 255, 255),
-            chipRim = Color.argb(90, 255, 255, 255),
-            kanjiOnColor = Color.argb(255, 28, 22, 12),
-            chipFillAlpha = 226,
-            kanjiIdleAlpha = 240,
-            chipIdleScrim = Color.argb(54, 18, 16, 12),
-            chipBloomAlpha = 165,
-
-            bloomRadiusRatio = 0.34f,
-            bloomStrength = 0.68f,
-
-            // Pale cream through to rich gold. Two earlier attempts failed here:
-            // mixing brown into the low end looked like dirt, and dropping the
-            // alpha instead let the wallpaper show through, so a light day took
-            // on whatever colour happened to be behind it and read muddy. Every
-            // step now stays opaque enough to hold its own hue, and "less" is
-            // expressed by blending toward cream rather than toward the
-            // wallpaper.
+            futureCell = Color.argb(18, 255, 255, 255),
             ramp = intArrayOf(
-                Color.TRANSPARENT,             // 0 - unused, frosted tile is drawn
-                Color.argb(152, 250, 238, 196),// 1 of 5
-                Color.argb(182, 251, 228, 158),// 2
-                Color.argb(208, 252, 218, 124),// 3
-                Color.argb(230, 253, 208, 94), // 4
-                Color.argb(252, 255, 198, 66)  // 5 - a full day
-            )
+                Color.TRANSPARENT,
+                Color.argb(84, 255, 255, 255),
+                Color.argb(122, 255, 255, 255),
+                Color.argb(162, 255, 255, 255),
+                Color.argb(202, 255, 255, 255),
+                Color.argb(242, 255, 255, 255)
+            ),
+
+            kanjiIdleAlpha = 104,
+            kanjiGlowAlpha = 96
+        )
+
+        /** Dark glass on a pale wallpaper, where white on white would vanish. */
+        val OnLightWallpaper = GlassTheme(
+            paneFill = Color.argb(30, 16, 18, 16),
+            paneRim = Color.argb(52, 255, 255, 255),
+            paneBevelDark = Color.argb(30, 0, 0, 0),
+            paneGlint = Color.argb(190, 255, 255, 255),
+            paneShadow = Color.argb(58, 0, 0, 0),
+            paneHalo = Color.argb(30, 255, 255, 255),
+            grainAlpha = 7,
+
+            frostTop = Color.argb(48, 22, 24, 22),
+            frostBottom = Color.argb(34, 22, 24, 22),
+            frostEdge = Color.argb(40, 255, 255, 255),
+            todayRing = Color.argb(232, 24, 26, 24),
+            futureCell = Color.argb(14, 22, 24, 22),
+            ramp = intArrayOf(
+                Color.TRANSPARENT,
+                Color.argb(74, 20, 22, 20),
+                Color.argb(112, 20, 22, 20),
+                Color.argb(152, 20, 22, 20),
+                Color.argb(194, 20, 22, 20),
+                Color.argb(236, 20, 22, 20)
+            ),
+
+            kanjiIdleAlpha = 120,
+            kanjiGlowAlpha = 70
         )
     }
 }

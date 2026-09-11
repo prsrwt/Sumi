@@ -72,8 +72,11 @@ class FaceLayout(
 
     val slotWidth: Float = innerWidth / GOAL_SLOTS
     val chipCenterY: Float = chipBandTop + chipBandHeight * 0.5f
-    val chipRadius: Float = min(chipBandHeight * 0.38f, slotWidth * 0.26f)
-    val kanjiSize: Float = chipRadius * 1.16f
+    /**
+     * The glyphs are drawn bare, with no disc behind them, so the size is taken
+     * straight from the band rather than from a chip that no longer exists.
+     */
+    val kanjiSize: Float = min(chipBandHeight * 0.68f, slotWidth * 0.46f)
 
     fun slotCenterX(index: Int): Float = innerLeft + slotWidth * (index + 0.5f)
 

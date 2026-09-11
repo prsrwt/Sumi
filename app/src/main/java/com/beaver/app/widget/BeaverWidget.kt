@@ -37,8 +37,6 @@ class BeaverWidget : GlanceAppWidget() {
     /** Exact, so the face is drawn at the size the user actually resized to. */
     override val sizeMode: SizeMode = SizeMode.Exact
 
-    private val renderer = HeatmapRenderer()
-
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repository = BeaverRepository.get(context)
         val today = LocalDate.now()
@@ -51,6 +49,11 @@ class BeaverWidget : GlanceAppWidget() {
         val days = repository.rangeNow(range.start, range.endInclusive)
         val density = context.resources.displayMetrics.density
 
+        // Light glass on a dark wallpaper, dark glass on a pale one. This is the
+        // only thing Android tells a third-party app about what is behind the
+        // widget - three representative colours, no pixels.
+        val theme = WallpaperTone.themeFor(context)
+
         // Re-arm here as well as on each firing, so a dropped alarm heals itself
         // the next time the widget draws for any reason.
         DayRollover.scheduleNext(context)
@@ -61,8 +64,9 @@ class BeaverWidget : GlanceAppWidget() {
             val heightPx = (size.height.value * density).toInt().coerceIn(1, MAX_DIMENSION)
 
             val layout = remember(widthPx, heightPx) { FaceLayout(widthPx, heightPx, density) }
-            val bitmap = remember(layout, goals, days) {
-                renderer.render(layout = layout, today = today, goals = goals, days = days)
+            val bitmap = remember(layout, goals, days, theme) {
+                HeatmapRenderer(theme)
+                    .render(layout = layout, today = today, goals = goals, days = days)
             }
 
             Box(modifier = GlanceModifier.fillMaxSize()) {

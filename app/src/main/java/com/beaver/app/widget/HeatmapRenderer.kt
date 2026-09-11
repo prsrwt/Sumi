@@ -27,18 +27,10 @@ import java.time.LocalDate
  * This class knows nothing about widgets or Android components, so its output is
  * a pure function of its inputs.
  */
-class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
+class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.OnDarkWallpaper) {
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
-
-    /**
-     * Bloom behind a lit dot, the way an indicator LED spills light into the
-     * surface around it. Drawn first, then the crisp core over the top.
-     *
-     * BlurMaskFilter only works on a software canvas, which is exactly what we
-     * have - the face is drawn into a Bitmap, never a hardware-accelerated view.
-     */
     private val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         // Serif carries the kanji strokes better than sans at small sizes. The
@@ -65,30 +57,19 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
 
         drawPane(canvas, layout)
         drawGrid(canvas, layout, today, masks)
-        drawChips(canvas, layout, goals, todayMask)
+        drawGlyphs(canvas, layout, goals, todayMask)
 
         return bitmap
     }
 
-    // ---- the pane ----
+    // ---- the slab ----
 
     /**
-     * The glass slab.
-     *
      * Apple's Liquid Glass is blur, refraction, dispersion, specular edges and
-     * adaptive tint. The first three all require sampling the pixels behind the
-     * panel, which a widget cannot do - it is RemoteViews drawn blind in our
-     * process and handed to the launcher, and WallpaperManager stopped handing
-     * out the wallpaper to third-party apps in Android 13. So this builds the
-     * two that do not need the backdrop, plus the cues that sell thickness:
-     *
-     *   - an ambient halo and a contact shadow, so the slab sits above the
-     *     wallpaper rather than being painted onto it
-     *   - specular light on the RIM, unevenly. An earlier version washed a
-     *     gradient across the whole face and read as a lamp aimed at the widget;
-     *     real glass lights at its edges
-     *   - a bevel, bright outside and dark inside, implying the slab has depth
-     *   - fine grain, because frosted glass is not optically smooth
+     * adaptive tint. The first three all need the pixels behind the panel, which
+     * a widget cannot reach, so this builds the rest: light on the rim rather
+     * than across the face, a bevel for thickness, a shadow and halo for lift,
+     * and grain because frosted glass is not optically smooth.
      */
     private fun drawPane(canvas: Canvas, layout: FaceLayout) {
         val pane = RectF(layout.paneLeft, layout.paneTop, layout.paneRight, layout.paneBottom)
@@ -116,24 +97,21 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
         val clip = Path().apply { addRoundRect(pane, r, r, Path.Direction.CW) }
         canvas.save()
         canvas.clipPath(clip)
-
         fill.shader = grainShader
         fill.alpha = theme.grainAlpha
         canvas.drawRect(pane, fill)
         fill.alpha = 255
         fill.shader = null
-
         canvas.restore()
 
-        // Rim light: bright at the top-left, fading out by the middle, with a
-        // weaker return at the bottom-right. Softened so it is a glint and not
-        // a drawn line.
+        // Rim light: bright at the top-left, gone by the middle, a weaker return
+        // at the bottom-right. Softened so it reads as a glint, not a drawn line.
         val inner = RectF(pane).apply { inset(layout.hairline, layout.hairline) }
         stroke.strokeWidth = layout.hairline * 1.6f
         stroke.maskFilter = BlurMaskFilter(layout.hairline, BlurMaskFilter.Blur.NORMAL)
         stroke.shader = LinearGradient(
             pane.left, pane.top, pane.right, pane.bottom,
-            intArrayOf(theme.paneGlint, theme.paneSheenLow, theme.paneSheenLow, theme.paneRim),
+            intArrayOf(theme.paneGlint, Color.TRANSPARENT, Color.TRANSPARENT, theme.paneRim),
             floatArrayOf(0f, 0.34f, 0.7f, 1f),
             Shader.TileMode.CLAMP
         )
@@ -147,54 +125,46 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
         stroke.color = theme.paneBevelDark
         canvas.drawRoundRect(bevel, r, r, stroke)
 
-        // Crisp outer edge so the slab stays defined on busy wallpaper.
         val edge = RectF(pane).apply { inset(layout.hairline * 0.5f, layout.hairline * 0.5f) }
         stroke.color = theme.paneRim
         canvas.drawRoundRect(edge, r, r, stroke)
     }
 
     /**
-     * Tiled monochrome noise. Generated once: a real frosted surface scatters
-     * light unevenly, and without this the pane reads as flat plastic.
+     * Tiled monochrome noise, generated once. The band is narrow on purpose:
+     * full-range noise at device pixel scale reads as television static rather
+     * than a surface.
      */
     private val grainShader: BitmapShader by lazy {
         val size = 64
         val pixels = IntArray(size * size)
         val random = java.util.Random(7)
         for (i in pixels.indices) {
-            // A narrow band, not the full 0..255. Full-range noise at device
-            // pixel scale reads as television static rather than a surface.
-            val v = 104 + random.nextInt(48)
-            pixels[i] = Color.argb(v, 255, 255, 255)
+            pixels[i] = Color.argb(104 + random.nextInt(48), 255, 255, 255)
         }
         val noise = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         noise.setPixels(pixels, 0, size, 0, 0, size, size)
         BitmapShader(noise, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
 
-    // ---- day tiles ----
+    // ---- day dots ----
 
+    /**
+     * Monochrome, and deliberately unlit. These thirty dots previously carried a
+     * gloss overlay and an LED bloom each, which is a great deal of light for
+     * what is meant to be a quiet record of the last month.
+     */
     private fun drawGrid(
         canvas: Canvas,
         layout: FaceLayout,
         today: LocalDate,
         masks: Map<LocalDate, Int>
     ) {
-        val tileBloom = BlurMaskFilter(
-            (layout.cell * theme.bloomRadiusRatio).coerceAtLeast(0.6f),
-            BlurMaskFilter.Blur.NORMAL
-        )
-
-        // Built once and reused by translating the canvas per tile, rather than
+        // Built once and reused by translating the canvas per dot, rather than
         // allocating a shader for every cell.
         val frost = LinearGradient(
             0f, 0f, 0f, layout.cell,
             theme.frostTop, theme.frostBottom,
-            Shader.TileMode.CLAMP
-        )
-        val gloss = LinearGradient(
-            0f, 0f, 0f, layout.cell,
-            theme.glossTop, theme.glossBottom,
             Shader.TileMode.CLAMP
         )
 
@@ -219,22 +189,9 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
                         canvas.drawCircle(mid, mid, r, fill)
                         fill.shader = null
                     } else {
-                        // The bloom carries the ramp's own alpha, so a one-goal
-                        // day barely glows and a full day reads as properly lit.
-                        glow.maskFilter = tileBloom
-                        glow.color = withAlpha(
-                            filled,
-                            (Color.alpha(filled) * theme.bloomStrength).toInt().coerceIn(0, 255)
-                        )
-                        canvas.drawCircle(mid, mid, r * 0.90f, glow)
-                        glow.maskFilter = null
-
                         fill.shader = null
                         fill.color = filled
                         canvas.drawCircle(mid, mid, r, fill)
-                        fill.shader = gloss
-                        canvas.drawCircle(mid, mid, r, fill)
-                        fill.shader = null
                     }
                     stroke.shader = null
                     stroke.color = theme.frostEdge
@@ -259,71 +216,41 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
         }
     }
 
-    // ---- element chips ----
+    // ---- element glyphs ----
 
-    private fun drawChips(
+    /**
+     * Bare characters, no disc behind them. The glyph itself carries the state:
+     * faint while the goal is open, full strength and faintly lit once done.
+     */
+    private fun drawGlyphs(
         canvas: Canvas,
         layout: FaceLayout,
         goals: List<Goal>,
         todayMask: Int
     ) {
-        val chipBloom = BlurMaskFilter(
-            (layout.chipRadius * theme.bloomRadiusRatio * 1.5f).coerceAtLeast(0.6f),
-            BlurMaskFilter.Blur.NORMAL
-        )
-
-        val chipFrost = LinearGradient(
-            0f, layout.chipCenterY - layout.chipRadius,
-            0f, layout.chipCenterY + layout.chipRadius,
-            theme.chipTop, theme.chipBottom,
-            Shader.TileMode.CLAMP
-        )
-
         text.textSize = layout.kanjiSize
         val metrics = text.fontMetrics
         val baseline = layout.chipCenterY - (metrics.ascent + metrics.descent) / 2
+
+        val glyphBloom = BlurMaskFilter(
+            (layout.kanjiSize * 0.26f).coerceAtLeast(0.6f),
+            BlurMaskFilter.Blur.NORMAL
+        )
 
         for (slot in 0 until FaceLayout.GOAL_SLOTS) {
             val cx = layout.slotCenterX(slot)
             val done = (todayMask shr slot) and 1 == 1
             val element = goals.getOrNull(slot)?.element ?: Element.forSlot(slot)
 
-            // Frosted chip underneath, always - the glass reads the same whether
-            // the goal is done or not; only what fills it changes.
-            fill.shader = chipFrost
-            canvas.drawCircle(cx, layout.chipCenterY, layout.chipRadius, fill)
-            fill.shader = null
-
             if (done) {
-                glow.maskFilter = chipBloom
-                glow.color = withAlpha(element.color, theme.chipBloomAlpha)
-                canvas.drawCircle(cx, layout.chipCenterY, layout.chipRadius * 0.94f, glow)
-                glow.maskFilter = null
-
-                fill.color = withAlpha(element.color, theme.chipFillAlpha)
-                canvas.drawCircle(cx, layout.chipCenterY, layout.chipRadius, fill)
-            } else {
-                // Without this the glyph competes with whatever the wallpaper is
-                // doing behind the frost - violet 空 on a violet photo vanished.
-                fill.color = theme.chipIdleScrim
-                canvas.drawCircle(cx, layout.chipCenterY, layout.chipRadius, fill)
+                // Just enough halo to read as lit without becoming a lamp.
+                text.maskFilter = glyphBloom
+                text.color = withAlpha(element.color, theme.kanjiGlowAlpha)
+                canvas.drawText(element.kanji, cx, baseline, text)
+                text.maskFilter = null
             }
 
-            stroke.shader = null
-            stroke.color = theme.chipRim
-            stroke.strokeWidth = layout.hairline
-            canvas.drawCircle(
-                cx,
-                layout.chipCenterY,
-                layout.chipRadius - layout.hairline / 2,
-                stroke
-            )
-
-            text.color = if (done) {
-                theme.kanjiOnColor
-            } else {
-                withAlpha(element.color, theme.kanjiIdleAlpha)
-            }
+            text.color = if (done) element.color else withAlpha(element.color, theme.kanjiIdleAlpha)
             canvas.drawText(element.kanji, cx, baseline, text)
         }
     }
