@@ -39,8 +39,8 @@ class FaceLayout(
 
     // ---- bands ----
 
-    val chipBandHeight: Float = innerHeight * 0.34f
-    private val bandGap: Float = innerHeight * 0.08f
+    val chipBandHeight: Float = innerHeight * 0.30f
+    private val bandGap: Float = innerHeight * 0.13f
     private val gridBandHeight: Float = innerHeight - chipBandHeight - bandGap
 
     val chipBandTop: Float = innerTop + gridBandHeight + bandGap
@@ -55,7 +55,8 @@ class FaceLayout(
     ).coerceAtLeast(1f)
 
     val gap: Float = cell * GAP_RATIO
-    val cellRadius: Float = cell * 0.30f
+    /** Half the cell: the day marks are circles, not rounded squares. */
+    val cellRadius: Float = cell * 0.5f
 
     private val gridWidth: Float = COLUMNS * cell + (COLUMNS - 1) * gap
     private val gridHeight: Float = ROWS * cell + (ROWS - 1) * gap
@@ -70,8 +71,8 @@ class FaceLayout(
 
     val slotWidth: Float = innerWidth / GOAL_SLOTS
     val chipCenterY: Float = chipBandTop + chipBandHeight * 0.5f
-    val chipRadius: Float = min(chipBandHeight * 0.46f, slotWidth * 0.34f)
-    val kanjiSize: Float = chipRadius * 1.22f
+    val chipRadius: Float = min(chipBandHeight * 0.38f, slotWidth * 0.26f)
+    val kanjiSize: Float = chipRadius * 1.16f
 
     fun slotCenterX(index: Int): Float = innerLeft + slotWidth * (index + 0.5f)
 
@@ -96,7 +97,7 @@ class FaceLayout(
         const val ROWS = 3
         const val DAYS = COLUMNS * ROWS
         const val GOAL_SLOTS = 5
-        private const val GAP_RATIO = 0.26f
+        private const val GAP_RATIO = 0.46f
 
         /** Exactly the window the grid shows; nothing older is ever needed. */
         fun maxRange(today: LocalDate): ClosedRange<LocalDate> =

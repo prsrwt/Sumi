@@ -1,6 +1,7 @@
 package com.beaver.app.widget
 
 import android.graphics.Bitmap
+import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
@@ -29,6 +30,15 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+
+    /**
+     * Bloom behind a lit dot, the way an indicator LED spills light into the
+     * surface around it. Drawn first, then the crisp core over the top.
+     *
+     * BlurMaskFilter only works on a software canvas, which is exactly what we
+     * have - the face is drawn into a Bitmap, never a hardware-accelerated view.
+     */
+    private val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         // Serif carries the kanji strokes better than sans at small sizes. The
         // glyphs resolve through the system CJK fallback; Phase D bundles a
@@ -61,6 +71,14 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
 
     // ---- the pane ----
 
+    /**
+     * A flat frosted slab.
+     *
+     * This used to carry a diagonal specular sweep and a lit top edge, which is
+     * the textbook way to fake glass. On a real phone it just looked like a lamp
+     * was pointed at the top of the widget, so both are gone: one even fill and
+     * one even rim, lit the same everywhere.
+     */
     private fun drawPane(canvas: Canvas, layout: FaceLayout) {
         val pane = RectF(layout.paneLeft, layout.paneTop, layout.paneRight, layout.paneBottom)
         val r = layout.paneRadius
@@ -69,33 +87,9 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
         fill.color = theme.paneFill
         canvas.drawRoundRect(pane, r, r, fill)
 
-        // Specular sweep, clipped to the pane so light appears to travel across
-        // one continuous surface rather than lighting each tile separately.
-        val clip = Path().apply { addRoundRect(pane, r, r, Path.Direction.CW) }
-        canvas.save()
-        canvas.clipPath(clip)
-        fill.shader = LinearGradient(
-            pane.left, pane.top,
-            pane.left + pane.width() * 0.7f, pane.bottom,
-            theme.paneSheenHigh, theme.paneSheenLow,
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRect(pane, fill)
-        fill.shader = null
-        canvas.restore()
-
         val inner = RectF(pane).apply { inset(layout.hairline * 0.5f, layout.hairline * 0.5f) }
-        stroke.strokeWidth = layout.hairline
-
-        // Lit top edge fading down - the strongest single cue that this is glass.
-        stroke.shader = LinearGradient(
-            0f, pane.top, 0f, pane.top + pane.height() * 0.55f,
-            theme.paneTopHighlight, theme.paneSheenLow,
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRoundRect(inner, r, r, stroke)
-
         stroke.shader = null
+        stroke.strokeWidth = layout.hairline
         stroke.color = theme.paneRim
         canvas.drawRoundRect(inner, r, r, stroke)
     }
@@ -108,6 +102,11 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
         today: LocalDate,
         masks: Map<LocalDate, Int>
     ) {
+        val tileBloom = BlurMaskFilter(
+            (layout.cell * theme.bloomRadiusRatio).coerceAtLeast(0.6f),
+            BlurMaskFilter.Blur.NORMAL
+        )
+
         // Built once and reused by translating the canvas per tile, rather than
         // allocating a shader for every cell.
         val frost = LinearGradient(
@@ -121,7 +120,7 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
             Shader.TileMode.CLAMP
         )
 
-        val tile = RectF(0f, 0f, layout.cell, layout.cell)
+        val mid = layout.cell / 2
         val r = layout.cellRadius
 
         for (row in 0 until FaceLayout.ROWS) {
@@ -134,25 +133,35 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
                 if (date.isAfter(today)) {
                     fill.shader = null
                     fill.color = theme.futureCell
-                    canvas.drawRoundRect(tile, r, r, fill)
+                    canvas.drawCircle(mid, mid, r, fill)
                 } else {
                     val filled = theme.cellColor(Integer.bitCount(masks[date] ?: 0))
                     if (filled == null) {
                         fill.shader = frost
-                        canvas.drawRoundRect(tile, r, r, fill)
+                        canvas.drawCircle(mid, mid, r, fill)
                         fill.shader = null
                     } else {
+                        // The bloom carries the ramp's own alpha, so a one-goal
+                        // day barely glows and a full day reads as properly lit.
+                        glow.maskFilter = tileBloom
+                        glow.color = withAlpha(
+                            filled,
+                            (Color.alpha(filled) * theme.bloomStrength).toInt().coerceIn(0, 255)
+                        )
+                        canvas.drawCircle(mid, mid, r * 0.90f, glow)
+                        glow.maskFilter = null
+
                         fill.shader = null
                         fill.color = filled
-                        canvas.drawRoundRect(tile, r, r, fill)
+                        canvas.drawCircle(mid, mid, r, fill)
                         fill.shader = gloss
-                        canvas.drawRoundRect(tile, r, r, fill)
+                        canvas.drawCircle(mid, mid, r, fill)
                         fill.shader = null
                     }
                     stroke.shader = null
                     stroke.color = theme.frostEdge
                     stroke.strokeWidth = layout.hairline
-                    canvas.drawRoundRect(tile, r, r, stroke)
+                    canvas.drawCircle(mid, mid, r - layout.hairline / 2, stroke)
                 }
 
                 canvas.restore()
@@ -161,13 +170,12 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
                     stroke.shader = null
                     stroke.color = theme.todayRing
                     stroke.strokeWidth = layout.hairline
-                    val ring = RectF(
-                        layout.cellLeft(column) - layout.hairline,
-                        layout.cellTop(row) - layout.hairline,
-                        layout.cellLeft(column) + layout.cell + layout.hairline,
-                        layout.cellTop(row) + layout.cell + layout.hairline
+                    canvas.drawCircle(
+                        layout.cellLeft(column) + mid,
+                        layout.cellTop(row) + mid,
+                        r + layout.hairline * 1.5f,
+                        stroke
                     )
-                    canvas.drawRoundRect(ring, r, r, stroke)
                 }
             }
         }
@@ -181,6 +189,11 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
         goals: List<Goal>,
         todayMask: Int
     ) {
+        val chipBloom = BlurMaskFilter(
+            (layout.chipRadius * theme.bloomRadiusRatio * 1.5f).coerceAtLeast(0.6f),
+            BlurMaskFilter.Blur.NORMAL
+        )
+
         val chipFrost = LinearGradient(
             0f, layout.chipCenterY - layout.chipRadius,
             0f, layout.chipCenterY + layout.chipRadius,
@@ -204,6 +217,11 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
             fill.shader = null
 
             if (done) {
+                glow.maskFilter = chipBloom
+                glow.color = withAlpha(element.color, theme.chipBloomAlpha)
+                canvas.drawCircle(cx, layout.chipCenterY, layout.chipRadius * 0.94f, glow)
+                glow.maskFilter = null
+
                 fill.color = withAlpha(element.color, theme.chipFillAlpha)
                 canvas.drawCircle(cx, layout.chipCenterY, layout.chipRadius, fill)
             } else {

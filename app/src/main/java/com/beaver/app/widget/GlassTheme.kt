@@ -42,6 +42,14 @@ data class GlassTheme(
     val kanjiIdleAlpha: Int,
     /** Darkens an untouched chip so its glyph has contrast on any wallpaper. */
     val chipIdleScrim: Int,
+    /** Bloom around a completed chip. */
+    val chipBloomAlpha: Int,
+
+    // ---- bloom ----
+    /** Blur radius of a lit dot's halo, as a fraction of the dot's size. */
+    val bloomRadiusRatio: Float,
+    /** How much of a dot's own opacity carries into its halo. */
+    val bloomStrength: Float,
 
     /** Index is the number of goals completed, 1..5; index 0 is unused. */
     val ramp: IntArray
@@ -73,21 +81,25 @@ data class GlassTheme(
             paneRim = Color.argb(56, 255, 255, 255),
             paneTopHighlight = Color.argb(120, 255, 255, 255),
 
-            frostTop = Color.argb(88, 255, 255, 255),
-            frostBottom = Color.argb(44, 255, 255, 255),
+            frostTop = Color.argb(74, 255, 255, 255),
+            frostBottom = Color.argb(58, 255, 255, 255),
             frostEdge = Color.argb(76, 255, 255, 255),
-            glossTop = Color.argb(86, 255, 255, 255),
+            glossTop = Color.argb(34, 255, 255, 255),
             glossBottom = Color.argb(0, 255, 255, 255),
             todayRing = Color.argb(240, 255, 255, 255),
             futureCell = Color.argb(20, 255, 255, 255),
 
-            chipTop = Color.argb(116, 255, 255, 255),
-            chipBottom = Color.argb(58, 255, 255, 255),
+            chipTop = Color.argb(96, 255, 255, 255),
+            chipBottom = Color.argb(78, 255, 255, 255),
             chipRim = Color.argb(90, 255, 255, 255),
             kanjiOnColor = Color.argb(255, 28, 22, 12),
             chipFillAlpha = 226,
             kanjiIdleAlpha = 240,
             chipIdleScrim = Color.argb(54, 18, 16, 12),
+            chipBloomAlpha = 165,
+
+            bloomRadiusRatio = 0.34f,
+            bloomStrength = 0.68f,
 
             // Pale cream through to rich gold. Two earlier attempts failed here:
             // mixing brown into the low end looked like dirt, and dropping the
