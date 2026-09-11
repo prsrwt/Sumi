@@ -23,7 +23,8 @@ class FaceLayout(
 
     // ---- the pane ----
 
-    private val paneInset: Float = 3f * density
+    // Room outside the slab for its contact shadow to fall into.
+    private val paneInset: Float = 7f * density
     val paneLeft: Float = paneInset
     val paneTop: Float = paneInset
     val paneRight: Float = widthPx - paneInset

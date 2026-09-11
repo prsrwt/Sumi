@@ -1,6 +1,7 @@
 package com.beaver.app.widget
 
 import android.graphics.Bitmap
+import android.graphics.BitmapShader
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
 import android.graphics.Color
@@ -72,26 +73,103 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
     // ---- the pane ----
 
     /**
-     * A flat frosted slab.
+     * The glass slab.
      *
-     * This used to carry a diagonal specular sweep and a lit top edge, which is
-     * the textbook way to fake glass. On a real phone it just looked like a lamp
-     * was pointed at the top of the widget, so both are gone: one even fill and
-     * one even rim, lit the same everywhere.
+     * Apple's Liquid Glass is blur, refraction, dispersion, specular edges and
+     * adaptive tint. The first three all require sampling the pixels behind the
+     * panel, which a widget cannot do - it is RemoteViews drawn blind in our
+     * process and handed to the launcher, and WallpaperManager stopped handing
+     * out the wallpaper to third-party apps in Android 13. So this builds the
+     * two that do not need the backdrop, plus the cues that sell thickness:
+     *
+     *   - an ambient halo and a contact shadow, so the slab sits above the
+     *     wallpaper rather than being painted onto it
+     *   - specular light on the RIM, unevenly. An earlier version washed a
+     *     gradient across the whole face and read as a lamp aimed at the widget;
+     *     real glass lights at its edges
+     *   - a bevel, bright outside and dark inside, implying the slab has depth
+     *   - fine grain, because frosted glass is not optically smooth
      */
     private fun drawPane(canvas: Canvas, layout: FaceLayout) {
         val pane = RectF(layout.paneLeft, layout.paneTop, layout.paneRight, layout.paneBottom)
         val r = layout.paneRadius
+        val blurRadius = (layout.paneRadius * 0.42f).coerceAtLeast(1f)
+
+        // Contact shadow, pushed down so the light reads as coming from above.
+        glow.shader = null
+        glow.maskFilter = BlurMaskFilter(blurRadius, BlurMaskFilter.Blur.NORMAL)
+        glow.color = theme.paneShadow
+        canvas.save()
+        canvas.translate(0f, layout.hairline * 2.5f)
+        canvas.drawRoundRect(pane, r, r, glow)
+        canvas.restore()
+
+        // Ambient halo, even on all sides.
+        glow.color = theme.paneHalo
+        canvas.drawRoundRect(pane, r, r, glow)
+        glow.maskFilter = null
 
         fill.shader = null
         fill.color = theme.paneFill
         canvas.drawRoundRect(pane, r, r, fill)
 
-        val inner = RectF(pane).apply { inset(layout.hairline * 0.5f, layout.hairline * 0.5f) }
-        stroke.shader = null
-        stroke.strokeWidth = layout.hairline
-        stroke.color = theme.paneRim
+        val clip = Path().apply { addRoundRect(pane, r, r, Path.Direction.CW) }
+        canvas.save()
+        canvas.clipPath(clip)
+
+        fill.shader = grainShader
+        fill.alpha = theme.grainAlpha
+        canvas.drawRect(pane, fill)
+        fill.alpha = 255
+        fill.shader = null
+
+        canvas.restore()
+
+        // Rim light: bright at the top-left, fading out by the middle, with a
+        // weaker return at the bottom-right. Softened so it is a glint and not
+        // a drawn line.
+        val inner = RectF(pane).apply { inset(layout.hairline, layout.hairline) }
+        stroke.strokeWidth = layout.hairline * 1.6f
+        stroke.maskFilter = BlurMaskFilter(layout.hairline, BlurMaskFilter.Blur.NORMAL)
+        stroke.shader = LinearGradient(
+            pane.left, pane.top, pane.right, pane.bottom,
+            intArrayOf(theme.paneGlint, theme.paneSheenLow, theme.paneSheenLow, theme.paneRim),
+            floatArrayOf(0f, 0.34f, 0.7f, 1f),
+            Shader.TileMode.CLAMP
+        )
         canvas.drawRoundRect(inner, r, r, stroke)
+        stroke.maskFilter = null
+        stroke.shader = null
+
+        // Bevel: a dark line just inside the bright one gives the edge thickness.
+        val bevel = RectF(pane).apply { inset(layout.hairline * 2.2f, layout.hairline * 2.2f) }
+        stroke.strokeWidth = layout.hairline
+        stroke.color = theme.paneBevelDark
+        canvas.drawRoundRect(bevel, r, r, stroke)
+
+        // Crisp outer edge so the slab stays defined on busy wallpaper.
+        val edge = RectF(pane).apply { inset(layout.hairline * 0.5f, layout.hairline * 0.5f) }
+        stroke.color = theme.paneRim
+        canvas.drawRoundRect(edge, r, r, stroke)
+    }
+
+    /**
+     * Tiled monochrome noise. Generated once: a real frosted surface scatters
+     * light unevenly, and without this the pane reads as flat plastic.
+     */
+    private val grainShader: BitmapShader by lazy {
+        val size = 64
+        val pixels = IntArray(size * size)
+        val random = java.util.Random(7)
+        for (i in pixels.indices) {
+            // A narrow band, not the full 0..255. Full-range noise at device
+            // pixel scale reads as television static rather than a surface.
+            val v = 104 + random.nextInt(48)
+            pixels[i] = Color.argb(v, 255, 255, 255)
+        }
+        val noise = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        noise.setPixels(pixels, 0, size, 0, 0, size, size)
+        BitmapShader(noise, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
 
     // ---- day tiles ----

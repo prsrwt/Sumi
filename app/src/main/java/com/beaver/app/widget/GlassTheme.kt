@@ -20,6 +20,16 @@ data class GlassTheme(
     val paneSheenLow: Int,
     val paneRim: Int,
     val paneTopHighlight: Int,
+    /** Contact shadow that lifts the slab off the wallpaper. */
+    val paneShadow: Int,
+    /** Soft ambient halo around the slab, the way OxygenOS lights its glass. */
+    val paneHalo: Int,
+    /** Tight specular glint on the rim. Real glass lights at its edges. */
+    val paneGlint: Int,
+    /** Inner bevel line, implying the slab has thickness. */
+    val paneBevelDark: Int,
+    /** Strength of the surface grain; frosted glass is not optically smooth. */
+    val grainAlpha: Int,
 
     // ---- day tiles ----
     val frostTop: Int,
@@ -80,6 +90,11 @@ data class GlassTheme(
             paneSheenLow = Color.argb(0, 255, 255, 255),
             paneRim = Color.argb(56, 255, 255, 255),
             paneTopHighlight = Color.argb(120, 255, 255, 255),
+            paneShadow = Color.argb(92, 0, 0, 0),
+            paneHalo = Color.argb(46, 255, 255, 255),
+            paneGlint = Color.argb(150, 255, 255, 255),
+            paneBevelDark = Color.argb(44, 0, 0, 0),
+            grainAlpha = 9,
 
             frostTop = Color.argb(74, 255, 255, 255),
             frostBottom = Color.argb(58, 255, 255, 255),
