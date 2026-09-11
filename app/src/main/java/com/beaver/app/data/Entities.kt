@@ -1,10 +1,10 @@
-package com.fings.app.data
+package com.beaver.app.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.LocalDate
 
-/** Fings tracks exactly five goals, every day. */
+/** Beaver tracks exactly five goals, every day. */
 const val GOAL_COUNT = 5
 
 /**

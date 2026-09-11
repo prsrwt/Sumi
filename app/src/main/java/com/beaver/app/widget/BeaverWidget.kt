@@ -1,4 +1,4 @@
-package com.fings.app.widget
+package com.beaver.app.widget
 
 import android.content.Context
 import androidx.compose.runtime.remember
@@ -27,12 +27,12 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
-import com.fings.app.data.DayProgress
-import com.fings.app.data.FingsRepository
-import com.fings.app.data.Goal
+import com.beaver.app.data.DayProgress
+import com.beaver.app.data.BeaverRepository
+import com.beaver.app.data.Goal
 import java.time.LocalDate
 
-class FingsWidget : GlanceAppWidget() {
+class BeaverWidget : GlanceAppWidget() {
 
     /** Exact, so the face is drawn at the size the user actually resized to. */
     override val sizeMode: SizeMode = SizeMode.Exact
@@ -40,7 +40,7 @@ class FingsWidget : GlanceAppWidget() {
     private val renderer = HeatmapRenderer()
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = FingsRepository.get(context)
+        val repository = BeaverRepository.get(context)
         val today = LocalDate.now()
 
         // Fetched before composing, and wide enough for the largest grid any size
@@ -68,7 +68,7 @@ class FingsWidget : GlanceAppWidget() {
             Box(modifier = GlanceModifier.fillMaxSize()) {
                 Image(
                     provider = ImageProvider(bitmap),
-                    contentDescription = "Fings goal heatmap",
+                    contentDescription = "Beaver goal heatmap",
                     contentScale = ContentScale.FillBounds,
                     modifier = GlanceModifier.fillMaxSize()
                 )

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Fings</string>
-    <string name="widget_label">Fings</string>
+    <string name="app_name">Beaver</string>
+    <string name="widget_label">Beaver</string>
     <string name="widget_description">Five things a day, at a glance.</string>
 </resources>

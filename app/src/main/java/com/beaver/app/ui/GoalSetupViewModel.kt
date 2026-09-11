@@ -1,13 +1,13 @@
-package com.fings.app.ui
+package com.beaver.app.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.fings.app.data.DayProgress
-import com.fings.app.data.FingsRepository
-import com.fings.app.data.GOAL_COUNT
-import com.fings.app.data.Goal
-import com.fings.app.widget.FaceLayout
+import com.beaver.app.data.DayProgress
+import com.beaver.app.data.BeaverRepository
+import com.beaver.app.data.GOAL_COUNT
+import com.beaver.app.data.Goal
+import com.beaver.app.widget.FaceLayout
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +26,7 @@ import kotlin.random.Random
 
 class GoalSetupViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val repository = FingsRepository.get(app)
+    private val repository = BeaverRepository.get(app)
 
     private val today: LocalDate = LocalDate.now()
     private val historyRange = FaceLayout.maxRange(today)

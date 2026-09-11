@@ -1,4 +1,4 @@
-package com.fings.app.data
+package com.beaver.app.data
 
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +10,7 @@ import java.time.LocalDate
  * UI and the widget consume. Dates cross this boundary as [LocalDate]; epoch-day
  * longs never leak past it.
  */
-class FingsRepository(private val dao: FingsDao) {
+class BeaverRepository(private val dao: BeaverDao) {
 
     // ---- goals ----
 
@@ -70,11 +70,11 @@ class FingsRepository(private val dao: FingsDao) {
 
     companion object {
         @Volatile
-        private var instance: FingsRepository? = null
+        private var instance: BeaverRepository? = null
 
-        fun get(context: Context): FingsRepository =
+        fun get(context: Context): BeaverRepository =
             instance ?: synchronized(this) {
-                instance ?: FingsRepository(FingsDatabase.get(context).dao())
+                instance ?: BeaverRepository(BeaverDatabase.get(context).dao())
                     .also { instance = it }
             }
     }

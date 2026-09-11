@@ -8,13 +8,13 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Fings">
+        android:theme="@style/Theme.Beaver">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Fings">
+            android:theme="@style/Theme.Beaver">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -22,7 +22,7 @@
         </activity>
 
         <receiver
-            android:name=".widget.FingsWidgetReceiver"
+            android:name=".widget.BeaverWidgetReceiver"
             android:exported="true"
             android:label="@string/widget_label">
             <intent-filter>
@@ -30,7 +30,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/fings_widget_info" />
+                android:resource="@xml/beaver_widget_info" />
         </receiver>
 
         <receiver

@@ -1,4 +1,4 @@
-package com.fings.app.widget
+package com.beaver.app.widget
 
 import java.time.DayOfWeek
 import java.time.LocalDate

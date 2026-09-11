@@ -1,4 +1,4 @@
-package com.fings.app.widget
+package com.beaver.app.widget
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -10,8 +10,8 @@ import android.graphics.Shader
 import android.graphics.Typeface
 import android.text.TextPaint
 import android.text.TextUtils
-import com.fings.app.data.DayProgress
-import com.fings.app.data.Goal
+import com.beaver.app.data.DayProgress
+import com.beaver.app.data.Goal
 import java.time.LocalDate
 
 /**
@@ -109,7 +109,7 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Dark) {
         text.color = theme.titleColor
         text.textSize = layout.titleTextSize
         text.textAlign = Paint.Align.LEFT
-        canvas.drawText("Fings", layout.panelLeft, baselineFor(centerY), text)
+        canvas.drawText("Beaver", layout.panelLeft, baselineFor(centerY), text)
 
         text.color = theme.mutedColor
         text.textSize = layout.countTextSize

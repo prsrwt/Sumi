@@ -1,4 +1,4 @@
-package com.fings.app
+package com.beaver.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.lifecycleScope
-import com.fings.app.ui.GoalSetupScreen
-import com.fings.app.widget.FingsWidget
+import com.beaver.app.ui.GoalSetupScreen
+import com.beaver.app.widget.BeaverWidget
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            FingsTheme {
+            BeaverTheme {
                 Scaffold { innerPadding ->
                     GoalSetupScreen(modifier = Modifier.padding(innerPadding))
                 }
@@ -37,12 +37,12 @@ class MainActivity : ComponentActivity() {
      */
     override fun onStop() {
         super.onStop()
-        lifecycleScope.launch { FingsWidget().updateAll(this@MainActivity) }
+        lifecycleScope.launch { BeaverWidget().updateAll(this@MainActivity) }
     }
 }
 
 @Composable
-private fun FingsTheme(content: @Composable () -> Unit) {
+private fun BeaverTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Color(0xFF4ADE80),

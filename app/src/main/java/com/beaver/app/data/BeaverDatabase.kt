@@ -1,4 +1,4 @@
-package com.fings.app.data
+package com.beaver.app.data
 
 import android.content.Context
 import androidx.room.Database
@@ -11,21 +11,21 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     version = 1,
     exportSchema = false
 )
-abstract class FingsDatabase : RoomDatabase() {
+abstract class BeaverDatabase : RoomDatabase() {
 
-    abstract fun dao(): FingsDao
+    abstract fun dao(): BeaverDao
 
     companion object {
         @Volatile
-        private var instance: FingsDatabase? = null
+        private var instance: BeaverDatabase? = null
 
-        fun get(context: Context): FingsDatabase =
+        fun get(context: Context): BeaverDatabase =
             instance ?: synchronized(this) {
                 instance ?: build(context.applicationContext).also { instance = it }
             }
 
-        private fun build(context: Context): FingsDatabase =
-            Room.databaseBuilder(context, FingsDatabase::class.java, "fings.db")
+        private fun build(context: Context): BeaverDatabase =
+            Room.databaseBuilder(context, BeaverDatabase::class.java, "beaver.db")
                 .addCallback(SeedGoals)
                 .build()
 

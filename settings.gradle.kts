@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Fings"
+rootProject.name = "Beaver"
 include(":app")

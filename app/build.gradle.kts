@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.fings.app"
+    namespace = "com.beaver.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.fings.app"
+        applicationId = "com.beaver.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

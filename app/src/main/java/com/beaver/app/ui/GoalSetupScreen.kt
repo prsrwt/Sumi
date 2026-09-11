@@ -1,4 +1,4 @@
-package com.fings.app.ui
+package com.beaver.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,10 +23,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fings.app.BuildConfig
-import com.fings.app.data.DayProgress
-import com.fings.app.data.GOAL_COUNT
-import com.fings.app.data.Goal
+import com.beaver.app.BuildConfig
+import com.beaver.app.data.DayProgress
+import com.beaver.app.data.GOAL_COUNT
+import com.beaver.app.data.Goal
 import java.time.LocalDate
 
 @Composable
@@ -70,7 +70,7 @@ private fun GoalList(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Your five fings",
+            text = "Your five things",
             style = MaterialTheme.typography.headlineMedium
         )
         Text(
