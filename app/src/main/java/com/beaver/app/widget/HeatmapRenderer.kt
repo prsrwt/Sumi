@@ -4,12 +4,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
-import android.graphics.Typeface
-import android.text.TextPaint
-import android.text.TextUtils
 import com.beaver.app.data.DayProgress
 import com.beaver.app.data.Goal
 import java.time.LocalDate
@@ -19,18 +15,15 @@ import java.time.LocalDate
  *
  * Glance widgets are RemoteViews under the hood, which offer no gradients, no
  * antialiasing and no custom shapes. Drawing the face ourselves is the only way
- * to get the glass treatment, and it collapses ~90 grid views into one image.
+ * to get the glass treatment, and it collapses ~180 tiles into one image.
  *
  * This class knows nothing about widgets or Android components, so its output is
  * a pure function of its inputs.
  */
-class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Dark) {
+class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Default) {
 
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
-    private val text = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-    }
 
     fun render(
         layout: FaceLayout,
@@ -47,181 +40,116 @@ class HeatmapRenderer(private val theme: GlassTheme = GlassTheme.Dark) {
         val masks = days.associate { it.date to it.doneMask }
         val todayMask = masks[today] ?: 0
 
-        drawGlassPanel(canvas, layout)
-        drawHeader(canvas, layout, todayMask)
-        drawWeekdayLabels(canvas, layout)
-        drawGrid(canvas, layout, today, masks)
-        drawGoalDots(canvas, layout, goals, todayMask)
+        // Built once and reused by translating the canvas per tile, rather than
+        // allocating a shader for every one of ~180 cells.
+        val frost = LinearGradient(
+            0f, 0f, 0f, layout.cell,
+            theme.frostTop, theme.frostBottom,
+            Shader.TileMode.CLAMP
+        )
+        val gloss = LinearGradient(
+            0f, 0f, 0f, layout.cell,
+            theme.glossTop, theme.glossBottom,
+            Shader.TileMode.CLAMP
+        )
+
+        drawGrid(canvas, layout, today, masks, frost, gloss)
+        drawMarks(canvas, layout, todayMask)
 
         return bitmap
-    }
-
-    // ---- the glass ----
-
-    private fun drawGlassPanel(canvas: Canvas, layout: FaceLayout) {
-        val panel = RectF(
-            layout.panelLeft, layout.panelTop,
-            layout.panelRight, layout.panelBottom
-        )
-        val r = layout.cornerRadius
-
-        // Translucent base. Everything above it is a highlight, never an opaque fill.
-        fill.shader = null
-        fill.color = theme.scrim
-        canvas.drawRoundRect(panel, r, r, fill)
-
-        // Diagonal sheen, clipped to the panel so it reads as light across glass.
-        val clip = Path().apply { addRoundRect(panel, r, r, Path.Direction.CW) }
-        canvas.save()
-        canvas.clipPath(clip)
-        fill.shader = LinearGradient(
-            panel.left, panel.top,
-            panel.left + panel.width() * 0.75f, panel.bottom,
-            theme.sheenHigh, theme.sheenLow,
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRect(panel, fill)
-        fill.shader = null
-        canvas.restore()
-
-        // Bright edge fading from the top - the cue that sells a glass surface.
-        val inset = layout.hairline * 0.5f
-        val inner = RectF(panel).apply { inset(inset, inset) }
-        stroke.strokeWidth = layout.hairline
-        stroke.shader = LinearGradient(
-            0f, panel.top, 0f, panel.top + panel.height() * 0.6f,
-            theme.innerHighlight, theme.sheenLow,
-            Shader.TileMode.CLAMP
-        )
-        canvas.drawRoundRect(inner, r, r, stroke)
-
-        // Even outer border so the panel keeps a defined edge on busy wallpaper.
-        stroke.shader = null
-        stroke.color = theme.border
-        canvas.drawRoundRect(inner, r, r, stroke)
-    }
-
-    // ---- content ----
-
-    private fun drawHeader(canvas: Canvas, layout: FaceLayout, todayMask: Int) {
-        val centerY = layout.headerTop + layout.headerHeight / 2
-
-        text.color = theme.titleColor
-        text.textSize = layout.titleTextSize
-        text.textAlign = Paint.Align.LEFT
-        canvas.drawText("Beaver", layout.panelLeft, baselineFor(centerY), text)
-
-        text.color = theme.mutedColor
-        text.textSize = layout.countTextSize
-        text.textAlign = Paint.Align.RIGHT
-        canvas.drawText(
-            "${Integer.bitCount(todayMask)}/${FaceLayout.GOAL_SLOTS}",
-            layout.panelRight,
-            baselineFor(centerY),
-            text
-        )
-    }
-
-    private fun drawWeekdayLabels(canvas: Canvas, layout: FaceLayout) {
-        if (!layout.showWeekdayLabels) return
-        text.color = theme.mutedColor
-        text.textSize = layout.weekdayTextSize
-        text.textAlign = Paint.Align.LEFT
-        for (row in 0 until FaceLayout.ROWS) {
-            val centerY = layout.cellTop(row) + layout.cell / 2
-            canvas.drawText(WEEKDAY_LETTERS[row], layout.panelLeft, baselineFor(centerY), text)
-        }
     }
 
     private fun drawGrid(
         canvas: Canvas,
         layout: FaceLayout,
         today: LocalDate,
-        masks: Map<LocalDate, Int>
+        masks: Map<LocalDate, Int>,
+        frost: Shader,
+        gloss: Shader
     ) {
-        fill.shader = null
-        stroke.shader = null
-        val rect = RectF()
+        val tile = RectF(0f, 0f, layout.cell, layout.cell)
+        val r = layout.cellRadius
+
         for (column in 0 until layout.columns) {
             for (row in 0 until FaceLayout.ROWS) {
                 val date = layout.dateAt(today, column, row)
-                rect.set(
-                    layout.cellLeft(column),
-                    layout.cellTop(row),
-                    layout.cellLeft(column) + layout.cell,
-                    layout.cellTop(row) + layout.cell
-                )
 
-                fill.color = if (date.isAfter(today)) {
-                    theme.futureCell
-                } else {
-                    theme.cellColor(Integer.bitCount(masks[date] ?: 0))
+                canvas.save()
+                canvas.translate(layout.cellLeft(column), layout.cellTop(row))
+
+                when {
+                    date.isAfter(today) -> {
+                        fill.shader = null
+                        fill.color = theme.futureCell
+                        canvas.drawRoundRect(tile, r, r, fill)
+                    }
+
+                    else -> {
+                        val filled = theme.cellColor(Integer.bitCount(masks[date] ?: 0))
+                        if (filled == null) {
+                            // Untouched day: frosted glass.
+                            fill.shader = frost
+                            canvas.drawRoundRect(tile, r, r, fill)
+                            fill.shader = null
+                        } else {
+                            fill.shader = null
+                            fill.color = filled
+                            canvas.drawRoundRect(tile, r, r, fill)
+                            // Same gloss over the top so a filled tile still reads
+                            // as tinted glass rather than flat paint.
+                            fill.shader = gloss
+                            canvas.drawRoundRect(tile, r, r, fill)
+                            fill.shader = null
+                        }
+
+                        stroke.color = theme.frostEdge
+                        stroke.strokeWidth = layout.hairline
+                        canvas.drawRoundRect(tile, r, r, stroke)
+                    }
                 }
-                canvas.drawRoundRect(rect, layout.cellRadius, layout.cellRadius, fill)
+
+                canvas.restore()
 
                 if (date == today) {
                     stroke.color = theme.todayRing
                     stroke.strokeWidth = layout.hairline
-                    val ring = RectF(rect).apply { inset(-layout.hairline, -layout.hairline) }
-                    canvas.drawRoundRect(ring, layout.cellRadius, layout.cellRadius, stroke)
+                    val ring = RectF(
+                        layout.cellLeft(column) - layout.hairline,
+                        layout.cellTop(row) - layout.hairline,
+                        layout.cellLeft(column) + layout.cell + layout.hairline,
+                        layout.cellTop(row) + layout.cell + layout.hairline
+                    )
+                    canvas.drawRoundRect(ring, r, r, stroke)
                 }
             }
         }
     }
 
-    private fun drawGoalDots(
-        canvas: Canvas,
-        layout: FaceLayout,
-        goals: List<Goal>,
-        todayMask: Int
-    ) {
+    /**
+     * Placeholder marks for the five goals. Phase D replaces these with the
+     * element kanji drawn in each goal's own colour.
+     */
+    private fun drawMarks(canvas: Canvas, layout: FaceLayout, todayMask: Int) {
         fill.shader = null
         stroke.shader = null
+
         for (slot in 0 until FaceLayout.GOAL_SLOTS) {
-            val cx = layout.dotCenterX(slot)
+            val cx = layout.slotCenterX(slot)
             val done = (todayMask shr slot) and 1 == 1
 
             if (done) {
-                fill.color = theme.cellColor(FaceLayout.GOAL_SLOTS)
-                canvas.drawCircle(cx, layout.dotCenterY, layout.dotRadius, fill)
+                fill.color = theme.cellColor(FaceLayout.GOAL_SLOTS) ?: theme.kanjiDone
+                canvas.drawCircle(cx, layout.markCenterY, layout.markRadius, fill)
             } else {
-                stroke.color = theme.mutedColor
+                stroke.color = theme.kanjiIdle
                 stroke.strokeWidth = layout.hairline
                 canvas.drawCircle(
                     cx,
-                    layout.dotCenterY,
-                    layout.dotRadius - layout.hairline / 2,
+                    layout.markCenterY,
+                    layout.markRadius - layout.hairline / 2,
                     stroke
                 )
             }
-
-            if (!layout.showDotLabels) continue
-            val goal = goals.getOrNull(slot) ?: Goal(slot, "")
-            text.color = if (done) theme.titleColor else theme.mutedColor
-            text.textSize = layout.dotLabelTextSize
-            text.textAlign = Paint.Align.CENTER
-            val label = TextUtils.ellipsize(
-                goal.displayName,
-                text,
-                layout.dotSlotWidth * 0.92f,
-                TextUtils.TruncateAt.END
-            )
-            canvas.drawText(
-                label.toString(),
-                cx,
-                layout.dotCenterY + layout.dotRadius + layout.dotLabelTextSize * 1.15f,
-                text
-            )
         }
-    }
-
-    /** Baseline that puts the text visual centre on [centerY]. */
-    private fun baselineFor(centerY: Float): Float {
-        val fm = text.fontMetrics
-        return centerY - (fm.ascent + fm.descent) / 2
-    }
-
-    private companion object {
-        val WEEKDAY_LETTERS = arrayOf("M", "T", "W", "T", "F", "S", "S")
     }
 }
