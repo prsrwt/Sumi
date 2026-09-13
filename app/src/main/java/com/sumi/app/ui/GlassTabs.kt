@@ -1,4 +1,4 @@
-package com.beaver.app.ui
+package com.sumi.app.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background

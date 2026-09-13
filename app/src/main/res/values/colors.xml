@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Light mode: dark beaver on white. -->
+    <!-- Light mode: dark sumi on white. -->
     <color name="ic_launcher_background">#FFFFFFFF</color>
     <color name="ic_launcher_silhouette">#FF14110E</color>
 </resources>

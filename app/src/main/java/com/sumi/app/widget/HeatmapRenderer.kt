@@ -1,4 +1,4 @@
-package com.beaver.app.widget
+package com.sumi.app.widget
 
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
@@ -12,9 +12,9 @@ import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.text.TextPaint
-import com.beaver.app.data.DayProgress
-import com.beaver.app.data.Element
-import com.beaver.app.data.Goal
+import com.sumi.app.data.DayProgress
+import com.sumi.app.data.Element
+import com.sumi.app.data.Goal
 import java.time.LocalDate
 
 /**

@@ -1,4 +1,4 @@
-package com.beaver.app.widget
+package com.sumi.app.widget
 
 import android.app.WallpaperManager
 import android.content.Context

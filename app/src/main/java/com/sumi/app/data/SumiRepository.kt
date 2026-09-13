@@ -1,4 +1,4 @@
-package com.beaver.app.data
+package com.sumi.app.data
 
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +10,7 @@ import java.time.LocalDate
  * UI and the widget consume. Dates cross this boundary as [LocalDate]; epoch-day
  * longs never leak past it.
  */
-class BeaverRepository(private val dao: BeaverDao) {
+class SumiRepository(private val dao: SumiDao) {
 
     // ---- goals ----
 
@@ -70,11 +70,11 @@ class BeaverRepository(private val dao: BeaverDao) {
 
     companion object {
         @Volatile
-        private var instance: BeaverRepository? = null
+        private var instance: SumiRepository? = null
 
-        fun get(context: Context): BeaverRepository =
+        fun get(context: Context): SumiRepository =
             instance ?: synchronized(this) {
-                instance ?: BeaverRepository(BeaverDatabase.get(context).dao())
+                instance ?: SumiRepository(SumiDatabase.get(context).dao())
                     .also { instance = it }
             }
     }

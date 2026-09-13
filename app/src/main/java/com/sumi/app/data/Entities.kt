@@ -1,10 +1,10 @@
-package com.beaver.app.data
+package com.sumi.app.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.LocalDate
 
-/** Beaver tracks exactly five goals, every day. */
+/** Sumi tracks exactly five goals, every day. */
 const val GOAL_COUNT = 5
 
 /**

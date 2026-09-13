@@ -1,4 +1,4 @@
-package com.beaver.app.data
+package com.sumi.app.data
 
 import android.graphics.Color
 

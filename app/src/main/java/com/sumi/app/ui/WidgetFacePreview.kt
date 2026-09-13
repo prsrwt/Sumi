@@ -1,4 +1,4 @@
-package com.beaver.app.ui
+package com.sumi.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -17,10 +17,10 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.beaver.app.data.DayProgress
-import com.beaver.app.data.Goal
-import com.beaver.app.widget.FaceLayout
-import com.beaver.app.widget.HeatmapRenderer
+import com.sumi.app.data.DayProgress
+import com.sumi.app.data.Goal
+import com.sumi.app.widget.FaceLayout
+import com.sumi.app.widget.HeatmapRenderer
 import java.time.LocalDate
 import androidx.compose.foundation.Image as ComposeImage
 
@@ -61,7 +61,7 @@ fun WidgetFacePreview(
 
             ComposeImage(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Preview of the Beaver widget",
+                contentDescription = "Preview of the Sumi widget",
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.fillMaxSize()
             )

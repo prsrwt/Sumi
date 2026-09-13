@@ -1,11 +1,11 @@
-package com.beaver.app.widget
+package com.sumi.app.widget
 
 import android.content.Context
 import androidx.glance.GlanceId
 import androidx.glance.action.ActionParameters
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.updateAll
-import com.beaver.app.data.BeaverRepository
+import com.sumi.app.data.SumiRepository
 import java.time.LocalDate
 
 /**
@@ -22,14 +22,14 @@ class ToggleGoalAction : ActionCallback {
         parameters: ActionParameters
     ) {
         val slot = parameters[SlotKey] ?: return
-        BeaverRepository.get(context).toggleGoal(LocalDate.now(), slot)
+        SumiRepository.get(context).toggleGoal(LocalDate.now(), slot)
 
         // Every placed widget shows the same day, so they all need redrawing -
         // not just the one that was tapped.
-        BeaverWidget().updateAll(context)
+        SumiWidget().updateAll(context)
     }
 
     companion object {
-        val SlotKey = ActionParameters.Key<Int>("beaver.slot")
+        val SlotKey = ActionParameters.Key<Int>("sumi.slot")
     }
 }

@@ -1,4 +1,4 @@
-package com.beaver.app
+package com.sumi.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,11 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.lifecycleScope
-import com.beaver.app.ui.BalanceScreen
-import com.beaver.app.ui.BeaverTheme
-import com.beaver.app.ui.GlassTabs
-import com.beaver.app.ui.GoalSetupScreen
-import com.beaver.app.widget.BeaverWidget
+import com.sumi.app.ui.BalanceScreen
+import com.sumi.app.ui.SumiTheme
+import com.sumi.app.ui.GlassTabs
+import com.sumi.app.ui.GoalSetupScreen
+import com.sumi.app.widget.SumiWidget
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -33,11 +33,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            BeaverTheme {
+            SumiTheme {
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background
                 ) { innerPadding ->
-                    BeaverHome(modifier = Modifier.padding(innerPadding))
+                    SumiHome(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
@@ -50,12 +50,12 @@ class MainActivity : ComponentActivity() {
      */
     override fun onStop() {
         super.onStop()
-        lifecycleScope.launch { BeaverWidget().updateAll(this@MainActivity) }
+        lifecycleScope.launch { SumiWidget().updateAll(this@MainActivity) }
     }
 }
 
 @Composable
-private fun BeaverHome(modifier: Modifier = Modifier) {
+private fun SumiHome(modifier: Modifier = Modifier) {
     // Survives rotation so the user does not get bounced back to Goals.
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val tabs = remember { listOf("Goals", "Balance") }

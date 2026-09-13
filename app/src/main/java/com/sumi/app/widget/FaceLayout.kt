@@ -1,4 +1,4 @@
-package com.beaver.app.widget
+package com.sumi.app.widget
 
 import java.time.LocalDate
 import kotlin.math.min

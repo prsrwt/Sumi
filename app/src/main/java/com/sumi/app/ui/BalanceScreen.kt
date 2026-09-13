@@ -1,4 +1,4 @@
-package com.beaver.app.ui
+package com.sumi.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

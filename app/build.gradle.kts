@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.beaver.app"
+    namespace = "com.sumi.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.beaver.app"
+        applicationId = "com.sumi.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

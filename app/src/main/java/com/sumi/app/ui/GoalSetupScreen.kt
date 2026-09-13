@@ -1,4 +1,4 @@
-package com.beaver.app.ui
+package com.sumi.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,10 +23,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.beaver.app.BuildConfig
-import com.beaver.app.data.DayProgress
-import com.beaver.app.data.GOAL_COUNT
-import com.beaver.app.data.Goal
+import com.sumi.app.BuildConfig
+import com.sumi.app.data.DayProgress
+import com.sumi.app.data.GOAL_COUNT
+import com.sumi.app.data.Goal
 import java.time.LocalDate
 
 @Composable

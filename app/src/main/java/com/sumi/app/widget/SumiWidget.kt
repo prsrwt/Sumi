@@ -1,4 +1,4 @@
-package com.beaver.app.widget
+package com.sumi.app.widget
 
 import android.content.Context
 import androidx.compose.runtime.remember
@@ -27,18 +27,18 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.semantics.contentDescription
 import androidx.glance.semantics.semantics
-import com.beaver.app.data.DayProgress
-import com.beaver.app.data.BeaverRepository
-import com.beaver.app.data.Goal
+import com.sumi.app.data.DayProgress
+import com.sumi.app.data.SumiRepository
+import com.sumi.app.data.Goal
 import java.time.LocalDate
 
-class BeaverWidget : GlanceAppWidget() {
+class SumiWidget : GlanceAppWidget() {
 
     /** Exact, so the face is drawn at the size the user actually resized to. */
     override val sizeMode: SizeMode = SizeMode.Exact
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = BeaverRepository.get(context)
+        val repository = SumiRepository.get(context)
         val today = LocalDate.now()
 
         // Fetched before composing, and wide enough for the largest grid any size
@@ -72,7 +72,7 @@ class BeaverWidget : GlanceAppWidget() {
             Box(modifier = GlanceModifier.fillMaxSize()) {
                 Image(
                     provider = ImageProvider(bitmap),
-                    contentDescription = "Beaver goal heatmap",
+                    contentDescription = "Sumi goal heatmap",
                     contentScale = ContentScale.FillBounds,
                     modifier = GlanceModifier.fillMaxSize()
                 )

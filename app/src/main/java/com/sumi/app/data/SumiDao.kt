@@ -1,4 +1,4 @@
-package com.beaver.app.data
+package com.sumi.app.data
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -8,7 +8,7 @@ import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-abstract class BeaverDao {
+abstract class SumiDao {
 
     // ---- goals ----
 

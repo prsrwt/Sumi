@@ -1,4 +1,4 @@
-package com.beaver.app.widget
+package com.sumi.app.widget
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -23,7 +23,7 @@ import java.time.ZoneId
 object DayRollover {
 
     private const val REQUEST_CODE = 4201
-    const val ACTION_ROLLOVER = "com.beaver.app.action.DAY_ROLLOVER"
+    const val ACTION_ROLLOVER = "com.sumi.app.action.DAY_ROLLOVER"
 
     /**
      * Arms a single alarm for the next local midnight. Each firing arms the next
@@ -80,7 +80,7 @@ class DayRolloverReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
-                BeaverWidget().updateAll(appContext)
+                SumiWidget().updateAll(appContext)
                 DayRollover.scheduleNext(appContext)
             } finally {
                 pending.finish()

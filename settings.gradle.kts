@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Beaver"
+rootProject.name = "Sumi"
 include(":app")
