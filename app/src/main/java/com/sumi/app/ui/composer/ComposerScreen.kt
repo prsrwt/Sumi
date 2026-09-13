@@ -142,6 +142,10 @@ private fun ComposerCard(
             value = state.text,
             onValueChange = onTextChange,
             placeholder = { Text("Type what you're doing") },
+            // One line on purpose. A multi-line field turns the keyboard's action
+            // key into a newline, so Send would never fire from the keyboard -
+            // and a log entry is one line of text anyway.
+            singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(focus),
