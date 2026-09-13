@@ -1,5 +1,9 @@
 package com.sumi.app.ui.balance
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +23,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -126,6 +132,24 @@ private fun Pentagon(snapshot: BalanceSnapshot, modifier: Modifier = Modifier) {
     val kanjiStyle = TextStyle(fontFamily = SumiFonts.mincho, fontSize = 22.sp)
     val hoursStyle = TextStyle(fontSize = 11.sp, color = muted)
 
+    val maxMinutes = snapshot.perElement.values.maxOf { it.toMinutes() }.coerceAtLeast(1)
+
+    // Grows out from the centre each time Balance opens...
+    val growth = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        growth.animateTo(1f, tween(GROW_MILLIS, easing = FastOutSlowInEasing))
+    }
+    // ...and each spoke glides to its new length when the window changes, rather
+    // than the shape snapping. Five fixed calls in a fixed order, so each keeps
+    // its own animation state across recompositions.
+    val shares = Element.entries.map { element ->
+        animateFloatAsState(
+            targetValue = snapshot.perElement.getValue(element).toMinutes().toFloat() / maxMinutes,
+            animationSpec = tween(RESHAPE_MILLIS, easing = FastOutSlowInEasing),
+            label = "share-${element.name}"
+        )
+    }
+
     Canvas(modifier = modifier.aspectRatio(1f)) {
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension * 0.30f
@@ -152,11 +176,9 @@ private fun Pentagon(snapshot: BalanceSnapshot, modifier: Modifier = Modifier) {
             drawLine(ink.copy(alpha = 0.10f), center, vertex(i, radius), hairline)
         }
 
-        val maxMinutes = snapshot.perElement.values.maxOf { it.toMinutes() }.coerceAtLeast(1)
         val shape = Path().apply {
-            elements.forEachIndexed { i, element ->
-                val share = snapshot.perElement.getValue(element).toMinutes().toFloat() / maxMinutes
-                val p = vertex(i, radius * share)
+            elements.indices.forEach { i ->
+                val p = vertex(i, radius * shares[i].value * growth.value)
                 if (i == 0) moveTo(p.x, p.y) else lineTo(p.x, p.y)
             }
             close()
@@ -166,8 +188,9 @@ private fun Pentagon(snapshot: BalanceSnapshot, modifier: Modifier = Modifier) {
 
         elements.forEachIndexed { i, element ->
             val time = snapshot.perElement.getValue(element)
-            val share = time.toMinutes().toFloat() / maxMinutes
-            if (!time.isZero) drawCircle(Color(element.color), 3.5.dp.toPx(), vertex(i, radius * share))
+            if (!time.isZero) {
+                drawCircle(Color(element.color), 3.5.dp.toPx(), vertex(i, radius * shares[i].value * growth.value))
+            }
 
             val labelCenter = vertex(i, radius * 1.34f)
             val kanji = measurer.measure(element.kanji, kanjiStyle.copy(color = Color(element.color)))
@@ -189,6 +212,11 @@ private fun Breakdown(snapshot: BalanceSnapshot, goals: List<Goal>) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         goals.sortedBy { it.slot }.forEach { goal ->
             val time = snapshot.perElement[goal.element] ?: Duration.ZERO
+            val fraction by animateFloatAsState(
+                targetValue = time.toMinutes().toFloat() / maxMinutes,
+                animationSpec = tween(RESHAPE_MILLIS, easing = FastOutSlowInEasing),
+                label = "bar-${goal.element.name}"
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = goal.element.kanji,
@@ -212,7 +240,7 @@ private fun Breakdown(snapshot: BalanceSnapshot, goals: List<Goal>) {
                         Box(
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .fillMaxWidth(time.toMinutes().toFloat() / maxMinutes)
+                                .fillMaxWidth(fraction)
                                 .clip(RoundedCornerShape(2.dp))
                                 .background(Color(goal.element.color).copy(alpha = 0.7f))
                         )
@@ -263,3 +291,6 @@ private fun MonthGrid(days: List<DayMark>, modifier: Modifier = Modifier) {
         }
     }
 }
+
+private const val GROW_MILLIS = 700
+private const val RESHAPE_MILLIS = 520

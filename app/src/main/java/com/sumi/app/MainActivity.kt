@@ -5,6 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,13 +70,36 @@ private fun SumiHome(modifier: Modifier = Modifier) {
     var showSetup by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
     val tabs = remember { listOf("Today", "Balance") }
 
-    if (showSetup) {
-        BackHandler { showSetup = false }
-        SetupScreen(onBack = { showSetup = false }, modifier = modifier)
-        return
-    }
+    BackHandler(enabled = showSetup) { showSetup = false }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // Setup fades over the home screen rather than replacing it in a single frame.
+    AnimatedContent(
+        targetState = showSetup,
+        transitionSpec = { fadeIn(tween(240)) togetherWith fadeOut(tween(180)) },
+        modifier = modifier,
+        label = "setup"
+    ) { inSetup ->
+        if (inSetup) {
+            SetupScreen(onBack = { showSetup = false })
+        } else {
+            HomeTabs(
+                selectedTab = selectedTab,
+                tabs = tabs,
+                onSelectTab = { selectedTab = it },
+                onOpenSetup = { showSetup = true }
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeTabs(
+    selectedTab: Int,
+    tabs: List<String>,
+    onSelectTab: (Int) -> Unit,
+    onOpenSetup: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,17 +109,23 @@ private fun SumiHome(modifier: Modifier = Modifier) {
             GlassTabs(
                 tabs = tabs,
                 selectedIndex = selectedTab,
-                onSelect = { selectedTab = it },
+                onSelect = onSelectTab,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = { showSetup = true }) {
+            IconButton(onClick = onOpenSetup) {
                 Icon(Icons.Filled.Settings, contentDescription = "Setup")
             }
         }
 
-        when (selectedTab) {
-            0 -> TodayScreen(onOpenSetup = { showSetup = true })
-            else -> BalanceScreen()
+        AnimatedContent(
+            targetState = selectedTab,
+            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(160)) },
+            label = "tab"
+        ) { tab ->
+            when (tab) {
+                0 -> TodayScreen(onOpenSetup = onOpenSetup)
+                else -> BalanceScreen()
+            }
         }
     }
 }

@@ -81,28 +81,34 @@ fun TodayScreen(
             }
 
             if (state.rows.isEmpty()) {
-                item {
+                item(key = "empty") {
                     Text(
                         text = if (state.isToday) "Nothing logged yet today." else "Nothing was logged this day.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(vertical = 32.dp)
+                        modifier = Modifier
+                            .animateItem()
+                            .padding(vertical = 32.dp)
                     )
                 }
             }
 
             // Newest first: opening the app, the thing you just did is at the top.
             items(state.rows.asReversed(), key = ::rowKey) { row ->
+                // Rows ease in, out and into place as entries are logged, edited or
+                // deleted, instead of the list jumping.
                 when (row) {
                     is TimelineRow.Logged -> LoggedRow(
                         row = row,
                         goals = state.goals,
-                        onClick = { context.startActivity(ComposerActivity.edit(context, row.entry.id)) }
+                        onClick = { context.startActivity(ComposerActivity.edit(context, row.entry.id)) },
+                        modifier = Modifier.animateItem()
                     )
 
                     is TimelineRow.Unlogged -> UnloggedRow(
                         row = row,
-                        onClick = { context.startActivity(ComposerActivity.backfill(context, row.from, row.to)) }
+                        onClick = { context.startActivity(ComposerActivity.backfill(context, row.from, row.to)) },
+                        modifier = Modifier.animateItem()
                     )
                 }
             }
@@ -160,7 +166,12 @@ private fun DayHeader(state: TodayState, onPrevious: () -> Unit, onNext: () -> U
 }
 
 @Composable
-private fun LoggedRow(row: TimelineRow.Logged, goals: List<Goal>, onClick: () -> Unit) {
+private fun LoggedRow(
+    row: TimelineRow.Logged,
+    goals: List<Goal>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val context = LocalContext.current
     val element = row.entry.element
     val label = row.entry.text
@@ -168,7 +179,7 @@ private fun LoggedRow(row: TimelineRow.Logged, goals: List<Goal>, onClick: () ->
         ?: ""
 
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
@@ -246,9 +257,9 @@ private fun TimeColumn(context: Context, row: TimelineRow.Logged) {
  * you may want to fill in, not a thing you did wrong.
  */
 @Composable
-private fun UnloggedRow(row: TimelineRow.Unlogged, onClick: () -> Unit) {
+private fun UnloggedRow(row: TimelineRow.Unlogged, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
