@@ -55,6 +55,32 @@ class SetupViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { repository.assignElement(slot, element) }
     }
 
+    // ---- resetting ----
+
+    /** A short confirmation line after a reset; cleared on the next one. */
+    private val _resetMessage = MutableStateFlow<String?>(null)
+    val resetMessage: StateFlow<String?> = _resetMessage.asStateFlow()
+
+    fun clearLog() = reset("Time log cleared.") { repository.clearLog() }
+
+    fun resetGoalsAndRhythm() = reset("Goals and rhythm reset.") { repository.resetGoalsAndSettings() }
+
+    fun eraseEverything() = reset("Everything erased.") { repository.eraseEverything() }
+
+    private fun reset(done: String, action: suspend () -> Unit) {
+        viewModelScope.launch {
+            _resetMessage.value = null
+            action()
+            // The name fields hold their own copy while typing, so they have to be
+            // re-read or they would keep showing the names that were just cleared.
+            // Replacing them also cancels any save still waiting on the debounce,
+            // so a name typed just before the reset cannot be written back after it.
+            _names.value = repository.goalsNow().sortedBy { it.slot }.map { it.name }
+            WidgetSync.onEntriesChanged(getApplication())
+            _resetMessage.value = done
+        }
+    }
+
     fun setInterval(minutes: Long) = saveSettings { it.copy(askInterval = Duration.ofMinutes(minutes)) }
 
     fun setQuietStart(time: LocalTime) = saveSettings { it.copy(quietStart = time) }

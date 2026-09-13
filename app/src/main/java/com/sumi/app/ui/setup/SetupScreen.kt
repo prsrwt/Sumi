@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -62,6 +63,7 @@ fun SetupScreen(
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val names by viewModel.names.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val resetMessage by viewModel.resetMessage.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
@@ -124,6 +126,13 @@ fun SetupScreen(
         }
 
         AddWidgetButton()
+
+        ResetSection(
+            message = resetMessage,
+            onClearLog = viewModel::clearLog,
+            onResetGoals = viewModel::resetGoalsAndRhythm,
+            onEraseEverything = viewModel::eraseEverything
+        )
 
         Text(
             text = "Sumi asks; it never nags. The widget quietly changes its words — " +
@@ -243,5 +252,95 @@ private fun AddWidgetButton() {
             .padding(top = 12.dp)
     ) {
         Text("Add Sumi to your home screen")
+    }
+}
+
+private enum class ResetKind(
+    val button: String,
+    val title: String,
+    val body: String,
+    val confirm: String
+) {
+    LOG(
+        button = "Clear time log",
+        title = "Clear your time log?",
+        body = "Every entry on this phone is deleted. Your five goals and your rhythm settings stay as they are.",
+        confirm = "Clear log"
+    ),
+    GOALS(
+        button = "Reset goals and rhythm",
+        title = "Reset goals and rhythm?",
+        body = "Your five names are cleared, the elements return to their original order, and the rhythm " +
+            "goes back to every 45 minutes with quiet hours from 23:00 to 07:00. Your time log stays.",
+        confirm = "Reset"
+    ),
+    EVERYTHING(
+        button = "Erase everything",
+        title = "Erase everything?",
+        body = "Your time log, your five goals and your settings are all deleted, and Sumi goes back to how " +
+            "it was when you installed it.",
+        confirm = "Erase everything"
+    )
+}
+
+/**
+ * Three separate resets rather than one, so clearing a messy week of logs never
+ * costs the goals you set up, and each is confirmed with exactly what it removes.
+ *
+ * No red, deliberately: the app avoids red everywhere. The dialogs rely on plain
+ * wording and a named confirm button instead of alarm colour.
+ */
+@Composable
+private fun ResetSection(
+    message: String?,
+    onClearLog: () -> Unit,
+    onResetGoals: () -> Unit,
+    onEraseEverything: () -> Unit
+) {
+    var pending by remember { mutableStateOf<ResetKind?>(null) }
+
+    SectionTitle("Reset")
+    Text(
+        text = "Deleted data can't be recovered.",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+
+    ResetKind.entries.forEach { kind ->
+        OutlinedButton(onClick = { pending = kind }, modifier = Modifier.fillMaxWidth()) {
+            Text(kind.button)
+        }
+    }
+
+    message?.let {
+        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+
+    pending?.let { kind ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(kind.title) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(kind.body)
+                    Text("This can't be undone.", fontWeight = FontWeight.SemiBold)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    pending = null
+                    when (kind) {
+                        ResetKind.LOG -> onClearLog()
+                        ResetKind.GOALS -> onResetGoals()
+                        ResetKind.EVERYTHING -> onEraseEverything()
+                    }
+                }) {
+                    Text(kind.confirm, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pending = null }) { Text("Cancel") }
+            }
+        )
     }
 }

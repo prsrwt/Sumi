@@ -96,7 +96,34 @@ abstract class SumiDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun putSettings(settings: SettingsEntity)
 
+    // ---- resetting ----
+
+    /**
+     * Removes every entry outright, soft-deleted rows included. A reset is the
+     * user asking for the data to be gone, so nothing is kept behind a flag.
+     */
+    @Query("DELETE FROM entries")
+    abstract suspend fun purgeEntries()
+
+    @Query("UPDATE goals SET name = ''")
+    protected abstract suspend fun clearGoalNames()
+
+    /**
+     * Clears every name and puts each goal back on its original element.
+     *
+     * Every goal is parked on its own placeholder first: moving them straight to
+     * their defaults would, part-way through, have two goals holding the same
+     * element, which the unique index rejects.
+     */
+    @Transaction
+    open suspend fun resetGoals(defaultElements: List<String>) {
+        clearGoalNames()
+        defaultElements.indices.forEach { slot -> setGoalElement(slot, "$RESET_PLACEHOLDER$slot") }
+        defaultElements.forEachIndexed { slot, element -> setGoalElement(slot, element) }
+    }
+
     private companion object {
         const val SWAP_PLACEHOLDER = "__swap__"
+        const val RESET_PLACEHOLDER = "__reset_"
     }
 }

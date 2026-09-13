@@ -158,6 +158,24 @@ class SumiRepository(private val db: SumiDatabase) {
         }
     }
 
+    // ---- resetting ----
+
+    /** Every entry gone; goals and settings untouched. */
+    suspend fun clearLog() = dao.purgeEntries()
+
+    /** Names cleared, elements and rhythm back to defaults; the log untouched. */
+    suspend fun resetGoalsAndSettings() = db.withTransaction {
+        dao.resetGoals(Element.defaultOrder.map { it.name })
+        saveSettings(Settings.Default)
+    }
+
+    /** Sumi as it was when installed. One transaction, so it never half-happens. */
+    suspend fun eraseEverything() = db.withTransaction {
+        dao.purgeEntries()
+        dao.resetGoals(Element.defaultOrder.map { it.name })
+        saveSettings(Settings.Default)
+    }
+
     // ---- mapping ----
 
     private fun GoalEntity.toGoal() = Goal(
