@@ -1,46 +1,110 @@
 package com.sumi.app.widget
 
 import android.content.Context
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import android.util.TypedValue
+import android.widget.RemoteViews
+import androidx.compose.runtime.remember
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
-import androidx.glance.action.clickable
-import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.Image
+import androidx.glance.ImageProvider
+import androidx.glance.LocalSize
 import androidx.glance.action.actionStartActivity
-import androidx.glance.appwidget.cornerRadius
+import androidx.glance.action.clickable
+import androidx.glance.appwidget.AndroidRemoteViews
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
-import androidx.glance.background
-import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
+import androidx.glance.layout.ContentScale
 import androidx.glance.layout.fillMaxSize
-import androidx.glance.text.Text
-import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
+import com.sumi.app.R
+import com.sumi.app.data.SumiRepository
 import com.sumi.app.ui.composer.ComposerActivity
+import java.time.Instant
+import java.time.ZoneId
 
 /**
- * Placeholder face until the widget phase: proves a tap on the home screen opens
- * the composer. The glass, the live clock and the asking state replace this.
+ * The home-screen widget: pale glass with the time on it, which becomes a
+ * question once enough time has passed since the last entry. Tapping anywhere
+ * opens the composer.
+ *
+ * Built in two layers. The glass is a bitmap, because RemoteViews cannot draw
+ * gradients, blur or antialiased shapes. The text is real views on top, because
+ * a clock drawn into a bitmap would be stale - widget redraws are throttled to
+ * about half-hourly, while a TextClock is ticked by the system every minute.
  */
 class SumiWidget : GlanceAppWidget() {
 
+    override val sizeMode: SizeMode = SizeMode.Exact
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val repository = SumiRepository.get(context)
+        val zone = ZoneId.systemDefault()
+        val face = WidgetFace.compute(
+            latest = repository.latestEntry(),
+            settings = repository.settingsNow(),
+            now = Instant.now(),
+            zone = zone
+        )
+        val style = WallpaperTone.styleFor(context)
+        val density = context.resources.displayMetrics.density
+
         provideContent {
+            val size = LocalSize.current
+            val widthPx = (size.width.value * density).toInt().coerceIn(1, MAX_DIMENSION)
+            val heightPx = (size.height.value * density).toInt().coerceIn(1, MAX_DIMENSION)
+
+            val glass = remember(widthPx, heightPx, style) {
+                GlassRenderer.render(widthPx, heightPx, density, style)
+            }
+            val text = remember(face, size) { textLayer(context, face, size.width.value, size.height.value) }
+
             Box(
                 modifier = GlanceModifier
                     .fillMaxSize()
-                    .background(ColorProvider(Color(0xD9FAF8F4)))
-                    .cornerRadius(26.dp)
-                    .clickable(actionStartActivity<ComposerActivity>()),
-                contentAlignment = Alignment.Center
+                    .clickable(actionStartActivity<ComposerActivity>())
+                    .semantics {
+                        contentDescription = when (face) {
+                            is WidgetFace.Asking -> "${face.question} Tap to log."
+                            WidgetFace.Resting -> "Sumi. Tap to log what you are doing."
+                        }
+                    }
             ) {
-                Text(
-                    text = "What are you doing?",
-                    style = TextStyle(color = ColorProvider(Color(0xFF1C1A17)), fontSize = 18.sp)
+                Image(
+                    provider = ImageProvider(glass),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = GlanceModifier.fillMaxSize()
                 )
+                AndroidRemoteViews(remoteViews = text, modifier = GlanceModifier.fillMaxSize())
             }
         }
+    }
+
+    /**
+     * The text layer, sized to the widget. Fixed sp sizes would leave a large
+     * widget with a tiny clock, so the main text scales with the space it has.
+     */
+    private fun textLayer(context: Context, face: WidgetFace, widthDp: Float, heightDp: Float): RemoteViews =
+        when (face) {
+            WidgetFace.Resting -> RemoteViews(context.packageName, R.layout.widget_idle).apply {
+                val clockDp = minOf(heightDp * 0.36f, widthDp * 0.2f).coerceIn(28f, 96f)
+                setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_DIP, clockDp)
+                setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_DIP, (clockDp * 0.27f).coerceIn(11f, 20f))
+            }
+
+            is WidgetFace.Asking -> RemoteViews(context.packageName, R.layout.widget_asking).apply {
+                setTextViewText(R.id.widget_question, face.question)
+                val questionDp = minOf(heightDp * 0.17f, widthDp * 0.075f).coerceIn(16f, 34f)
+                setTextViewTextSize(R.id.widget_question, TypedValue.COMPLEX_UNIT_DIP, questionDp)
+            }
+        }
+
+    private companion object {
+        /** Guards against an absurd bitmap if a launcher reports a bogus size. */
+        const val MAX_DIMENSION = 3000
     }
 }

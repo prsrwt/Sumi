@@ -1,6 +1,8 @@
 package com.sumi.app.ui.setup
 
 import android.app.TimePickerDialog
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.text.format.DateFormat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +24,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +49,7 @@ import com.sumi.app.data.Element
 import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
 import com.sumi.app.ui.GlassTabs
+import com.sumi.app.widget.SumiWidgetReceiver
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -118,6 +122,8 @@ fun SetupScreen(
             Text("→", color = MaterialTheme.colorScheme.onSurfaceVariant)
             TimeButton(settings.quietEnd, viewModel::setQuietEnd)
         }
+
+        AddWidgetButton()
 
         Text(
             text = "Sumi asks; it never nags. The widget quietly changes its words — " +
@@ -215,5 +221,27 @@ private fun TimeButton(time: LocalTime, onPicked: (LocalTime) -> Unit) {
         ).show()
     }) {
         Text(formatter.format(time))
+    }
+}
+
+/**
+ * Asks the launcher to place the widget, which beats explaining the long-press,
+ * find-it-in-the-list, drag-it-out dance. Hidden where the launcher can't pin.
+ */
+@Composable
+private fun AddWidgetButton() {
+    val context = LocalContext.current
+    val manager = remember { context.getSystemService(AppWidgetManager::class.java) }
+    if (manager == null || !manager.isRequestPinAppWidgetSupported) return
+
+    OutlinedButton(
+        onClick = {
+            manager.requestPinAppWidget(ComponentName(context, SumiWidgetReceiver::class.java), null, null)
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp)
+    ) {
+        Text("Add Sumi to your home screen")
     }
 }
