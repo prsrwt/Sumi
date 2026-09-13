@@ -26,9 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
-import com.sumi.app.ui.BalanceScreen
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiTheme
+import com.sumi.app.ui.balance.BalanceScreen
 import com.sumi.app.ui.setup.SetupScreen
 import com.sumi.app.ui.today.TodayScreen
 import com.sumi.app.widget.WidgetSync
