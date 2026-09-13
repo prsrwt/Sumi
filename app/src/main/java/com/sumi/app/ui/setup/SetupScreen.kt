@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sumi.app.BuildConfig
 import com.sumi.app.data.Element
 import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
@@ -133,6 +135,8 @@ fun SetupScreen(
             onResetGoals = viewModel::resetGoalsAndRhythm,
             onEraseEverything = viewModel::eraseEverything
         )
+
+        AboutSection()
 
         Text(
             text = "Sumi asks; it never nags. The widget quietly changes its words — " +
@@ -341,6 +345,52 @@ private fun ResetSection(
             dismissButton = {
                 TextButton(onClick = { pending = null }) { Text("Cancel") }
             }
+        )
+    }
+}
+
+/**
+ * The version, and the typeface credit. The SIL Open Font License requires its
+ * text to travel with the font, so the full licence is one tap away rather than
+ * only sitting unread inside the APK.
+ */
+@Composable
+private fun AboutSection() {
+    val context = LocalContext.current
+    var showLicence by remember { mutableStateOf(false) }
+
+    SectionTitle("About")
+    Text(
+        text = "Sumi ${BuildConfig.VERSION_NAME}",
+        style = MaterialTheme.typography.bodyMedium
+    )
+    Text(
+        text = "Set in Shippori Mincho, © The Shippori Mincho Project Authors, " +
+            "under the SIL Open Font License 1.1.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    TextButton(onClick = { showLicence = true }) { Text("Read the font licence") }
+
+    if (showLicence) {
+        val licence = remember {
+            runCatching {
+                context.assets.open("licenses/shippori_mincho_OFL.txt").bufferedReader().use { it.readText() }
+            }.getOrDefault("The licence text could not be loaded.")
+        }
+        AlertDialog(
+            onDismissRequest = { showLicence = false },
+            title = { Text("SIL Open Font License 1.1") },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Text(licence, style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showLicence = false }) { Text("Close") } }
         )
     }
 }
