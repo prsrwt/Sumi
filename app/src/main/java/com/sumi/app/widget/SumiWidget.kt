@@ -43,12 +43,13 @@ class SumiWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val repository = SumiRepository.get(context)
         val zone = ZoneId.systemDefault()
-        val face = WidgetFace.compute(
-            latest = repository.latestEntry(),
-            settings = repository.settingsNow(),
-            now = Instant.now(),
-            zone = zone
-        )
+        val latest = repository.latestEntry()
+        val settings = repository.settingsNow()
+        val face = WidgetFace.compute(latest = latest, settings = settings, now = Instant.now(), zone = zone)
+
+        // Re-arm on every draw as well as on every save, so a dropped or cleared
+        // alarm heals the next time the widget renders for any reason.
+        Rhythm.schedule(context, latest?.end, settings)
         val style = WallpaperTone.styleFor(context)
         val density = context.resources.displayMetrics.density
 

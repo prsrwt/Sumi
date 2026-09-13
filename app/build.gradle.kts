@@ -36,6 +36,12 @@ android {
         jvmTarget = "17"
     }
 
+    testOptions {
+        // Element's colours call android.graphics.Color, which throws in plain JVM
+        // tests unless stubbed framework calls return defaults.
+        unitTests.isReturnDefaultValues = true
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -60,6 +66,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    testImplementation(libs.junit)
 
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
