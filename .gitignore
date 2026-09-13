@@ -10,3 +10,5 @@ captures/
 *.apk
 *.keystore
 build.log
+*.jks
+keystore.properties

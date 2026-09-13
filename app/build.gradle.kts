@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -17,8 +19,32 @@ android {
         versionName = "0.1.0"
     }
 
+    /*
+     * Release signing reads its keystore and passwords from outside the project,
+     * in ~/.sumi-signing. Keeping them out of the repo means git can never commit
+     * them, and out of this OneDrive-synced folder means they are not uploaded
+     * without a deliberate choice. Without that file, release builds are simply
+     * left unsigned; debug builds are unaffected.
+     */
+    val signingProps = Properties().apply {
+        val file = File(System.getProperty("user.home"), ".sumi-signing/keystore.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
+
+    signingConfigs {
+        if (signingProps.containsKey("storeFile")) {
+            create("release") {
+                storeFile = File(signingProps.getProperty("storeFile"))
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
