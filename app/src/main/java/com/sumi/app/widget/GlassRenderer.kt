@@ -24,14 +24,14 @@ data class GlassStyle(
          * what shows through behind it.
          */
         val OnDarkWallpaper = GlassStyle(
-            fill = Color.argb(158, 250, 248, 244),
+            fill = Color.argb(128, 250, 248, 244),
             border = Color.argb(96, 255, 255, 255),
             grainAlpha = 9
         )
 
         /** Over a pale wallpaper the ink already has contrast, so more shows through. */
         val OnLightWallpaper = GlassStyle(
-            fill = Color.argb(118, 252, 250, 246),
+            fill = Color.argb(96, 252, 250, 246),
             border = Color.argb(128, 255, 255, 255),
             grainAlpha = 7
         )
