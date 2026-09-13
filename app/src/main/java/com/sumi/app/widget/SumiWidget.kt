@@ -85,26 +85,50 @@ class SumiWidget : GlanceAppWidget() {
     }
 
     /**
-     * The text layer, sized to the widget. Fixed sp sizes would leave a large
-     * widget with a tiny clock, so the main text scales with the space it has.
+     * The text layer, chosen and sized for the space the widget actually has.
+     *
+     * Below about one and a half rows the stacked layout has no room, so the time
+     * and date (or the question and time) sit side by side instead. Above it,
+     * they stack. Sizes scale with the space too - fixed sp would leave a large
+     * widget with a small clock.
      */
-    private fun textLayer(context: Context, face: WidgetFace, widthDp: Float, heightDp: Float): RemoteViews =
-        when (face) {
-            WidgetFace.Resting -> RemoteViews(context.packageName, R.layout.widget_idle).apply {
-                val clockDp = minOf(heightDp * 0.36f, widthDp * 0.2f).coerceIn(28f, 96f)
-                setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_DIP, clockDp)
-                setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_DIP, (clockDp * 0.27f).coerceIn(11f, 20f))
+    private fun textLayer(context: Context, face: WidgetFace, widthDp: Float, heightDp: Float): RemoteViews {
+        val compact = heightDp < COMPACT_BELOW_DP
+        return when (face) {
+            WidgetFace.Resting -> if (compact) {
+                RemoteViews(context.packageName, R.layout.widget_idle_compact).apply {
+                    val clockDp = (heightDp * 0.40f).coerceIn(20f, 44f)
+                    setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_DIP, clockDp)
+                    setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_DIP, (clockDp * 0.40f).coerceIn(11f, 16f))
+                }
+            } else {
+                RemoteViews(context.packageName, R.layout.widget_idle).apply {
+                    val clockDp = minOf(heightDp * 0.36f, widthDp * 0.2f).coerceIn(28f, 96f)
+                    setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_DIP, clockDp)
+                    setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_DIP, (clockDp * 0.27f).coerceIn(11f, 20f))
+                }
             }
 
-            is WidgetFace.Asking -> RemoteViews(context.packageName, R.layout.widget_asking).apply {
-                setTextViewText(R.id.widget_question, face.question)
-                val questionDp = minOf(heightDp * 0.17f, widthDp * 0.075f).coerceIn(16f, 34f)
-                setTextViewTextSize(R.id.widget_question, TypedValue.COMPLEX_UNIT_DIP, questionDp)
+            is WidgetFace.Asking -> if (compact) {
+                RemoteViews(context.packageName, R.layout.widget_asking_compact).apply {
+                    setTextViewText(R.id.widget_question, face.question)
+                    setTextViewTextSize(R.id.widget_question, TypedValue.COMPLEX_UNIT_DIP, (heightDp * 0.24f).coerceIn(14f, 22f))
+                }
+            } else {
+                RemoteViews(context.packageName, R.layout.widget_asking).apply {
+                    setTextViewText(R.id.widget_question, face.question)
+                    val questionDp = minOf(heightDp * 0.17f, widthDp * 0.075f).coerceIn(16f, 34f)
+                    setTextViewTextSize(R.id.widget_question, TypedValue.COMPLEX_UNIT_DIP, questionDp)
+                }
             }
         }
+    }
 
     private companion object {
         /** Guards against an absurd bitmap if a launcher reports a bogus size. */
         const val MAX_DIMENSION = 3000
+
+        /** Launchers report one row at roughly 70-120 dp and two at 180-240. */
+        const val COMPACT_BELOW_DP = 150f
     }
 }

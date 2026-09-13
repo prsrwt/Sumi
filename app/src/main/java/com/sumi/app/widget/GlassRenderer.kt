@@ -59,8 +59,10 @@ object GlassRenderer {
 
         val hairline = maxOf(1f, density)
         val inset = 2f * density
-        val radius = 28f * density
         val pane = RectF(inset, inset, width - inset, height - inset)
+        // At one row the slab is short; capping the radius at half its height
+        // turns it into a clean pill instead of corners that overlap.
+        val radius = minOf(28f * density, pane.height() / 2)
 
         val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.style = Paint.Style.FILL }
         fill.color = style.fill
