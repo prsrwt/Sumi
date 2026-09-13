@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,8 +36,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.Goal
 import com.sumi.app.ui.Format
+import com.sumi.app.ui.SumiFonts
 import com.sumi.app.ui.composer.ComposerActivity
 import java.time.Duration
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -181,19 +183,27 @@ private fun LoggedRow(row: TimelineRow.Logged, goals: List<Goal>, onClick: () ->
                     text = element.kanji,
                     color = Color(element.color),
                     fontSize = 20.sp,
-                    fontFamily = FontFamily.Serif
+                    fontFamily = SumiFonts.mincho
                 )
             }
         }
 
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Timeline.spill(row)?.let { spill ->
+                Text(
+                    text = spillText(context, spill),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         Text(
             text = Format.duration(Duration.between(row.shownStart, row.shownEnd)),
@@ -201,6 +211,18 @@ private fun LoggedRow(row: TimelineRow.Logged, goals: List<Goal>, onClick: () ->
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+/** "from 11:44 PM yesterday", or with a date when it is further than a day away. */
+private fun spillText(context: Context, spill: Timeline.Spill): String {
+    val zone = ZoneId.systemDefault()
+    val (prefix, at) = when (spill) {
+        is Timeline.Spill.StartedEarlier -> "from" to spill.at
+        is Timeline.Spill.EndsLater -> "until" to spill.at
+    }
+    val date = at.atZone(zone).toLocalDate()
+    val day = Timeline.relativeDay(date, LocalDate.now(zone)) ?: DAY_FORMAT.format(date)
+    return "$prefix ${Format.time(context, at)} $day"
 }
 
 @Composable

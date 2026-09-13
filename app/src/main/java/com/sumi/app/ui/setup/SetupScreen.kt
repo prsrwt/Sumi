@@ -39,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -50,6 +49,7 @@ import com.sumi.app.data.Element
 import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
 import com.sumi.app.ui.GlassTabs
+import com.sumi.app.ui.SumiFonts
 import com.sumi.app.widget.SumiWidgetReceiver
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -176,7 +176,7 @@ private fun GoalRow(
                     text = goal.element.kanji,
                     color = Color(goal.element.color),
                     fontSize = 28.sp,
-                    fontFamily = FontFamily.Serif
+                    fontFamily = SumiFonts.mincho
                 )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -184,7 +184,7 @@ private fun GoalRow(
                     DropdownMenuItem(
                         text = {
                             Column {
-                                Text("${element.kanji}  ${element.displayName}")
+                                Text("${element.kanji}  ${element.displayName}", fontFamily = SumiFonts.mincho)
                                 Text(
                                     text = element.affinity,
                                     style = MaterialTheme.typography.bodySmall,

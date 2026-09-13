@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 /**
  * A deliberately plain palette. The app is a quiet page around the widget, so
  * almost everything is a neutral ground with text on it; the only colour in the
- * product belongs to the five elements and the heatmap.
+ * product belongs to the five elements.
  */
 private val DarkScheme = darkColorScheme(
     background = Color(0xFF0B0D0C),
@@ -35,6 +35,22 @@ private val LightScheme = lightColorScheme(
     outline = Color(0xFFD3D0C9)
 )
 
+/**
+ * Headlines and titles in Shippori Mincho; body and label text stay in the system
+ * sans. Mincho's thin strokes carry the calm Japanese character at title sizes,
+ * but get spindly and harder to read at the small sizes body text uses.
+ */
+private val SumiTypography: Typography = Typography().let { base ->
+    base.copy(
+        headlineLarge = base.headlineLarge.copy(fontFamily = SumiFonts.mincho),
+        headlineMedium = base.headlineMedium.copy(fontFamily = SumiFonts.mincho),
+        headlineSmall = base.headlineSmall.copy(fontFamily = SumiFonts.mincho),
+        titleLarge = base.titleLarge.copy(fontFamily = SumiFonts.mincho),
+        titleMedium = base.titleMedium.copy(fontFamily = SumiFonts.mincho),
+        titleSmall = base.titleSmall.copy(fontFamily = SumiFonts.mincho)
+    )
+}
+
 @Composable
 fun SumiTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -42,7 +58,7 @@ fun SumiTheme(
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkScheme else LightScheme,
-        typography = Typography(),
+        typography = SumiTypography,
         content = content
     )
 }

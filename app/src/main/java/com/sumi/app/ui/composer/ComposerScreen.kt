@@ -40,7 +40,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +50,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.Element
 import com.sumi.app.data.Goal
 import com.sumi.app.ui.Format
+import com.sumi.app.ui.SumiFonts
 import java.time.Instant
 import java.time.ZoneId
 
@@ -268,7 +268,7 @@ private fun ElementRow(
                         text = goal.element.kanji,
                         color = Color(goal.element.color),
                         fontSize = 26.sp,
-                        fontFamily = FontFamily.Serif
+                        fontFamily = SumiFonts.mincho
                     )
                 }
                 Text(

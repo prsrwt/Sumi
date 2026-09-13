@@ -2,10 +2,12 @@ package com.sumi.app.ui.today
 
 import com.sumi.app.data.Entry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
@@ -63,5 +65,34 @@ class TimelineTest {
         val logged = rows.single() as TimelineRow.Logged
         assertEquals(at("2026-09-14T00:00"), logged.shownEnd)
         assertEquals(Duration.ofMinutes(30), Timeline.loggedTotal(rows))
+    }
+
+    @Test
+    fun `an entry that began the night before says where it really started`() {
+        // "Now" is later that morning, so the timeline also holds a trailing gap row.
+        val rows = Timeline.build(listOf(entry("2026-09-12T23:44", "2026-09-13T00:29")), dayStart, dayEnd, at("2026-09-13T09:00"))
+        val spill = Timeline.spill(rows.filterIsInstance<TimelineRow.Logged>().single())
+        assertEquals(Timeline.Spill.StartedEarlier(at("2026-09-12T23:44")), spill)
+    }
+
+    @Test
+    fun `an entry running past midnight says where it really ends`() {
+        val rows = Timeline.build(listOf(entry("2026-09-13T23:30", "2026-09-14T00:30")), dayStart, dayEnd, at("2026-09-14T09:00"))
+        val spill = Timeline.spill(rows.single() as TimelineRow.Logged)
+        assertEquals(Timeline.Spill.EndsLater(at("2026-09-14T00:30")), spill)
+    }
+
+    @Test
+    fun `an entry inside its day has nothing to add`() {
+        val rows = Timeline.build(listOf(entry("2026-09-13T09:00", "2026-09-13T10:00")), dayStart, dayEnd, at("2026-09-13T11:00"))
+        assertNull(Timeline.spill(rows.first() as TimelineRow.Logged))
+    }
+
+    @Test
+    fun `relative day words cover only the days either side of today`() {
+        val today = LocalDate.parse("2026-09-13")
+        assertEquals("yesterday", Timeline.relativeDay(LocalDate.parse("2026-09-12"), today))
+        assertEquals("tomorrow", Timeline.relativeDay(LocalDate.parse("2026-09-14"), today))
+        assertNull(Timeline.relativeDay(LocalDate.parse("2026-09-10"), today))
     }
 }

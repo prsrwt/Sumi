@@ -3,6 +3,7 @@ package com.sumi.app.ui.today
 import com.sumi.app.data.Entry
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 
 /** One line of a day's timesheet. */
 sealed interface TimelineRow {
@@ -52,6 +53,33 @@ object Timeline {
             if (dayContainsNow && Duration.between(it, now) >= MIN_GAP) rows += TimelineRow.Unlogged(it, now)
         }
         return rows
+    }
+
+    /** Where an entry reaches past the day it is being shown on. */
+    sealed interface Spill {
+        data class StartedEarlier(val at: Instant) : Spill
+        data class EndsLater(val at: Instant) : Spill
+    }
+
+    /**
+     * A row clipped to its day shows the day's share of the entry, which is the
+     * right number for that day's total - but on its own "12:00 AM" hides that
+     * the entry began the night before. This says where it really started (or,
+     * failing that, ended), so the day's view and the balance view stop looking
+     * like they disagree.
+     */
+    fun spill(row: TimelineRow.Logged): Spill? = when {
+        row.entry.start.isBefore(row.shownStart) -> Spill.StartedEarlier(row.entry.start)
+        row.entry.end.isAfter(row.shownEnd) -> Spill.EndsLater(row.entry.end)
+        else -> null
+    }
+
+    /** "today", "yesterday" or "tomorrow" relative to the real today; null beyond that. */
+    fun relativeDay(date: LocalDate, today: LocalDate): String? = when (date) {
+        today -> "today"
+        today.minusDays(1) -> "yesterday"
+        today.plusDays(1) -> "tomorrow"
+        else -> null
     }
 
     fun loggedTotal(rows: List<TimelineRow>): Duration =
