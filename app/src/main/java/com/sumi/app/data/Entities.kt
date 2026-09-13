@@ -1,57 +1,121 @@
 package com.sumi.app.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
-import java.time.LocalDate
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
 
-/** Sumi tracks exactly five goals, every day. */
+/** Five goals, five elements, always. */
 const val GOAL_COUNT = 5
 
+// ---------------------------------------------------------------------------
+// Stored rows
+// ---------------------------------------------------------------------------
+
 /**
- * One of the five fixed goal slots. Rows 0..4 always exist; the database seeds
- * them on creation so the rest of the app can assume five goals are present.
+ * One of the five goal slots. Rows 0..4 always exist; the database seeds them.
+ * The unique index on element is what keeps the goal-to-element mapping
+ * one-to-one at the storage level rather than trusting every caller to.
  */
-@Entity(tableName = "goals")
+@Entity(tableName = "goals", indices = [Index(value = ["element"], unique = true)])
 data class GoalEntity(
     @PrimaryKey val slot: Int,
-    val name: String
+    val name: String,
+    val element: String
 )
 
 /**
- * One day of history. Which goals were ticked is stored as a five-bit mask
- * rather than five rows, so a heatmap range query is a single scan and each
- * day costs one row.
+ * A stretch of time and what it was spent on.
+ *
+ * Times are stored as UTC instants plus the zone they were logged in, so a
+ * timesheet stays correct across daylight saving changes and travel. Either the
+ * text or the element may be missing, never both.
  */
-@Entity(tableName = "day_entries")
-data class DayEntryEntity(
-    @PrimaryKey val epochDay: Long,
-    val doneMask: Int
+@Entity(
+    tableName = "entries",
+    indices = [Index("startMillis"), Index("endMillis")]
+)
+data class EntryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val startMillis: Long,
+    val endMillis: Long,
+    val zoneId: String,
+    val text: String?,
+    val element: String?,
+    val updatedAt: Long,
+    /** When this row was last copied to Google Sheets; null means never. */
+    val syncedAt: Long?,
+    /**
+     * Soft delete. A synced row that is hard-deleted leaves nothing behind to
+     * tell the sync to remove it from the sheet, so deletion is a timestamp and
+     * every read filters it out.
+     */
+    val deletedAt: Long? = null
 )
 
-/** Domain view of a goal slot. */
+/** A single row of preferences. Room rather than a second storage system. */
+@Entity(tableName = "settings")
+data class SettingsEntity(
+    @PrimaryKey val id: Int = 0,
+    val askIntervalMinutes: Int,
+    val quietStartMinute: Int,
+    val quietEndMinute: Int
+)
+
+// ---------------------------------------------------------------------------
+// Domain
+// ---------------------------------------------------------------------------
+
 data class Goal(
     val slot: Int,
     val name: String,
-    /**
-     * Which element represents this goal on the widget. Defaulted by slot for
-     * now; Phase B stores the user's own assignment and makes it bijective.
-     */
-    val element: Element = Element.forSlot(slot)
+    val element: Element
 ) {
-    /** What the widget and setup screen show when the user hasn't named it yet. */
-    val displayName: String get() = name.ifBlank { "Goal ${slot + 1}" }
+    /** An unnamed goal is shown by its element, so the composer never has a blank key. */
+    val displayName: String get() = name.ifBlank { element.displayName }
 }
 
-/** Domain view of a single day's progress. */
-data class DayProgress(
-    val date: LocalDate,
-    val doneMask: Int
+data class Entry(
+    val id: Long,
+    val start: Instant,
+    val end: Instant,
+    val zone: ZoneId,
+    val text: String?,
+    val element: Element?
 ) {
-    fun isDone(slot: Int): Boolean = (doneMask shr slot) and 1 == 1
+    val duration: Duration get() = Duration.between(start, end)
 
-    val completedCount: Int get() = Integer.bitCount(doneMask)
+    /** Overlapping length with [from, to), for clipping to a day or a window. */
+    fun overlapWith(from: Instant, to: Instant): Duration {
+        val s = maxOf(start, from)
+        val e = minOf(end, to)
+        return if (e > s) Duration.between(s, e) else Duration.ZERO
+    }
+}
+
+data class Settings(
+    val askInterval: Duration,
+    val quietStart: LocalTime,
+    val quietEnd: LocalTime
+) {
+    /**
+     * Quiet hours usually wrap midnight (23:00 to 07:00), so the check has two
+     * shapes. Equal start and end means no quiet hours at all.
+     */
+    fun isQuiet(time: LocalTime): Boolean = when {
+        quietStart == quietEnd -> false
+        quietStart < quietEnd -> time >= quietStart && time < quietEnd
+        else -> time >= quietStart || time < quietEnd
+    }
 
     companion object {
-        fun empty(date: LocalDate) = DayProgress(date, 0)
+        val Default = Settings(
+            askInterval = Duration.ofMinutes(45),
+            quietStart = LocalTime.of(23, 0),
+            quietEnd = LocalTime.of(7, 0)
+        )
     }
 }

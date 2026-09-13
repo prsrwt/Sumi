@@ -6,18 +6,19 @@ import android.graphics.Color
  * The Godai, the classical Japanese five elements.
  *
  * A fixed set of exactly five, which is what makes the mapping onto five goals
- * bijective: every goal owns one element and no element is shared. Keeping the
- * set closed also keeps the widget legible - five known glyphs the eye learns by
- * position, rather than arbitrary user-supplied art to render at 40px.
+ * bijective: every goal owns one element and no element is shared. Logged time is
+ * sorted by element, so the set is closed on purpose - five known glyphs the eye
+ * learns by position, rather than an open-ended tag list that grows until it
+ * stops telling you anything.
  *
- * Fire is orange rather than the obvious red on purpose: nothing in this app is
- * allowed to read as an alert, and a dim red glyph on a dark wallpaper does.
+ * Fire is orange rather than the obvious red: nothing in this app is allowed to
+ * read as an alert.
  */
 enum class Element(
     val kanji: String,
     val color: Int,
     val displayName: String,
-    /** The kind of habit this element is a natural fit for. Shown during assignment. */
+    /** The kind of activity this element is a natural fit for. Shown during assignment. */
     val affinity: String
 ) {
     EARTH("地", Color.rgb(217, 164, 65), "Earth", "stability, body, grounding"),
@@ -32,5 +33,8 @@ enum class Element(
 
         fun forSlot(slot: Int): Element =
             defaultOrder[slot.coerceIn(0, defaultOrder.lastIndex)]
+
+        /** Elements are stored by enum name; anything unrecognised reads as untagged. */
+        fun fromStored(value: String?): Element? = entries.firstOrNull { it.name == value }
     }
 }

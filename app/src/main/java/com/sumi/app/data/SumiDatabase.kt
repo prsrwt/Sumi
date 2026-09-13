@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [GoalEntity::class, DayEntryEntity::class],
+    entities = [GoalEntity::class, EntryEntity::class, SettingsEntity::class],
     version = 1,
     exportSchema = false
 )
@@ -26,23 +26,33 @@ abstract class SumiDatabase : RoomDatabase() {
 
         private fun build(context: Context): SumiDatabase =
             Room.databaseBuilder(context, SumiDatabase::class.java, "sumi.db")
-                .addCallback(SeedGoals)
+                .addCallback(Seed)
                 .build()
 
         /**
-         * Creates the five goal rows up front so every other query can assume
-         * they exist. Raw SQL here rather than the DAO, because the database is
-         * not yet open to the rest of the app at this point.
+         * Creates the five goal rows, each on its default element, and the
+         * settings row, so every other query can assume they exist. Raw SQL
+         * because the DAO is not usable from inside the creation callback.
          */
-        private object SeedGoals : RoomDatabase.Callback() {
+        private object Seed : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                for (slot in 0 until GOAL_COUNT) {
+                Element.defaultOrder.forEachIndexed { slot, element ->
                     db.execSQL(
-                        "INSERT INTO goals (slot, name) VALUES (?, ?)",
-                        arrayOf<Any>(slot, "")
+                        "INSERT INTO goals (slot, name, element) VALUES (?, ?, ?)",
+                        arrayOf<Any>(slot, "", element.name)
                     )
                 }
+                val defaults = Settings.Default
+                db.execSQL(
+                    "INSERT INTO settings (id, askIntervalMinutes, quietStartMinute, quietEndMinute) " +
+                        "VALUES (0, ?, ?, ?)",
+                    arrayOf<Any>(
+                        defaults.askInterval.toMinutes().toInt(),
+                        defaults.quietStart.toSecondOfDay() / 60,
+                        defaults.quietEnd.toSecondOfDay() / 60
+                    )
+                )
             }
         }
     }

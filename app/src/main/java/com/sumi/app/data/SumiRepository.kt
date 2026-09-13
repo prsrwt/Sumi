@@ -1,81 +1,198 @@
 package com.sumi.app.data
 
 import android.content.Context
+import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 
 /**
- * The single place that translates between stored rows and the domain types the
- * UI and the widget consume. Dates cross this boundary as [LocalDate]; epoch-day
- * longs never leak past it.
+ * The one place that translates between stored rows and domain types. Epoch
+ * millis and enum-name strings never leak past this class.
  */
-class SumiRepository(private val dao: SumiDao) {
+class SumiRepository(private val db: SumiDatabase) {
+
+    private val dao = db.dao()
 
     // ---- goals ----
 
     fun observeGoals(): Flow<List<Goal>> =
-        dao.observeGoals().map { rows -> rows.map { Goal(it.slot, it.name) } }
+        dao.observeGoals().map { rows -> rows.map { it.toGoal() } }
 
-    suspend fun goalsNow(): List<Goal> =
-        dao.getGoals().map { Goal(it.slot, it.name) }
+    suspend fun goalsNow(): List<Goal> = dao.getGoals().map { it.toGoal() }
 
     suspend fun setGoalName(slot: Int, name: String) {
         require(slot in 0 until GOAL_COUNT) { "slot out of range: $slot" }
         dao.setGoalName(slot, name.trim())
     }
 
-    // ---- daily progress ----
-
-    fun observeDay(date: LocalDate): Flow<DayProgress> =
-        dao.observeDay(date.toEpochDay()).map { row ->
-            DayProgress(date, row?.doneMask ?: 0)
-        }
-
-    suspend fun toggleGoal(date: LocalDate, slot: Int) =
-        dao.toggleGoal(date.toEpochDay(), slot)
-
-    /**
-     * Every day from [from] to [to] inclusive, including days with no stored row.
-     * The heatmap needs a cell for every day, not just the ones that were touched.
-     */
-    fun observeRange(from: LocalDate, to: LocalDate): Flow<List<DayProgress>> =
-        dao.observeRange(from.toEpochDay(), to.toEpochDay())
-            .map { rows -> densify(from, to, rows) }
-
-    suspend fun rangeNow(from: LocalDate, to: LocalDate): List<DayProgress> =
-        densify(from, to, dao.getRange(from.toEpochDay(), to.toEpochDay()))
-
-    /**
-     * Overwrites the given days outright. Used by the debug sample-history action;
-     * writing zero masks is how it resets, so no table-wide delete is needed.
-     */
-    suspend fun overwriteDays(days: List<DayProgress>) =
-        dao.upsertDays(days.map { DayEntryEntity(it.date.toEpochDay(), it.doneMask) })
-
-    private fun densify(
-        from: LocalDate,
-        to: LocalDate,
-        rows: List<DayEntryEntity>
-    ): List<DayProgress> {
-        val masks = rows.associate { it.epochDay to it.doneMask }
-        val days = mutableListOf<DayProgress>()
-        var day = from
-        while (!day.isAfter(to)) {
-            days += DayProgress(day, masks[day.toEpochDay()] ?: 0)
-            day = day.plusDays(1)
-        }
-        return days
+    suspend fun assignElement(slot: Int, element: Element) {
+        require(slot in 0 until GOAL_COUNT) { "slot out of range: $slot" }
+        dao.assignElement(slot, element.name)
     }
 
+    // ---- settings ----
+
+    fun observeSettings(): Flow<Settings> =
+        dao.observeSettings().map { it?.toSettings() ?: Settings.Default }
+
+    suspend fun settingsNow(): Settings = dao.getSettings()?.toSettings() ?: Settings.Default
+
+    suspend fun saveSettings(settings: Settings) = dao.putSettings(
+        SettingsEntity(
+            id = 0,
+            askIntervalMinutes = settings.askInterval.toMinutes().toInt(),
+            quietStartMinute = settings.quietStart.toSecondOfDay() / 60,
+            quietEndMinute = settings.quietEnd.toSecondOfDay() / 60
+        )
+    )
+
+    // ---- reading entries ----
+
+    suspend fun latestEntry(): Entry? = dao.latestEntry()?.toEntry()
+
+    fun observeLatestEntry(): Flow<Entry?> = dao.observeLatestEntry().map { it?.toEntry() }
+
+    suspend fun entry(id: Long): Entry? = dao.getEntry(id)?.toEntry()
+
+    fun observeBetween(from: Instant, to: Instant): Flow<List<Entry>> =
+        dao.observeOverlapping(from.toEpochMilli(), to.toEpochMilli())
+            .map { rows -> rows.map { it.toEntry() } }
+
+    suspend fun entriesBetween(from: Instant, to: Instant): List<Entry> =
+        dao.getOverlapping(from.toEpochMilli(), to.toEpochMilli()).map { it.toEntry() }
+
+    /** Entries touching a local calendar day, including ones that cross midnight. */
+    fun observeDay(date: LocalDate, zone: ZoneId): Flow<List<Entry>> {
+        val (from, to) = dayBounds(date, zone)
+        return observeBetween(from, to)
+    }
+
+    // ---- writing entries ----
+
+    sealed interface SaveResult {
+        data class Saved(val id: Long) : SaveResult
+        data class Overlaps(val conflicts: List<Entry>) : SaveResult
+        data class Invalid(val reason: String) : SaveResult
+    }
+
+    suspend fun log(
+        start: Instant,
+        end: Instant,
+        text: String?,
+        element: Element?,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): SaveResult = save(existingId = null, start, end, text, element, zone)
+
+    suspend fun update(
+        id: Long,
+        start: Instant,
+        end: Instant,
+        text: String?,
+        element: Element?
+    ): SaveResult = save(existingId = id, start, end, text, element, ZoneId.systemDefault())
+
+    suspend fun delete(id: Long) = dao.softDelete(id, System.currentTimeMillis())
+
+    /**
+     * Validation and the overlap check run inside one transaction with the write,
+     * so two saves racing each other - a widget log landing while an edit is open,
+     * say - cannot both pass the check and then overlap.
+     */
+    private suspend fun save(
+        existingId: Long?,
+        start: Instant,
+        end: Instant,
+        text: String?,
+        element: Element?,
+        zone: ZoneId
+    ): SaveResult {
+        val cleanText = text?.trim()?.ifBlank { null }
+        if (cleanText == null && element == null) {
+            return SaveResult.Invalid("Type what you're doing, or choose an element.")
+        }
+        if (!end.isAfter(start)) return SaveResult.Invalid("The end has to come after the start.")
+        if (Duration.between(start, end) > MAX_ENTRY) {
+            return SaveResult.Invalid("An entry can't be longer than a day.")
+        }
+
+        return db.withTransaction {
+            val conflicts = dao.getOverlapping(start.toEpochMilli(), end.toEpochMilli())
+                .filter { it.id != existingId }
+            if (conflicts.isNotEmpty()) {
+                return@withTransaction SaveResult.Overlaps(conflicts.map { it.toEntry() })
+            }
+
+            val now = System.currentTimeMillis()
+            if (existingId == null) {
+                val id = dao.insertEntry(
+                    EntryEntity(
+                        startMillis = start.toEpochMilli(),
+                        endMillis = end.toEpochMilli(),
+                        zoneId = zone.id,
+                        text = cleanText,
+                        element = element?.name,
+                        updatedAt = now,
+                        syncedAt = null
+                    )
+                )
+                SaveResult.Saved(id)
+            } else {
+                val existing = dao.getEntry(existingId)
+                    ?: return@withTransaction SaveResult.Invalid("That entry no longer exists.")
+                dao.updateEntry(
+                    existing.copy(
+                        startMillis = start.toEpochMilli(),
+                        endMillis = end.toEpochMilli(),
+                        text = cleanText,
+                        element = element?.name,
+                        updatedAt = now
+                    )
+                )
+                SaveResult.Saved(existingId)
+            }
+        }
+    }
+
+    // ---- mapping ----
+
+    private fun GoalEntity.toGoal() = Goal(
+        slot = slot,
+        name = name,
+        element = Element.fromStored(element) ?: Element.forSlot(slot)
+    )
+
+    private fun EntryEntity.toEntry() = Entry(
+        id = id,
+        start = Instant.ofEpochMilli(startMillis),
+        end = Instant.ofEpochMilli(endMillis),
+        zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault()),
+        text = text,
+        element = Element.fromStored(element)
+    )
+
+    private fun SettingsEntity.toSettings() = Settings(
+        askInterval = Duration.ofMinutes(askIntervalMinutes.toLong()),
+        quietStart = LocalTime.ofSecondOfDay(quietStartMinute * 60L),
+        quietEnd = LocalTime.ofSecondOfDay(quietEndMinute * 60L)
+    )
+
     companion object {
+        private val MAX_ENTRY: Duration = Duration.ofHours(24)
+
+        fun dayBounds(date: LocalDate, zone: ZoneId): Pair<Instant, Instant> =
+            date.atStartOfDay(zone).toInstant() to date.plusDays(1).atStartOfDay(zone).toInstant()
+
         @Volatile
         private var instance: SumiRepository? = null
 
         fun get(context: Context): SumiRepository =
             instance ?: synchronized(this) {
-                instance ?: SumiRepository(SumiDatabase.get(context).dao())
-                    .also { instance = it }
+                instance ?: SumiRepository(SumiDatabase.get(context)).also { instance = it }
             }
     }
 }

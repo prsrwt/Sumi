@@ -1,0 +1,281 @@
+package com.sumi.app.ui.composer
+
+import android.app.TimePickerDialog
+import android.text.format.DateFormat
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.sumi.app.data.Element
+import com.sumi.app.data.Goal
+import com.sumi.app.ui.Format
+import java.time.Instant
+import java.time.ZoneId
+
+@Composable
+fun ComposerScreen(
+    onClose: () -> Unit,
+    viewModel: ComposerViewModel = viewModel()
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(state.done) {
+        if (state.done) onClose()
+    }
+
+    val noRipple = remember { MutableInteractionSource() }
+
+    // Tapping the dimmed area outside the sheet dismisses it without logging.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.32f))
+            .clickable(interactionSource = noRipple, indication = null, onClick = onClose)
+    ) {
+        if (state.loading) return@Box
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .imePadding()
+                .padding(12.dp)
+                // Swallows taps so touching the sheet itself doesn't dismiss it.
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp,
+            shadowElevation = 12.dp
+        ) {
+            ComposerCard(
+                state = state,
+                onTextChange = viewModel::onTextChange,
+                onStartTime = viewModel::setStartTime,
+                onEndTime = viewModel::setEndTime,
+                onSend = viewModel::send,
+                onElement = viewModel::commitWith,
+                onDelete = viewModel::delete
+            )
+        }
+    }
+}
+
+@Composable
+private fun ComposerCard(
+    state: ComposerState,
+    onTextChange: (String) -> Unit,
+    onStartTime: (java.time.LocalTime) -> Unit,
+    onEndTime: (java.time.LocalTime) -> Unit,
+    onSend: () -> Unit,
+    onElement: (Element) -> Unit,
+    onDelete: () -> Unit
+) {
+    val focus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(Unit) {
+        focus.requestFocus()
+        keyboard?.show()
+    }
+
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Text(
+            text = state.question,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        RangeRow(
+            start = state.start,
+            end = state.end,
+            onStartTime = onStartTime,
+            onEndTime = onEndTime
+        )
+
+        TextField(
+            value = state.text,
+            onValueChange = onTextChange,
+            placeholder = { Text("Type what you're doing") },
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focus),
+            shape = RoundedCornerShape(18.dp),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = ImeAction.Send
+            ),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                onSend = { if (state.text.isNotBlank()) onSend() }
+            ),
+            trailingIcon = {
+                IconButton(
+                    onClick = onSend,
+                    enabled = state.text.isNotBlank() && !state.saving
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Log")
+                }
+            }
+        )
+
+        ElementRow(
+            goals = state.goals,
+            selected = state.element,
+            enabled = !state.saving,
+            onElement = onElement
+        )
+
+        state.message?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (state.editingId != null) {
+            TextButton(onClick = onDelete, modifier = Modifier.align(Alignment.End)) {
+                Text("Delete entry")
+            }
+        }
+    }
+}
+
+@Composable
+private fun RangeRow(
+    start: Instant,
+    end: Instant,
+    onStartTime: (java.time.LocalTime) -> Unit,
+    onEndTime: (java.time.LocalTime) -> Unit
+) {
+    val context = LocalContext.current
+    val zone = ZoneId.systemDefault()
+
+    fun pick(instant: Instant, onPicked: (java.time.LocalTime) -> Unit) {
+        val local = instant.atZone(zone).toLocalTime()
+        TimePickerDialog(
+            context,
+            { _, hour, minute -> onPicked(java.time.LocalTime.of(hour, minute)) },
+            local.hour,
+            local.minute,
+            DateFormat.is24HourFormat(context)
+        ).show()
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TextButton(onClick = { pick(start, onStartTime) }) {
+            Text(Format.time(context, start), style = MaterialTheme.typography.titleSmall)
+        }
+        Text("→", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextButton(onClick = { pick(end, onEndTime) }) {
+            Text(Format.time(context, end), style = MaterialTheme.typography.titleSmall)
+        }
+        Text(
+            text = Format.duration(java.time.Duration.between(start, end)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 6.dp)
+        )
+    }
+}
+
+/**
+ * The five elements as one-tap logs. The goal name sits under each glyph so the
+ * mapping can be learned; after a week the kanji alone are enough.
+ */
+@Composable
+private fun ElementRow(
+    goals: List<Goal>,
+    selected: Element?,
+    enabled: Boolean,
+    onElement: (Element) -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        goals.sortedBy { it.slot }.forEach { goal ->
+            val isSelected = goal.element == selected
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .clickable(enabled = enabled) { onElement(goal.element) }
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isSelected) Color(goal.element.color).copy(alpha = 0.18f)
+                            else Color.Transparent
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = goal.element.kanji,
+                        color = Color(goal.element.color),
+                        fontSize = 26.sp,
+                        fontFamily = FontFamily.Serif
+                    )
+                }
+                Text(
+                    text = goal.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+        }
+    }
+}

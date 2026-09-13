@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,34 +22,81 @@ abstract class SumiDao {
     @Query("UPDATE goals SET name = :name WHERE slot = :slot")
     abstract suspend fun setGoalName(slot: Int, name: String)
 
-    // ---- day entries ----
+    @Query("UPDATE goals SET element = :element WHERE slot = :slot")
+    protected abstract suspend fun setGoalElement(slot: Int, element: String)
 
-    @Query("SELECT * FROM day_entries WHERE epochDay = :epochDay")
-    abstract fun observeDay(epochDay: Long): Flow<DayEntryEntity?>
-
-    @Query("SELECT * FROM day_entries WHERE epochDay BETWEEN :from AND :to ORDER BY epochDay")
-    abstract fun observeRange(from: Long, to: Long): Flow<List<DayEntryEntity>>
-
-    @Query("SELECT * FROM day_entries WHERE epochDay BETWEEN :from AND :to ORDER BY epochDay")
-    abstract suspend fun getRange(from: Long, to: Long): List<DayEntryEntity>
-
-    @Query("SELECT doneMask FROM day_entries WHERE epochDay = :epochDay")
-    abstract suspend fun getMask(epochDay: Long): Int?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    abstract suspend fun upsertDay(entry: DayEntryEntity)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    abstract suspend fun upsertDays(entries: List<DayEntryEntity>)
+    @Query("SELECT slot FROM goals WHERE element = :element")
+    protected abstract suspend fun slotHolding(element: String): Int?
 
     /**
-     * Flips one goal for one day. Wrapped in a transaction so that rapid taps on
-     * the widget cannot interleave a read and a write and lose a tick.
+     * Gives [slot] the [element], swapping with whichever goal held it.
+     *
+     * The unique index on element means a straight swap would collide halfway
+     * through, since SQLite checks the constraint per statement. So the other
+     * goal is parked on a placeholder first. The transaction means no observer
+     * ever sees the placeholder.
      */
     @Transaction
-    open suspend fun toggleGoal(epochDay: Long, slot: Int) {
-        require(slot in 0 until GOAL_COUNT) { "slot out of range: $slot" }
-        val current = getMask(epochDay) ?: 0
-        upsertDay(DayEntryEntity(epochDay, current xor (1 shl slot)))
+    open suspend fun assignElement(slot: Int, element: String) {
+        val current = getGoals().firstOrNull { it.slot == slot } ?: return
+        if (current.element == element) return
+
+        val holder = slotHolding(element)
+        if (holder == null) {
+            setGoalElement(slot, element)
+            return
+        }
+        setGoalElement(holder, SWAP_PLACEHOLDER)
+        setGoalElement(slot, element)
+        setGoalElement(holder, current.element)
+    }
+
+    // ---- entries ----
+
+    @Insert
+    abstract suspend fun insertEntry(entry: EntryEntity): Long
+
+    @Update
+    abstract suspend fun updateEntry(entry: EntryEntity)
+
+    @Query("SELECT * FROM entries WHERE id = :id AND deletedAt IS NULL")
+    abstract suspend fun getEntry(id: Long): EntryEntity?
+
+    @Query("SELECT * FROM entries WHERE deletedAt IS NULL ORDER BY endMillis DESC LIMIT 1")
+    abstract suspend fun latestEntry(): EntryEntity?
+
+    @Query("SELECT * FROM entries WHERE deletedAt IS NULL ORDER BY endMillis DESC LIMIT 1")
+    abstract fun observeLatestEntry(): Flow<EntryEntity?>
+
+    /** Every entry that overlaps the half-open window [from, to). */
+    @Query("SELECT * FROM entries WHERE deletedAt IS NULL AND startMillis < :to AND endMillis > :from ORDER BY startMillis")
+    abstract fun observeOverlapping(from: Long, to: Long): Flow<List<EntryEntity>>
+
+    @Query("SELECT * FROM entries WHERE deletedAt IS NULL AND startMillis < :to AND endMillis > :from ORDER BY startMillis")
+    abstract suspend fun getOverlapping(from: Long, to: Long): List<EntryEntity>
+
+    @Query("UPDATE entries SET deletedAt = :at, updatedAt = :at WHERE id = :id")
+    abstract suspend fun softDelete(id: Long, at: Long)
+
+    /** Rows never synced, or changed (including deleted) since they last were. */
+    @Query("SELECT * FROM entries WHERE syncedAt IS NULL OR updatedAt > syncedAt ORDER BY startMillis")
+    abstract suspend fun unsyncedEntries(): List<EntryEntity>
+
+    @Query("UPDATE entries SET syncedAt = :at WHERE id IN (:ids)")
+    abstract suspend fun markSynced(ids: List<Long>, at: Long)
+
+    // ---- settings ----
+
+    @Query("SELECT * FROM settings WHERE id = 0")
+    abstract fun observeSettings(): Flow<SettingsEntity?>
+
+    @Query("SELECT * FROM settings WHERE id = 0")
+    abstract suspend fun getSettings(): SettingsEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun putSettings(settings: SettingsEntity)
+
+    private companion object {
+        const val SWAP_PLACEHOLDER = "__swap__"
     }
 }

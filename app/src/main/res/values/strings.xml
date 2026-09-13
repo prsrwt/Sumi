@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">Sumi</string>
     <string name="widget_label">Sumi</string>
-    <string name="widget_description">Five things a day, at a glance.</string>
+    <string name="widget_description">What are you doing right now?</string>
 </resources>

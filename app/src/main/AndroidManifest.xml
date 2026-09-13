@@ -21,6 +21,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Opened from the widget. Its own task and out of recents, so logging
+             from the home screen never drags the rest of the app forward. -->
+        <activity
+            android:name=".ui.composer.ComposerActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.Sumi.Composer" />
+
         <receiver
             android:name=".widget.SumiWidgetReceiver"
             android:exported="true"
