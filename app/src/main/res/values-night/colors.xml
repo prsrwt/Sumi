@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Dark mode: the same icon inverted. -->
-    <color name="ic_launcher_background">#FF14110E</color>
-    <color name="ic_launcher_silhouette">#FFF6F3EE</color>
-</resources>

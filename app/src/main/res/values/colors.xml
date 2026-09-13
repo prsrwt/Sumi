@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Light mode: dark beaver on white. -->
-    <color name="ic_launcher_background">#FFFFFFFF</color>
-    <color name="ic_launcher_silhouette">#FF14110E</color>
+    <!-- The paper of the ensō painting, so the icon's padding matches it. -->
+    <color name="ic_launcher_background">#FFF8F7F5</color>
 
     <!-- Sumi ink, for text on the widget's pale glass. Warm near-black rather
          than pure black, the way ink sits on paper. -->
