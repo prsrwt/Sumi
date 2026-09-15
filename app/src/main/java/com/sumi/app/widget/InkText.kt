@@ -34,13 +34,19 @@ object InkText {
     @Volatile
     private var mincho: Typeface? = null
 
+    /**
+     * [minSizePx] lets a single line shrink to fit its space before it is cut short
+     * with an ellipsis: at one row tall, a longer question such as "What fills
+     * this moment?" would otherwise lose its last word.
+     */
     fun render(
         context: Context,
         text: String,
         sizePx: Float,
         color: Int,
         maxWidthPx: Int,
-        maxLines: Int
+        maxLines: Int,
+        minSizePx: Float = sizePx
     ): Bitmap {
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = sizePx
@@ -48,6 +54,16 @@ object InkText {
             typeface = typefaceFor(context, text, this)
             style = Paint.Style.FILL_AND_STROKE
             strokeWidth = sizePx * EXTRA_WEIGHT
+        }
+
+        if (maxLines == 1 && minSizePx < sizePx) {
+            val wanted = StaticLayout.getDesiredWidth(text, paint)
+            // The room left once the stroke's bleed at both edges is set aside.
+            val room = maxWidthPx - 2 * (ceil(paint.strokeWidth).toInt() + 1)
+            if (wanted > room) {
+                paint.textSize = (sizePx * room / wanted).coerceAtLeast(minSizePx)
+                paint.strokeWidth = paint.textSize * EXTRA_WEIGHT
+            }
         }
 
         // The stroke spreads each glyph slightly, so leave it room at the edges.

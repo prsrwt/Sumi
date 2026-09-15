@@ -122,7 +122,7 @@ class SumiWidget : GlanceAppWidget() {
                         R.id.widget_date,
                         InkText.render(
                             context, SHORT_DATE.format(today), px((clockDp * 0.42f).coerceIn(12f, 17f)),
-                            style.inkMuted, px(roomDp).toInt(), maxLines = 1
+                            style.inkMuted, px(roomDp).toInt(), maxLines = 1, minSizePx = px(11f)
                         )
                     )
                 }
@@ -142,12 +142,13 @@ class SumiWidget : GlanceAppWidget() {
 
             is WidgetFace.Asking -> if (compact) {
                 RemoteViews(context.packageName, R.layout.widget_asking_compact).apply {
-                    val roomDp = widthDp - 48f - 12f - 44f
+                    // Side padding, the gap, and about the small clock's width.
+                    val roomDp = widthDp - 48f - 12f - 40f
                     setImageViewBitmap(
                         R.id.widget_question,
                         InkText.render(
                             context, face.question, px((heightDp * 0.26f).coerceIn(15f, 24f)),
-                            style.ink, px(roomDp).toInt(), maxLines = 1
+                            style.ink, px(roomDp).toInt(), maxLines = 1, minSizePx = px(13f)
                         )
                     )
                 }
