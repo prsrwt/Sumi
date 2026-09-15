@@ -95,4 +95,15 @@ class TimelineTest {
         assertEquals("tomorrow", Timeline.relativeDay(LocalDate.parse("2026-09-14"), today))
         assertNull(Timeline.relativeDay(LocalDate.parse("2026-09-10"), today))
     }
+
+    @Test
+    fun `an entry inside another makes no gap and adds nothing to the day's total`() {
+        val rows = Timeline.build(
+            listOf(entry("2026-09-13T09:00", "2026-09-13T10:00"), entry("2026-09-13T09:15", "2026-09-13T09:20")),
+            dayStart, dayEnd, at("2026-09-13T10:00")
+        )
+        assertTrue(rows.none { it is TimelineRow.Unlogged })
+        assertEquals(2, rows.size)
+        assertEquals(Duration.ofMinutes(60), Timeline.loggedTotal(rows))
+    }
 }

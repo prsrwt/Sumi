@@ -1,6 +1,7 @@
 package com.sumi.app.ui.today
 
 import com.sumi.app.data.Entry
+import com.sumi.app.data.Intervals
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -82,7 +83,7 @@ object Timeline {
         else -> null
     }
 
+    /** Time logged on the day, with any stretch covered by several entries counted once. */
     fun loggedTotal(rows: List<TimelineRow>): Duration =
-        rows.filterIsInstance<TimelineRow.Logged>()
-            .fold(Duration.ZERO) { acc, row -> acc + Duration.between(row.shownStart, row.shownEnd) }
+        Intervals.covered(rows.filterIsInstance<TimelineRow.Logged>().map { it.shownStart to it.shownEnd })
 }

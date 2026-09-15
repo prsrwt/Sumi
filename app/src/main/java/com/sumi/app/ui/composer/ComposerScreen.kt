@@ -1,7 +1,6 @@
 package com.sumi.app.ui.composer
 
 import android.animation.ValueAnimator
-import android.app.TimePickerDialog
 import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.text.format.DateFormat
@@ -148,8 +147,7 @@ fun ComposerScreen(
                 ComposerCard(
                     state = state,
                     onTextChange = viewModel::onTextChange,
-                    onStartTime = viewModel::setStartTime,
-                    onEndTime = viewModel::setEndTime,
+                    onRange = viewModel::setRange,
                     onSend = viewModel::send,
                     onElement = viewModel::commitWith,
                     onDelete = viewModel::delete
@@ -169,8 +167,7 @@ private const val SAVE_HOLD_MILLIS = 240L
 private fun ComposerCard(
     state: ComposerState,
     onTextChange: (String) -> Unit,
-    onStartTime: (java.time.LocalTime) -> Unit,
-    onEndTime: (java.time.LocalTime) -> Unit,
+    onRange: (java.time.LocalTime, java.time.LocalTime) -> Unit,
     onSend: () -> Unit,
     onElement: (Element) -> Unit,
     onDelete: () -> Unit
@@ -196,8 +193,7 @@ private fun ComposerCard(
         RangeRow(
             start = state.start,
             end = state.end,
-            onStartTime = onStartTime,
-            onEndTime = onEndTime
+            onRange = onRange
         )
 
         TextField(
@@ -260,29 +256,18 @@ private fun ComposerCard(
 private fun RangeRow(
     start: Instant,
     end: Instant,
-    onStartTime: (java.time.LocalTime) -> Unit,
-    onEndTime: (java.time.LocalTime) -> Unit
+    onRange: (java.time.LocalTime, java.time.LocalTime) -> Unit
 ) {
     val context = LocalContext.current
     val zone = ZoneId.systemDefault()
-
-    fun pick(instant: Instant, onPicked: (java.time.LocalTime) -> Unit) {
-        val local = instant.atZone(zone).toLocalTime()
-        TimePickerDialog(
-            context,
-            { _, hour, minute -> onPicked(java.time.LocalTime.of(hour, minute)) },
-            local.hour,
-            local.minute,
-            DateFormat.is24HourFormat(context)
-        ).show()
-    }
+    var pickerSide by remember { mutableStateOf<RangeSide?>(null) }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = { pick(start, onStartTime) }) {
+        TextButton(onClick = { pickerSide = RangeSide.FROM }) {
             Text(Format.time(context, start), style = MaterialTheme.typography.titleSmall)
         }
         Text("→", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        TextButton(onClick = { pick(end, onEndTime) }) {
+        TextButton(onClick = { pickerSide = RangeSide.TO }) {
             Text(Format.time(context, end), style = MaterialTheme.typography.titleSmall)
         }
         Text(
@@ -290,6 +275,20 @@ private fun RangeRow(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(start = 6.dp)
+        )
+    }
+
+    pickerSide?.let { side ->
+        RangePickerDialog(
+            start = start.atZone(zone).toLocalTime(),
+            end = end.atZone(zone).toLocalTime(),
+            initialSide = side,
+            is24Hour = DateFormat.is24HourFormat(context),
+            onDismiss = { pickerSide = null },
+            onConfirm = { from, to ->
+                pickerSide = null
+                onRange(from, to)
+            }
         )
     }
 }

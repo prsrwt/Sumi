@@ -10,6 +10,7 @@ import com.sumi.app.data.Prompts
 import com.sumi.app.data.RangeSuggestion
 import com.sumi.app.data.SumiRepository
 import com.sumi.app.data.SumiRepository.SaveResult
+import com.sumi.app.data.TimeRange
 import com.sumi.app.widget.WidgetSync
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -84,7 +85,7 @@ class ComposerViewModel(
                 )
 
                 else -> {
-                    val range = RangeSuggestion.suggest(latest?.end, Instant.now(), settings.askInterval)
+                    val range = RangeSuggestion.suggest(latest?.start, latest?.end, Instant.now(), settings.askInterval)
                     ComposerState(
                         loading = false,
                         start = range.start,
@@ -99,22 +100,10 @@ class ComposerViewModel(
 
     fun onTextChange(text: String) = _state.update { it.copy(text = text, message = null) }
 
-    /**
-     * Keeps the start on the end's calendar day, and rolls it back one day if that
-     * would put it at or after the end - which is how 23:30 to 00:15 is expressed.
-     */
-    fun setStartTime(time: LocalTime) = _state.update { s ->
-        val endDate = s.end.atZone(zone).toLocalDate()
-        var start = endDate.atTime(time).atZone(zone).toInstant()
-        if (!start.isBefore(s.end)) start = start.minusSeconds(DAY_SECONDS)
-        s.copy(start = start, message = null)
-    }
-
-    fun setEndTime(time: LocalTime) = _state.update { s ->
-        val startDate = s.start.atZone(zone).toLocalDate()
-        var end = startDate.atTime(time).atZone(zone).toInstant()
-        if (!end.isAfter(s.start)) end = end.plusSeconds(DAY_SECONDS)
-        s.copy(end = end, message = null)
+    /** Both ends at once, from the From | To picker. See [TimeRange] for how days are chosen. */
+    fun setRange(from: LocalTime, to: LocalTime) = _state.update { s ->
+        val range = TimeRange.resolve(from, to, previousEnd = s.end, zone = zone)
+        s.copy(start = range.start, end = range.endInclusive, message = null)
     }
 
     /** Send: a new entry goes in untagged; an edited entry keeps the element it had. */
@@ -150,10 +139,6 @@ class ComposerViewModel(
                     _state.update { it.copy(saving = false, done = true) }
                 }
 
-                is SaveResult.Overlaps -> _state.update {
-                    it.copy(saving = false, message = describeOverlap(result))
-                }
-
                 is SaveResult.Invalid -> _state.update {
                     it.copy(saving = false, message = result.reason)
                 }
@@ -161,17 +146,4 @@ class ComposerViewModel(
         }
     }
 
-    private fun describeOverlap(result: SaveResult.Overlaps): String {
-        val first = result.conflicts.first()
-        val goals = _state.value.goals
-        val label = first.text
-            ?: goals.firstOrNull { it.element == first.element }?.displayName
-            ?: "another entry"
-        val more = if (result.conflicts.size > 1) " and ${result.conflicts.size - 1} more" else ""
-        return "This overlaps “$label”$more."
-    }
-
-    private companion object {
-        const val DAY_SECONDS = 24L * 60 * 60
-    }
 }

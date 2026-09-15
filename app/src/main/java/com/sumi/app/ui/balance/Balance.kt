@@ -2,6 +2,7 @@ package com.sumi.app.ui.balance
 
 import com.sumi.app.data.Element
 import com.sumi.app.data.Entry
+import com.sumi.app.data.Intervals
 import com.sumi.app.data.SumiRepository
 import java.time.Duration
 import java.time.Instant
@@ -47,14 +48,19 @@ object Balance {
     ): BalanceSnapshot {
         val windowStart = today.minusDays((windowDays - 1).toLong()).atStartOfDay(zone).toInstant()
 
-        val perElement = Element.entries.associateWith { Duration.ZERO }.toMutableMap()
-        var untagged = Duration.ZERO
-        for (entry in entries) {
-            val slice = entry.overlapWith(windowStart, now)
-            if (slice.isZero) continue
-            val element = entry.element
-            if (element == null) untagged += slice else perElement[element] = perElement.getValue(element) + slice
+        // Each entry clipped to the window. Time is then totalled per element with
+        // overlaps merged, so logging the same element twice for one stretch counts
+        // it once - while different elements sharing a stretch each get all of it,
+        // because both really happened.
+        val slices = entries.mapNotNull { entry ->
+            val start = maxOf(entry.start, windowStart)
+            val end = minOf(entry.end, now)
+            if (end.isAfter(start)) Triple(entry.element, start, end) else null
         }
+        val perElement = Element.entries.associateWith { element ->
+            Intervals.covered(slices.filter { it.first == element }.map { it.second to it.third })
+        }
+        val untagged = Intervals.covered(slices.filter { it.first == null }.map { it.second to it.third })
 
         return BalanceSnapshot(
             windowDays = windowDays,

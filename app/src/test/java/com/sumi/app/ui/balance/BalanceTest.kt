@@ -90,4 +90,27 @@ class BalanceTest {
         assertEquals(today, snapshot.days.last().date)
         assertEquals(2, snapshot.days.last().elementsTouched)
     }
+
+    @Test
+    fun `logging the same element twice for one stretch counts it once`() {
+        val snapshot = compute(
+            listOf(
+                entry("2026-09-13T09:00", "2026-09-13T10:00", Element.WATER),
+                entry("2026-09-13T09:30", "2026-09-13T10:00", Element.WATER)
+            )
+        )
+        assertEquals(Duration.ofHours(1), snapshot.perElement.getValue(Element.WATER))
+    }
+
+    @Test
+    fun `different elements sharing a stretch each get all of it`() {
+        val snapshot = compute(
+            listOf(
+                entry("2026-09-13T09:00", "2026-09-13T10:00", Element.FIRE),
+                entry("2026-09-13T09:15", "2026-09-13T09:20", Element.WATER)
+            )
+        )
+        assertEquals(Duration.ofHours(1), snapshot.perElement.getValue(Element.FIRE))
+        assertEquals(Duration.ofMinutes(5), snapshot.perElement.getValue(Element.WATER))
+    }
 }

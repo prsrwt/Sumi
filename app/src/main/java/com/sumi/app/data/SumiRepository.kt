@@ -76,7 +76,6 @@ class SumiRepository(private val db: SumiDatabase) {
 
     sealed interface SaveResult {
         data class Saved(val id: Long) : SaveResult
-        data class Overlaps(val conflicts: List<Entry>) : SaveResult
         data class Invalid(val reason: String) : SaveResult
     }
 
@@ -99,9 +98,10 @@ class SumiRepository(private val db: SumiDatabase) {
     suspend fun delete(id: Long) = dao.softDelete(id, System.currentTimeMillis())
 
     /**
-     * Validation and the overlap check run inside one transaction with the write,
-     * so two saves racing each other - a widget log landing while an edit is open,
-     * say - cannot both pass the check and then overlap.
+     * Entries may overlap freely. Doing two things at once - drinking water during
+     * an hour of work - is two entries sharing time, and refusing the second one
+     * gets in the way of the one thing Sumi is for. Totals count shared time once
+     * instead; see [Intervals]. Only entries that make no sense are rejected.
      */
     private suspend fun save(
         existingId: Long?,
@@ -121,12 +121,6 @@ class SumiRepository(private val db: SumiDatabase) {
         }
 
         return db.withTransaction {
-            val conflicts = dao.getOverlapping(start.toEpochMilli(), end.toEpochMilli())
-                .filter { it.id != existingId }
-            if (conflicts.isNotEmpty()) {
-                return@withTransaction SaveResult.Overlaps(conflicts.map { it.toEntry() })
-            }
-
             val now = System.currentTimeMillis()
             if (existingId == null) {
                 val id = dao.insertEntry(

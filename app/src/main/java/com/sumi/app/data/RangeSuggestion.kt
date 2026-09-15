@@ -9,24 +9,36 @@ import java.time.temporal.ChronoUnit
  *
  * Recall degrades quickly, so the most accurate log is one close to the moment
  * with its start already filled in - the user confirms a range rather than
- * reconstructing it. The usual answer is "from where your last entry ended".
+ * reconstructing it. Three cases:
  *
- * But not always. After a night's sleep the last entry ended ten hours ago, and
- * continuing from it would propose one enormous block. So continuation is capped,
- * and beyond the cap the suggestion falls back to one interval before now,
- * leaving the real gap visible as unlogged time to backfill if the user wants.
+ * - The last entry ended a little while ago: continue from where it ended.
+ * - It ended just now, in this same minute: offer that entry's own stretch. The
+ *   usual reason for logging twice in a row is "and I also did this during that
+ *   time". Continuing from its end would give a zero-length range, and falling
+ *   back to one interval ago - what this used to do - offered an arbitrary window
+ *   unrelated to the entry just logged.
+ * - It ended long ago, or there is none: one interval before now. After a night's
+ *   sleep the last entry ended hours ago, and continuing from it would propose one
+ *   enormous block, so continuation is capped.
  */
 object RangeSuggestion {
 
     val MAX_CONTINUATION: Duration = Duration.ofHours(3)
 
-    fun suggest(latestEnd: Instant?, now: Instant, interval: Duration): ClosedRange<Instant> {
+    fun suggest(
+        latestStart: Instant?,
+        latestEnd: Instant?,
+        now: Instant,
+        interval: Duration
+    ): ClosedRange<Instant> {
         val end = now.truncatedTo(ChronoUnit.MINUTES)
-        val continuesLast = latestEnd != null &&
-            latestEnd.isBefore(end) &&
-            Duration.between(latestEnd, end) <= MAX_CONTINUATION
 
-        val start = if (continuesLast) latestEnd!! else end.minus(interval)
-        return start..end
+        if (latestStart != null && latestEnd != null && !latestEnd.isBefore(end)) {
+            return latestStart..latestEnd
+        }
+        if (latestEnd != null && Duration.between(latestEnd, end) <= MAX_CONTINUATION) {
+            return latestEnd..end
+        }
+        return end.minus(interval)..end
     }
 }
