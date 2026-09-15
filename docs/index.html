@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inside Sumi</title>
+<script>
+  // Inside the Sumi app the page follows the app's theme rather than guessing.
+  if (window.SumiApp && SumiApp.theme) document.documentElement.setAttribute("data-theme", SumiApp.theme());
+</script>
+<meta name="description" content="A study guide to how the Sumi Android app is built, chapter by chapter.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500&family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  /* ---- tokens: taken from the app's own theme (SumiTheme.kt, Element.kt) ---- */
+  :root {
+    --paper: #F7F5F1;
+    --surface: #FFFFFF;
+    --ink: #161A18;
+    --muted: #5C625E;
+    --hair: #D8D4CC;
+    --gold: #7A5E12;
+    --code-bg: #EFECE6;
+    --kw: #6A4E9E;
+    --str: #2E7247;
+    --com: #8B908C;
+    --num: #97600F;
+
+    /* The five elements, deepened a little so they hold on paper. */
+    --earth: #C08A27;
+    --water: #3A8CC4;
+    --fire: #E4733A;
+    --wind: #4FA46C;
+    --void: #8670B3;
+    --untagged: #8F8F8F;
+
+    /* The hero widget's backdrop and glass. */
+    --wall-1: #DCE7EE;
+    --wall-2: #EFE2D2;
+    --wall-3: #E4E9DD;
+    --glass-fill: rgba(252, 250, 246, 0.22);
+    --glass-edge: rgba(255, 255, 255, 0.55);
+    --glass-ink: #111111;
+
+    --display: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --body: "Zen Kaku Gothic New", "Hiragino Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "M PLUS 1 Code", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0B0D0C;
+      --surface: #121514;
+      --ink: #F2EFE9;
+      --muted: #9BA09C;
+      --hair: #2A2F2C;
+      --gold: #E8C45C;
+      --code-bg: #151917;
+      --kw: #BBA8E2;
+      --str: #8FD1A0;
+      --com: #6E746F;
+      --num: #E8C45C;
+      --earth: #D9A441;
+      --water: #4FA3D9;
+      --fire: #FF8A4C;
+      --wind: #8FD1A0;
+      --void: #A08CC4;
+      --untagged: #969696;
+      --wall-1: #1B2430;
+      --wall-2: #2A1A22;
+      --wall-3: #14201A;
+      --glass-fill: rgba(18, 17, 16, 0.32);
+      --glass-edge: rgba(255, 255, 255, 0.18);
+      --glass-ink: #FAF8F4;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0B0D0C;
+    --surface: #121514;
+    --ink: #F2EFE9;
+    --muted: #9BA09C;
+    --hair: #2A2F2C;
+    --gold: #E8C45C;
+    --code-bg: #151917;
+    --kw: #BBA8E2;
+    --str: #8FD1A0;
+    --com: #6E746F;
+    --num: #E8C45C;
+    --earth: #D9A441;
+    --water: #4FA3D9;
+    --fire: #FF8A4C;
+    --wind: #8FD1A0;
+    --void: #A08CC4;
+    --untagged: #969696;
+    --wall-1: #1B2430;
+    --wall-2: #2A1A22;
+    --wall-3: #14201A;
+    --glass-fill: rgba(18, 17, 16, 0.32);
+    --glass-edge: rgba(255, 255, 255, 0.18);
+    --glass-ink: #FAF8F4;
+    color-scheme: dark;
+  }
+
+  /* ---- base ---- */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding-inline: clamp(16px, 5vw, 64px);
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 17px/1.7 var(--body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--gold); text-underline-offset: 3px; }
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--code-bg); padding: 0.1em 0.4em; border-radius: 6px; }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px; }
+
+  .page { max-width: 1180px; margin: 0 auto; }
+
+  /* ---- hero ---- */
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(32px, 6vw, 88px);
+    padding-block: clamp(40px, 8vw, 104px) clamp(32px, 6vw, 72px);
+  }
+
+  .seal {
+    font: 700 15px/1 var(--display);
+    letter-spacing: 0.24em;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .seal b { font-size: 30px; letter-spacing: 0; color: var(--ink); font-weight: 500; }
+
+  h1 {
+    font: 500 clamp(52px, 8vw, 96px)/1.02 var(--display);
+    letter-spacing: -0.01em;
+    margin: 20px 0 22px;
+    text-wrap: balance;
+  }
+
+  .lede { font-size: clamp(18px, 1.6vw, 20px); color: var(--muted); max-width: 34em; margin: 0; text-wrap: pretty; }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+    margin: 28px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .facts strong { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  /* The widget replica: the thing the whole app exists to show. */
+  .wall {
+    position: relative;
+    border-radius: 36px;
+    aspect-ratio: 1 / 1.02;
+    max-width: 100%;
+    overflow: hidden;
+    background:
+      radial-gradient(60% 55% at 18% 22%, var(--wall-1), transparent 70%),
+      radial-gradient(55% 60% at 85% 78%, var(--wall-2), transparent 70%),
+      radial-gradient(70% 60% at 70% 20%, var(--wall-3), transparent 75%),
+      var(--paper);
+    display: grid;
+    place-items: center;
+    padding: 8%;
+    border: 1px solid var(--hair);
+  }
+  .wall::after {
+    /* A faint brushed ensō behind the glass, the app's icon in spirit. */
+    content: "";
+    position: absolute;
+    width: 78%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 18px solid var(--hair);
+    border: 18px solid color-mix(in srgb, var(--ink) 6%, transparent);
+    border-right-color: transparent;
+    transform: rotate(-24deg);
+    inset: auto auto -8% -10%;
+  }
+
+  .glass {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    border-radius: 28px;
+    background: var(--glass-fill);
+    border: 1px solid var(--glass-edge);
+    backdrop-filter: blur(14px) saturate(1.1);
+    -webkit-backdrop-filter: blur(14px) saturate(1.1);
+    color: var(--glass-ink);
+    min-height: 196px;
+    display: grid;
+    place-items: center;
+    padding: 28px;
+  }
+  .face {
+    grid-area: 1 / 1;
+    text-align: center;
+    transition: opacity 600ms ease, transform 600ms cubic-bezier(.2, .7, .2, 1);
+  }
+  .face[aria-hidden="true"] { opacity: 0; transform: translateY(6px); }
+  .face .q { font: 500 clamp(26px, 3.2vw, 34px)/1.2 var(--display); letter-spacing: 0.005em; }
+  .face .small { margin-top: 10px; font: 700 15px/1 Georgia, serif; opacity: 0.85; font-variant-numeric: tabular-nums; }
+  .face .big { font: 400 clamp(56px, 7vw, 76px)/1 Georgia, "Noto Serif", serif; font-variant-numeric: tabular-nums; }
+  .face .date { margin-top: 10px; font: 500 16px/1.2 var(--display); opacity: 0.85; }
+  .wall-caption { margin: 14px 4px 0; font-size: 13px; color: var(--muted); }
+
+  /* ---- chapters ---- */
+  .chapters { padding-block: 24px 96px; }
+  .chapters-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px 32px;
+    border-top: 1px solid var(--hair);
+    padding-top: 28px;
+    margin-bottom: 28px;
+  }
+  h2 { font: 500 clamp(30px, 3vw, 38px)/1.2 var(--display); margin: 0; }
+  .how { color: var(--muted); font-size: 15px; margin: 0; max-width: 42em; }
+  kbd { font: 500 12px/1 var(--mono); border: 1px solid var(--hair); border-bottom-width: 2px; border-radius: 6px; padding: 3px 6px; background: var(--surface); }
+
+  .grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .grid li:first-child { grid-column: span 2; }
+
+  .tile {
+    --x: 50%;
+    --y: 50%;
+    position: relative;
+    isolation: isolate;
+    width: 100%;
+    height: 100%;
+    min-height: 236px;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: 22px;
+    padding: 22px 24px 22px;
+    cursor: pointer;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    gap: 6px;
+    transition: border-color 240ms ease, transform 240ms cubic-bezier(.2, .7, .2, 1);
+  }
+  .tile::before {
+    /* Ink touching paper: the element's colour spreads from where the pointer is. */
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(420px circle at var(--x) var(--y), color-mix(in srgb, var(--c) 18%, transparent), transparent 62%);
+    opacity: 0;
+    transition: opacity 360ms ease;
+  }
+  .tile:hover::before, .tile:focus-visible::before { opacity: 1; }
+  .tile:hover { border-color: color-mix(in srgb, var(--c) 45%, var(--hair)); transform: translateY(-2px); }
+
+  .tile .num { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .kanji { font: 500 76px/1 var(--display); color: var(--c); align-self: center; margin-block: 6px; }
+  .tile .t { font: 500 23px/1.25 var(--display); text-wrap: balance; }
+  .tile .b { color: var(--muted); font-size: 15px; line-height: 1.55; }
+  .tile .meta { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+
+  .grid li:first-child .tile { grid-template-columns: auto 1fr; grid-template-rows: auto 1fr auto auto; column-gap: 32px; }
+  .grid li:first-child .tile .num { grid-column: 1 / -1; }
+  .grid li:first-child .tile .kanji { grid-row: 2 / 5; font-size: 132px; }
+  .grid li:first-child .tile .t { align-self: end; font-size: 32px; }
+  .grid li:first-child .tile .b { font-size: 16px; max-width: 30em; }
+  .grid li:first-child .tile .meta { grid-column: 2; }
+
+  footer {
+    border-top: 1px solid var(--hair);
+    padding-block: 28px 48px;
+    color: var(--muted);
+    font-size: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+
+  /* ---- the slideshow ---- */
+  dialog.viewer {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--paper);
+    color: var(--ink);
+    overflow: hidden;
+  }
+  dialog.viewer[open] { display: grid; grid-template-rows: auto 1fr auto; }
+  dialog.viewer::backdrop { background: var(--paper); }
+
+  .v-head, .v-foot {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px clamp(16px, 4vw, 48px);
+  }
+  .v-head { border-bottom: 1px solid var(--hair); }
+  .v-foot { border-top: 1px solid var(--hair); }
+
+  .v-chapter { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1; }
+  .v-chapter b { font: 500 30px/1 var(--display); color: var(--c); }
+  .v-chapter span { display: grid; min-width: 0; }
+  .v-chapter small { font: 500 11px/1.3 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .v-chapter strong { font: 500 19px/1.3 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .icon-btn, .nav-btn {
+    font: 500 15px/1 var(--body);
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--hair);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 200ms ease, border-color 200ms ease;
+  }
+  .icon-btn { width: 42px; height: 42px; font-size: 22px; display: grid; place-items: center; }
+  .nav-btn { padding: 12px 20px; white-space: nowrap; }
+  .nav-btn.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .icon-btn:hover, .nav-btn:hover { border-color: var(--muted); }
+  .nav-btn:disabled { opacity: 0.35; cursor: default; }
+
+  .v-dots { flex: 1; display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .dot {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--hair);
+    background: color-mix(in srgb, var(--ink) 20%, transparent);
+    cursor: pointer;
+    transition: width 480ms cubic-bezier(.2, .7, .2, 1), background 480ms ease;
+  }
+  .dot[aria-current="true"] { width: 26px; background: var(--ink); }
+  .v-count { font: 500 13px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: center; }
+
+  .v-stage { position: relative; overflow: hidden; touch-action: pan-y; }
+  .watermark {
+    position: absolute;
+    right: -2vw;
+    bottom: -8vh;
+    font: 500 clamp(260px, 42vw, 620px)/1 var(--display);
+    color: var(--c);
+    opacity: 0.07;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    padding: clamp(28px, 5vw, 64px) clamp(16px, 5vw, 64px) 48px;
+  }
+  .slide-inner { max-width: 1180px; margin: 0 auto; display: grid; gap: clamp(28px, 4vw, 64px); }
+  .slide-inner.has-aside { grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); align-items: start; }
+
+  .slide h3 { font: 500 clamp(32px, 4vw, 50px)/1.12 var(--display); margin: 0 0 22px; text-wrap: balance; }
+  .prose { max-width: 36em; }
+  .prose p, .prose ul, .prose ol, .prose dl { margin: 0 0 16px; }
+  .prose ul, .prose ol { padding-left: 1.2em; }
+  .prose li { margin-bottom: 8px; }
+  .prose li::marker { color: var(--muted); }
+
+  .note {
+    margin-top: 26px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hair);
+    max-width: 36em;
+  }
+  .note .label { display: flex; align-items: baseline; gap: 10px; font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .note .label b { font: 500 20px/1 var(--display); letter-spacing: 0; color: var(--c); }
+  .note p { margin: 0; color: var(--ink); }
+
+  .codebox { border: 1px solid var(--hair); border-radius: 18px; overflow: hidden; background: var(--code-bg); }
+  .codebox .file { font: 500 12px/1.4 var(--mono); color: var(--muted); padding: 12px 18px; border-bottom: 1px solid var(--hair); overflow-wrap: anywhere; }
+  .codebox pre { margin: 0; padding: 18px; overflow-x: auto; font: 400 13.5px/1.65 var(--mono); tab-size: 4; }
+  .codebox code { background: none; padding: 0; font-size: inherit; }
+  .t-kw { color: var(--kw); }
+  .t-str { color: var(--str); }
+  .t-com { color: var(--com); font-style: italic; }
+  .t-num { color: var(--num); }
+  .t-ann { color: var(--gold); }
+
+  .aside { display: grid; gap: 20px; min-width: 0; }
+
+  /* diagrams */
+  .stack { display: grid; gap: 10px; }
+  .stack div {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: 14px;
+    padding: 12px 18px;
+    font: 500 17px/1.3 var(--display);
+  }
+  .stack div + div::before { content: ""; position: absolute; left: 28px; top: -11px; width: 1px; height: 10px; background: var(--muted); }
+  .stack small { display: block; font: 400 13px/1.4 var(--body); color: var(--muted); margin-top: 2px; }
+
+  .flow { list-style: none; counter-reset: step; margin: 0; padding: 0; display: grid; gap: 0; }
+  .flow li { counter-increment: step; position: relative; padding: 0 0 18px 46px; }
+  .flow li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--hair);
+    background: var(--surface);
+    display: grid;
+    place-items: center;
+    font: 500 13px/1 var(--mono);
+  }
+  .flow li:not(:last-child)::after { content: ""; position: absolute; left: 15px; top: 32px; bottom: 2px; width: 1px; background: var(--hair); }
+  .flow b { display: block; font: 500 17px/1.3 var(--display); padding-top: 3px; }
+  .flow span { color: var(--muted); font-size: 15px; }
+
+  .intervals { width: 100%; max-width: 100%; height: auto; }
+  .intervals .lbl { fill: var(--muted); font: 500 11px var(--mono); }
+
+  .element-row { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 4px 0 18px; }
+  .element-row span { display: grid; justify-items: center; font-size: 13px; color: var(--muted); }
+  .element-row b { font: 500 40px/1.15 var(--display); color: var(--c); }
+
+  .terms { display: grid; grid-template-columns: minmax(8em, max-content) 1fr; gap: 10px 24px; }
+  .terms dt { font: 500 17px/1.5 var(--display); }
+  .terms dd { margin: 0; color: var(--muted); }
+
+  /* ---- narrow screens ---- */
+  @media (max-width: 1000px) {
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid li:last-child { grid-column: span 2; }
+    .slide-inner.has-aside { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: minmax(0, 1fr); }
+    .wall { aspect-ratio: 1 / 0.9; }
+  }
+  @media (max-width: 620px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .grid li:first-child, .grid li:last-child { grid-column: auto; }
+    .grid li:first-child .tile { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto 1fr auto; }
+    .grid li:first-child .tile .kanji { grid-row: auto; font-size: 88px; }
+    .grid li:first-child .tile .meta { grid-column: auto; }
+    .v-count { display: none; }
+    .nav-btn { padding: 11px 14px; }
+    .nav-btn .long { display: none; }
+    .terms { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+    .terms dd { margin-bottom: 10px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 1ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="hero">
+    <div>
+      <div class="seal"><b>墨</b>SUMI · STUDY GUIDE</div>
+      <h1>Inside Sumi</h1>
+      <p class="lede">How a calm Android widget that asks what you are doing is built: the idea behind it, the Kotlin and Compose underneath, the widget and its alarms, and the sync to Google Sheets. One short slideshow per part, with the real code.</p>
+      <ul class="facts" id="facts"></ul>
+    </div>
+    <figure style="margin: 0">
+      <div class="wall">
+        <div class="glass" id="replica" role="img" aria-label="A replica of the Sumi widget">
+          <div class="face" id="face-ask">
+            <div class="q">What are you doing?</div>
+            <div class="small" data-clock>--:--</div>
+          </div>
+          <div class="face" id="face-rest" aria-hidden="true">
+            <div class="big" data-clock>--:--</div>
+            <div class="date" id="replica-date"></div>
+          </div>
+        </div>
+      </div>
+      <figcaption class="wall-caption">The widget, as it appears on a home screen. It shows your time now, and switches between asking and resting.</figcaption>
+    </figure>
+  </header>
+
+  <main class="chapters">
+    <div class="chapters-head">
+      <h2>Chapters</h2>
+      <p class="how">Read them in order the first time; each takes a few minutes. Turn slides with <kbd>←</kbd> <kbd>→</kbd> or a swipe, and close with <kbd>Esc</kbd>. Every slide has its own link.</p>
+    </div>
+    <ol class="grid" id="grid"></ol>
+  </main>
+
+  <footer>
+    <span>Sumi © 2026 prsrwt. All rights reserved.</span>
+    <a href="https://github.com/prsrwt/Sumi">The Sumi repository</a>
+  </footer>
+</div>
+
+<dialog class="viewer" id="viewer" aria-labelledby="v-title">
+  <div class="v-head">
+    <div class="v-chapter">
+      <b id="v-kanji"></b>
+      <span><small id="v-number"></small><strong id="v-title"></strong></span>
+    </div>
+    <button class="icon-btn" id="v-close" aria-label="Close and return to chapters">×</button>
+  </div>
+  <div class="v-stage" id="v-stage">
+    <div class="watermark" id="v-watermark" aria-hidden="true"></div>
+  </div>
+  <div class="v-foot">
+    <button class="nav-btn" id="v-prev">← <span class="long">Previous</span></button>
+    <div class="v-dots" id="v-dots"></div>
+    <span class="v-count" id="v-count"></span>
+    <button class="nav-btn primary" id="v-next"></button>
+  </div>
+</dialog>
+
+<script src="content.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var chapters = window.SUMI_GUIDE || [];
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (id) { return document.getElementById(id); };
+
+  function colorOf(chapter) { return "var(--" + chapter.element + ")"; }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  // ---- hero: a widget that tells the real time ----
+  var totalSlides = chapters.reduce(function (sum, c) { return sum + c.slides.length; }, 0);
+  $("facts").innerHTML =
+    "<li><strong>" + chapters.length + "</strong> chapters</li>" +
+    "<li><strong>" + totalSlides + "</strong> slides</li>" +
+    "<li>Kotlin · Jetpack Compose · Room · Glance · WorkManager</li>";
+
+  var dateFormat = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  function tick() {
+    var now = new Date();
+    var time = now.getHours() + ":" + pad(now.getMinutes());
+    document.querySelectorAll("[data-clock]").forEach(function (el) { el.textContent = time; });
+    $("replica-date").textContent = dateFormat.format(now).replace(" ", " · ");
+  }
+  tick();
+  setInterval(tick, 15000);
+
+  var asking = true;
+  function flipFace() {
+    asking = !asking;
+    $("face-ask").setAttribute("aria-hidden", String(!asking));
+    $("face-rest").setAttribute("aria-hidden", String(asking));
+  }
+  if (!reduceMotion) setInterval(flipFace, 6000);
+
+  // ---- chapter tiles ----
+  var grid = $("grid");
+  chapters.forEach(function (chapter, index) {
+    var li = document.createElement("li");
+    var button = document.createElement("button");
+    button.className = "tile";
+    button.type = "button";
+    button.style.setProperty("--c", colorOf(chapter));
+    button.innerHTML =
+      '<span class="num">' + pad(index + 1) + '</span>' +
+      '<span class="kanji" aria-hidden="true">' + chapter.kanji + '</span>' +
+      '<span class="t">' + chapter.title + '</span>' +
+      '<span class="b">' + chapter.blurb + '</span>' +
+      '<span class="meta">' + chapter.slides.length + ' slides</span>';
+    button.addEventListener("click", function () { open(index, 0); });
+    button.addEventListener("pointermove", function (event) {
+      var box = button.getBoundingClientRect();
+      button.style.setProperty("--x", (event.clientX - box.left) + "px");
+      button.style.setProperty("--y", (event.clientY - box.top) + "px");
+    });
+    li.appendChild(button);
+    grid.appendChild(li);
+  });
+
+  // ---- Kotlin highlighting, just enough to read by ----
+  var KOTLIN = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:[^"\\\n]|\\.)*")|(`[^`\n]*`)|(@\w+)|\b(fun|val|var|if|else|return|when|for|in|is|object|class|data|sealed|interface|enum|override|private|protected|open|abstract|suspend|const|null|true|false|try|catch|finally|throw|companion)\b|\b(\d[\d_]*(?:\.\d+)?[Lf]?)\b/g;
+
+  function escapeHtml(text) {
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function highlight(text, lang) {
+    if (lang === "text") return escapeHtml(text);
+    var out = "";
+    var last = 0;
+    text.replace(KOTLIN, function (match, com, str, tick, ann, kw, num, offset) {
+      out += escapeHtml(text.slice(last, offset));
+      var cls = com ? "t-com" : str ? "t-str" : tick ? "t-str" : ann ? "t-ann" : kw ? "t-kw" : "t-num";
+      out += '<span class="' + cls + '">' + escapeHtml(match) + "</span>";
+      last = offset + match.length;
+      return match;
+    });
+    return out + escapeHtml(text.slice(last));
+  }
+
+  // ---- the viewer ----
+  var viewer = $("viewer");
+  var stage = $("v-stage");
+  var current = { chapter: -1, slide: -1, element: null };
+
+  function slideMarkup(chapter, slide) {
+    var aside = "";
+    if (slide.diagram) aside += '<div class="diagram">' + slide.diagram + "</div>";
+    if (slide.code) {
+      aside +=
+        '<div class="codebox"><div class="file">' + escapeHtml(slide.code.file) + "</div>" +
+        "<pre><code>" + highlight(slide.code.text, slide.code.lang) + "</code></pre></div>";
+    }
+    var note = slide.why
+      ? '<div class="note"><div class="label"><b>理</b>Why it is built this way</div><p>' + slide.why + "</p></div>"
+      : "";
+    var main = '<div class="prose"><h3>' + slide.title + "</h3>" + slide.body + "</div>" + note;
+    return aside
+      ? '<div class="slide-inner has-aside"><div>' + main + '</div><div class="aside">' + aside + "</div></div>"
+      : '<div class="slide-inner"><div>' + main + "</div></div>";
+  }
+
+  function renderChrome(chapterIndex, slideIndex) {
+    var chapter = chapters[chapterIndex];
+    viewer.style.setProperty("--c", colorOf(chapter));
+    $("v-kanji").textContent = chapter.kanji;
+    $("v-watermark").textContent = chapter.kanji;
+    $("v-number").textContent = "Chapter " + (chapterIndex + 1) + " of " + chapters.length;
+    $("v-title").textContent = chapter.title;
+    $("v-count").textContent = (slideIndex + 1) + " / " + chapter.slides.length;
+
+    var dots = $("v-dots");
+    if (dots.childElementCount !== chapter.slides.length || dots.dataset.chapter !== String(chapterIndex)) {
+      dots.innerHTML = "";
+      dots.dataset.chapter = String(chapterIndex);
+      chapter.slides.forEach(function (slide, i) {
+        var dot = document.createElement("button");
+        dot.className = "dot";
+        dot.type = "button";
+        dot.setAttribute("aria-label", "Slide " + (i + 1) + ": " + slide.title);
+        dot.addEventListener("click", function () { go(chapterIndex, i); });
+        dots.appendChild(dot);
+      });
+    }
+    Array.prototype.forEach.call(dots.children, function (dot, i) {
+      dot.setAttribute("aria-current", String(i === slideIndex));
+    });
+
+    $("v-prev").disabled = chapterIndex === 0 && slideIndex === 0;
+    var next = $("v-next");
+    var lastSlide = slideIndex === chapter.slides.length - 1;
+    if (!lastSlide) {
+      next.innerHTML = '<span class="long">Next</span> →';
+    } else if (chapterIndex < chapters.length - 1) {
+      next.innerHTML = '<span class="long">Next: ' + chapters[chapterIndex + 1].title + "</span> →";
+    } else {
+      next.textContent = "Back to chapters";
+    }
+  }
+
+  function go(chapterIndex, slideIndex, direction) {
+    if (chapterIndex < 0 || chapterIndex >= chapters.length) return;
+    var slides = chapters[chapterIndex].slides;
+    slideIndex = Math.max(0, Math.min(slideIndex, slides.length - 1));
+    if (chapterIndex === current.chapter && slideIndex === current.slide) return;
+
+    if (direction === undefined) {
+      direction = chapterIndex > current.chapter || (chapterIndex === current.chapter && slideIndex > current.slide) ? 1 : -1;
+    }
+
+    var incoming = document.createElement("article");
+    incoming.className = "slide";
+    incoming.setAttribute("aria-live", "polite");
+    incoming.innerHTML = slideMarkup(chapters[chapterIndex], slides[slideIndex]);
+    stage.appendChild(incoming);
+
+    var outgoing = current.element;
+    var easing = "cubic-bezier(.2, .7, .2, 1)";
+    if (outgoing && !reduceMotion) {
+      // The page turns: the old slide drifts off and fades while the new one
+      // arrives from the side and settles, content trailing a little behind.
+      outgoing.animate(
+        [{ opacity: 1, transform: "translateX(0)" }, { opacity: 0, transform: "translateX(" + (-direction * 6) + "%)" }],
+        { duration: 380, easing: easing, fill: "forwards" }
+      ).onfinish = function () { outgoing.remove(); };
+      incoming.animate(
+        [{ opacity: 0, transform: "translateX(" + (direction * 10) + "%)" }, { opacity: 1, transform: "translateX(0)" }],
+        { duration: 520, easing: easing }
+      );
+    } else if (outgoing) {
+      outgoing.remove();
+    }
+
+    if (chapterIndex !== current.chapter && !reduceMotion) {
+      $("v-watermark").animate([{ opacity: 0 }, { opacity: 0.07 }], { duration: 700, easing: "ease" });
+    }
+
+    current = { chapter: chapterIndex, slide: slideIndex, element: incoming };
+    renderChrome(chapterIndex, slideIndex);
+    history.replaceState(null, "", "#" + chapters[chapterIndex].id + "/" + (slideIndex + 1));
+  }
+
+  function open(chapterIndex, slideIndex) {
+    if (!viewer.open) {
+      viewer.showModal();
+      document.body.style.overflow = "hidden";
+    }
+    go(chapterIndex, slideIndex, 1);
+  }
+
+  function next() {
+    var chapter = chapters[current.chapter];
+    if (current.slide < chapter.slides.length - 1) go(current.chapter, current.slide + 1, 1);
+    else if (current.chapter < chapters.length - 1) go(current.chapter + 1, 0, 1);
+    else viewer.close();
+  }
+
+  function previous() {
+    if (current.slide > 0) go(current.chapter, current.slide - 1, -1);
+    else if (current.chapter > 0) go(current.chapter - 1, chapters[current.chapter - 1].slides.length - 1, -1);
+  }
+
+  $("v-next").addEventListener("click", next);
+  $("v-prev").addEventListener("click", previous);
+  $("v-close").addEventListener("click", function () { viewer.close(); });
+
+  viewer.addEventListener("close", function () {
+    document.body.style.overflow = "";
+    if (current.element) current.element.remove();
+    var tileIndex = current.chapter;
+    current = { chapter: -1, slide: -1, element: null };
+    history.replaceState(null, "", location.pathname + location.search);
+    var tiles = grid.querySelectorAll(".tile");
+    if (tiles[tileIndex]) tiles[tileIndex].focus();
+  });
+
+  viewer.addEventListener("keydown", function (event) {
+    if (event.target.closest && event.target.closest("pre")) return;
+    if (event.key === "ArrowRight") { event.preventDefault(); next(); }
+    if (event.key === "ArrowLeft") { event.preventDefault(); previous(); }
+  });
+
+  // Swipe on touch screens; a mostly sideways drag turns the page. Touch events
+  // rather than pointer events: a slide scrolls vertically, and the browser
+  // cancels pointer events the moment it thinks a drag might be a scroll.
+  var startX = null;
+  var startY = null;
+  stage.addEventListener("touchstart", function (event) {
+    if (event.touches.length !== 1 || event.target.closest("pre")) { startX = null; return; }
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener("touchend", function (event) {
+    if (startX === null) return;
+    var touch = event.changedTouches[0];
+    var dx = touch.clientX - startX;
+    var dy = touch.clientY - startY;
+    startX = null;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0) next(); else previous();
+    }
+  }, { passive: true });
+  stage.addEventListener("touchcancel", function () { startX = null; }, { passive: true });
+
+  // The app's Back button asks the page first: an open slideshow closes, and
+  // only a page with nothing open lets the app close the guide.
+  window.sumiBack = function () {
+    if (!viewer.open) return false;
+    viewer.close();
+    return true;
+  };
+
+  // A link like #widget/3 opens that slide directly.
+  function openFromHash() {
+    var match = /^#([\w-]+)\/(\d+)$/.exec(location.hash);
+    if (!match) return;
+    var index = chapters.findIndex(function (c) { return c.id === match[1]; });
+    if (index >= 0) open(index, parseInt(match[2], 10) - 1);
+  }
+  openFromHash();
+  window.addEventListener("hashchange", openFromHash);
+})();
+</script>
+</body>
+</html>
