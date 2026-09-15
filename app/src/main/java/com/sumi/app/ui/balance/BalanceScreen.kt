@@ -105,6 +105,16 @@ fun BalanceScreen(
             )
         }
 
+        snapshot.heavy?.let { heavy ->
+            val name = state.goals.nameFor(heavy.element)
+            Text(
+                text = if (heavy.longWeeks) "$name has averaged more than 55 hours a week lately."
+                else "$name has taken more than half your time lately.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         Breakdown(snapshot = snapshot, goals = state.goals)
 
         Text(

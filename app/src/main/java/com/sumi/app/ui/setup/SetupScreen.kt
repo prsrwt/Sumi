@@ -1,6 +1,5 @@
 package com.sumi.app.ui.setup
 
-import android.app.TimePickerDialog
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
@@ -53,6 +52,7 @@ import com.sumi.app.BuildConfig
 import com.sumi.app.data.Element
 import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
+import com.sumi.app.ui.ClockDialog
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiFonts
 import com.sumi.app.ui.guide.GuideActivity
@@ -128,9 +128,9 @@ fun SetupScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
-            TimeButton(settings.quietStart, viewModel::setQuietStart)
+            TimeButton(settings.quietStart, "Quiet hours begin", viewModel::setQuietStart)
             Text("→", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TimeButton(settings.quietEnd, viewModel::setQuietEnd)
+            TimeButton(settings.quietEnd, "Quiet hours end", viewModel::setQuietEnd)
         }
 
         AddWidgetButton()
@@ -239,21 +239,26 @@ internal fun GoalRow(
 }
 
 @Composable
-internal fun TimeButton(time: LocalTime, onPicked: (LocalTime) -> Unit) {
+internal fun TimeButton(time: LocalTime, title: String, onPicked: (LocalTime) -> Unit) {
     val context = LocalContext.current
     val is24 = DateFormat.is24HourFormat(context)
     val formatter = DateTimeFormatter.ofPattern(if (is24) "HH:mm" else "h:mm a")
+    var picking by remember { mutableStateOf(false) }
 
-    TextButton(onClick = {
-        TimePickerDialog(
-            context,
-            { _, hour, minute -> onPicked(LocalTime.of(hour, minute)) },
-            time.hour,
-            time.minute,
-            is24
-        ).show()
-    }) {
+    TextButton(onClick = { picking = true }) {
         Text(formatter.format(time))
+    }
+    if (picking) {
+        ClockDialog(
+            title = title,
+            initial = time,
+            is24Hour = is24,
+            onDismiss = { picking = false },
+            onConfirm = {
+                picking = false
+                onPicked(it)
+            }
+        )
     }
 }
 

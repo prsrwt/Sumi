@@ -113,4 +113,50 @@ class BalanceTest {
         assertEquals(Duration.ofHours(1), snapshot.perElement.getValue(Element.FIRE))
         assertEquals(Duration.ofMinutes(5), snapshot.perElement.getValue(Element.WATER))
     }
+
+    // ---- where you may be pushing too hard ----
+
+    /** An hour of [element] on each of the last [days] days, from [hour] o'clock. */
+    private fun daily(days: Int, element: Element, hours: Long, hour: Int = 9) = (0 until days).map { back ->
+        val day = today.minusDays(back.toLong())
+        val start = day.atTime(hour, 0).toInstant(utc)
+        Entry(nextId++, start, start.plus(Duration.ofHours(hours)), utc, null, element)
+    }
+
+    @Test
+    fun `a goal with more than half the time is named`() {
+        val snapshot = compute(daily(6, Element.FIRE, hours = 3) + daily(6, Element.WATER, hours = 1, hour = 14))
+        assertEquals(Heavy(Element.FIRE, longWeeks = false), snapshot.heavy)
+    }
+
+    @Test
+    fun `exactly half is not more than half`() {
+        val snapshot = compute(daily(6, Element.FIRE, hours = 2) + daily(6, Element.WATER, hours = 2, hour = 14))
+        assertNull(snapshot.heavy)
+    }
+
+    @Test
+    fun `too little logged to speak of shares says nothing`() {
+        // Six hours of Fire against one of Water: a big share of very little.
+        val snapshot = compute(daily(6, Element.FIRE, hours = 1) + listOf(entry("2026-09-13T15:00", "2026-09-13T16:00", Element.WATER)))
+        assertNull(snapshot.heavy)
+    }
+
+    @Test
+    fun `long weeks are named even when the share is under half`() {
+        // 9 hours of Fire a day for a week is 63 hours; the others together get more.
+        val snapshot = compute(
+            daily(7, Element.FIRE, hours = 9, hour = 0) +
+                daily(7, Element.WATER, hours = 5, hour = 10) +
+                daily(7, Element.EARTH, hours = 5, hour = 16),
+            window = 7
+        )
+        assertEquals(Heavy(Element.FIRE, longWeeks = true), snapshot.heavy)
+    }
+
+    @Test
+    fun `nothing is called heavy in the first days of use`() {
+        val snapshot = compute(listOf(entry("2026-09-13T01:00", "2026-09-13T19:00", Element.FIRE)))
+        assertNull(snapshot.heavy)
+    }
 }

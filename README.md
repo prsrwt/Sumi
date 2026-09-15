@@ -6,7 +6,7 @@
 
 <img src="docs/screenshots/widget.png" alt="The Sumi widget on a home screen, asking: What fills this moment?" width="540">
 
-Sumi is an Android home-screen widget and a small app. The widget shows the time. Every so often it turns into a question, *What are you doing?* You tap it, write a line or tap one of your five goals, and it goes back to being a clock. Over days, those answers become a timesheet and a picture of where your time went.
+Sumi is an Android home-screen widget and a small app. The widget shows the time. Every so often it turns into a gentle question, like *What has this hour held?* You tap it, write a line or tap one of your five goals, and it goes back to being a clock. Over days, those answers become a timesheet and a picture of where your time went.
 
 No streaks, no scores, no notifications. A missed hour is just a missed hour.
 
@@ -22,7 +22,7 @@ No streaks, no scores, no notifications. A missed hour is just a missed hour.
 - **One tap to log.** Tap a kanji to log the time to that goal, type a line for anything else, or both.
 - **Five goals, five elements.** Your goals are paired with the Godai, the five classical Japanese elements: 地 Earth, 水 Water, 火 Fire, 風 Wind and 空 Void. Name Fire "Workout" and it is called Workout everywhere. Time with no element is 無, untagged.
 - **Today.** The day as a timesheet, with unlogged gaps you can tap to fill.
-- **Balance.** A pentagon of the last 7 or 14 days, a dated 30-day grid, and a gentle note when a goal has been quiet lately.
+- **Balance.** A pentagon of the last 7 or 14 days and a dated 30-day grid, showing where to push and where you may be pushing too hard: a gentle note when a goal has been quiet lately, or when one has taken more than half your time.
 - **Google Sheets, optional.** Keeps a spreadsheet in your own Google Drive up to date, one tab per month, even after being offline.
 - **Inside Sumi.** A slideshow study guide to how the app is built, readable inside the app.
 - **Readable by screen readers.** With TalkBack on, the pentagon, the 30-day grid, every row and every kanji are described in plain words.
@@ -37,6 +37,7 @@ Sumi borrows two methods from psychology: **experience sampling**, which prompts
 - Shares of time, not counts.
 - Rolling windows (the last 7 or 14 days), never calendar weeks.
 - Descriptive words: "Water has been quiet lately", never "You failed".
+- Balance means time shared across what matters to you ([Sheldon, Cummins and Kamble, 2010](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-6494.2010.00644.x)), so Sumi notes when one goal takes more than half your time, or averages more than 55 hours a week, the level the [WHO and ILO](https://www.who.int/news/item/17-05-2021-long-working-hours-increasing-deaths-from-heart-disease-and-stroke-who-ilo) link to heart disease and stroke.
 
 ## How it is built
 

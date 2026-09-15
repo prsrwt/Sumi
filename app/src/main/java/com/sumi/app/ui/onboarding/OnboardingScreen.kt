@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.GOAL_COUNT
+import com.sumi.app.data.Prompts
 import com.sumi.app.data.Untagged
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiFonts
@@ -228,7 +229,8 @@ private fun HowItWorksPage(setup: SetupViewModel) {
     Page(title = "How it works") {
         WidgetPreview(asking = true, modifier = Modifier.padding(vertical = 8.dp))
         Point("問", "Every ${settings.askInterval.toMinutes()} minutes, the widget on your home screen turns into a question.")
-        Point("書", "Tap it and write what you have been doing in a line, or tap one of your five.")
+        Point("書", "Tap it and write a line about how the time went, or tap one of the five things that matter most to you. You will choose them next.")
+        Point("衡", "The pentagon shows where your time goes: where to push, and where you may be pushing too hard.")
         Point("静", "No notifications, no streaks, no scores. A missed hour is just a missed hour.")
     }
 }
@@ -276,9 +278,9 @@ private fun RhythmPage(setup: SetupViewModel) {
         Body("Quiet hours. The widget shows only the time while you sleep.")
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("From", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            TimeButton(settings.quietStart, setup::setQuietStart)
+            TimeButton(settings.quietStart, "Quiet hours begin", setup::setQuietStart)
             Text("to", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TimeButton(settings.quietEnd, setup::setQuietEnd)
+            TimeButton(settings.quietEnd, "Quiet hours end", setup::setQuietEnd)
         }
     }
 }
@@ -399,7 +401,7 @@ private fun WidgetPreview(asking: Boolean, modifier: Modifier = Modifier) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (asking) {
-                Text("What are you doing?", fontFamily = FontFamily.Serif, fontSize = 26.sp, color = ink)
+                Text(Prompts.DEFAULT, fontFamily = FontFamily.Serif, fontSize = 26.sp, color = ink)
                 Text(time, fontFamily = FontFamily.Serif, fontSize = 14.sp, color = ink.copy(alpha = 0.6f))
             } else {
                 Text(time, fontFamily = FontFamily.Serif, fontSize = 44.sp, color = ink)

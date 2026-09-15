@@ -12,12 +12,17 @@ import java.time.ZoneId
 /** One day in the 30-day grid: how many of the five elements got any time. */
 data class DayMark(val date: LocalDate, val elementsTouched: Int)
 
+/** An element that has taken most of the time: over half of it, or long weeks. */
+data class Heavy(val element: Element, val longWeeks: Boolean)
+
 data class BalanceSnapshot(
     val windowDays: Int,
     val perElement: Map<Element, Duration>,
     val untagged: Duration,
     /** The single element to mention gently, if one has gone quiet. */
     val quietElement: Element?,
+    /** The element to mention gently, if one has taken most of the time. */
+    val heavy: Heavy?,
     val days: List<DayMark>
 ) {
     val tagged: Duration get() = perElement.values.fold(Duration.ZERO, Duration::plus)
@@ -34,6 +39,24 @@ data class BalanceSnapshot(
  * Pure, so the rules can be checked without a device.
  */
 object Balance {
+
+    /**
+     * One goal holding more than this share of tagged time is mentioned. Balance
+     * research measures life balance as time shared across the domains that
+     * matter (Sheldon, Cummins and Kamble, 2010); more than half in one of five is
+     * the point where that one outweighs all the others together.
+     */
+    const val MAJORITY_SHARE = 0.5
+
+    /**
+     * The WHO and ILO (2021) found working 55 or more hours a week raises the risk
+     * of stroke by about 35% and of dying from heart disease by about 17%. A goal
+     * averaging more than this is mentioned whatever its share.
+     */
+    val LONG_WEEK: Duration = Duration.ofHours(55)
+
+    /** Too little logged for shares to mean anything below this. */
+    val MIN_TAGGED_FOR_SHARE: Duration = Duration.ofHours(10)
 
     /** How long an element can go untouched before it is mentioned. */
     val QUIET_AFTER: Duration = Duration.ofDays(3)
@@ -67,6 +90,7 @@ object Balance {
             perElement = perElement,
             untagged = untagged,
             quietElement = quietElement(entries, perElement, now),
+            heavy = heavy(entries, perElement, windowDays, now),
             days = grid(entries, today, zone, gridDays)
         )
     }
@@ -84,6 +108,26 @@ object Balance {
      * so the line points at the element furthest out of the picture. One line at
      * most - a list of neglected things would be a scorecard by another name.
      */
+    /**
+     * The calm opposite of a quiet element. Long weeks take precedence, since they
+     * matter even when other goals also get time. Nothing is said in the first days
+     * of use, for the same reason nothing is called quiet then.
+     */
+    private fun heavy(entries: List<Entry>, perElement: Map<Element, Duration>, windowDays: Int, now: Instant): Heavy? {
+        if (entries.none { it.start.isBefore(now.minus(QUIET_AFTER)) }) return null
+        val (element, time) = perElement.maxByOrNull { it.value } ?: return null
+        if (time.isZero) return null
+
+        val minutesPerWeek = time.toMinutes() * 7.0 / windowDays
+        if (minutesPerWeek > LONG_WEEK.toMinutes()) return Heavy(element, longWeeks = true)
+
+        val tagged = perElement.values.fold(Duration.ZERO, Duration::plus)
+        if (tagged >= MIN_TAGGED_FOR_SHARE && time.toMinutes() > tagged.toMinutes() * MAJORITY_SHARE) {
+            return Heavy(element, longWeeks = false)
+        }
+        return null
+    }
+
     private fun quietElement(entries: List<Entry>, perElement: Map<Element, Duration>, now: Instant): Element? {
         val recentFrom = now.minus(QUIET_AFTER)
         if (entries.none { it.start.isBefore(recentFrom) }) return null

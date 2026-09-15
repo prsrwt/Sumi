@@ -18,7 +18,7 @@ window.SUMI_GUIDE = [
       {
         title: "A quiet record of where your time goes",
         body: `
-          <p>Sumi is an Android home-screen widget and a small app. The widget shows the time. Every so often it turns into a question: <em>What are you doing?</em> You tap it, write a line or tap one of your five goals, and the widget goes back to being a clock.</p>
+          <p>Sumi is an Android home-screen widget and a small app. The widget shows the time. Every so often it turns into a gentle question, like <em>What has this hour held?</em> You tap it, write a line or tap one of your five goals, and the widget goes back to being a clock.</p>
           <p>Over days, those answers become a timesheet (the Today tab) and a picture of balance (the Balance tab). Optionally, everything is copied to a Google Sheet in your own Drive.</p>
           <p>That is the whole product. Everything in this guide is about doing those few things well.</p>`,
         why: `A widget is the one place you look many times a day without opening anything. Asking there costs a glance, not a trip into an app.`
@@ -789,6 +789,27 @@ val perElement = Element.entries.associateWith { element ->
         body: `
           <p>Below the pentagon, one element may be named: "Water has been quiet lately". It only appears when there is history older than 3 days, some element has had time recently, and one element has had none in that time. If several qualify, the one with the least time is named.</p>`,
         why: `Without the 3-day rule, a brand-new user would be told four of their five goals are quiet on day one, which is technically true and completely unhelpful.`
+      },
+      {
+        title: "Where you may be pushing too hard",
+        body: `
+          <p>The quiet note shows where to push. Its calm opposite shows where you may be pushing too hard, with one of two lines:</p>
+          <ul>
+            <li><strong>"Deep work has averaged more than 55 hours a week lately."</strong> The WHO and ILO found that 55 or more working hours a week raises the risk of stroke by about 35% and of dying from heart disease by about 17%.</li>
+            <li><strong>"Deep work has taken more than half your time lately."</strong> Balance research measures balance as time shared across the parts of life that matter; more than half in one of five outweighs all the others together.</li>
+          </ul>
+          <p>Neither appears in the first days of use, and shares are only spoken of once at least 10 hours are logged.</p>`,
+        code: {
+          file: "app/src/main/java/com/sumi/app/ui/balance/Balance.kt",
+          text: `val minutesPerWeek = time.toMinutes() * 7.0 / windowDays
+if (minutesPerWeek > LONG_WEEK.toMinutes()) return Heavy(element, longWeeks = true)
+
+val tagged = perElement.values.fold(Duration.ZERO, Duration::plus)
+if (tagged >= MIN_TAGGED_FOR_SHARE && time.toMinutes() > tagged.toMinutes() * MAJORITY_SHARE) {
+    return Heavy(element, longWeeks = false)
+}`
+        },
+        why: `Both notes describe what happened and never judge it. A long week can be exactly what a deadline needed; Sumi only makes it visible.`
       },
       {
         title: "The 30-day grid",
