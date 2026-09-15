@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -227,7 +230,7 @@ private fun WelcomePage() {
 private fun HowItWorksPage(setup: SetupViewModel) {
     val settings by setup.settings.collectAsStateWithLifecycle()
     Page(title = "How it works") {
-        WidgetPreview(asking = true, modifier = Modifier.padding(vertical = 8.dp))
+        WidgetPreview(asking = true)
         Point("問", "Every ${settings.askInterval.toMinutes()} minutes, the widget on your home screen turns into a question.")
         Point("書", "Tap it and write a line about how the time went, or tap one of the five things that matter most to you. You will choose them next.")
         Point("衡", "The pentagon shows where your time goes: where to push, and where you may be pushing too hard.")
@@ -235,16 +238,14 @@ private fun HowItWorksPage(setup: SetupViewModel) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FivePage(setup: SetupViewModel) {
     val goals by setup.goals.collectAsStateWithLifecycle()
     val names by setup.names.collectAsStateWithLifecycle()
 
-    Page(title = "Your five") {
-        Body(
-            "The five things you most want your time to go to. Each gets one of the five classical " +
-                "Japanese elements, and time you tag with it is counted there."
-        )
+    Page(title = "Your five", scrollable = WindowInsets.isImeVisible) {
+        Body("The five things you most want your time to go to. Each gets one of the classical Japanese elements.")
         val current = names
         if (current != null && goals.size == GOAL_COUNT) {
             goals.sortedBy { it.slot }.forEach { goal ->
@@ -257,7 +258,7 @@ private fun FivePage(setup: SetupViewModel) {
                 )
             }
         }
-        Body("Anything else is ${Untagged.KANJI}, untagged. You can change all of this later in Setup.")
+        Body("Anything else is ${Untagged.KANJI}, untagged. You can change these later in Setup.")
     }
 }
 
@@ -292,7 +293,7 @@ private fun WidgetPage() {
         context.getSystemService(AppWidgetManager::class.java)?.isRequestPinAppWidgetSupported == true
     }
     Page(title = "Put Sumi on your home screen") {
-        WidgetPreview(asking = false, modifier = Modifier.padding(vertical = 8.dp))
+        WidgetPreview(asking = false)
         Body("The widget is where Sumi lives. It shows the time, and turns into a question when it is time to write something down.")
         if (canPin) {
             AddWidgetButton()
@@ -337,22 +338,27 @@ private fun ReadyPage() {
 
 // ---- pieces ----
 
+/**
+ * One page, sized to fit a phone screen without scrolling: a page that scrolls
+ * hides part of what it is introducing. [scrollable] is only for the moment the
+ * keyboard covers the page, so the field being typed in can stay in view.
+ */
 @Composable
-private fun Page(title: String, content: @Composable () -> Unit) {
+private fun Page(title: String, scrollable: Boolean = false, content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(rememberScrollState(), enabled = scrollable)
             .padding(horizontal = 24.dp)
-            .padding(top = 8.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(top = 4.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // Mincho's own line spacing is tight enough for a wrapped title to overlap itself.
         Text(
             text = title,
             fontFamily = SumiFonts.mincho,
-            fontSize = 32.sp,
-            lineHeight = 42.sp,
+            fontSize = 28.sp,
+            lineHeight = 36.sp,
             color = MaterialTheme.colorScheme.onBackground
         )
         content()
@@ -361,7 +367,7 @@ private fun Page(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun Body(text: String) {
-    Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -370,17 +376,18 @@ private fun Point(glyph: String, text: String) {
         Text(
             text = glyph,
             fontFamily = SumiFonts.mincho,
-            fontSize = 24.sp,
+            fontSize = 22.sp,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.width(44.dp)
+            modifier = Modifier.width(40.dp)
         )
-        Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
     }
 }
 
 /**
- * A drawing of the widget, flat frosted glass like the real one, in the system
- * serif the widget itself has to use. [asking] shows its question face.
+ * A drawing of the widget, flat glass like the real one. Words are in Mincho, as
+ * the widget draws them; the clock is in the serif its live clock uses. [asking]
+ * shows its question face.
  */
 @Composable
 private fun WidgetPreview(asking: Boolean, modifier: Modifier = Modifier) {
@@ -393,19 +400,30 @@ private fun WidgetPreview(asking: Boolean, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(132.dp)
+            .height(104.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(ink.copy(alpha = 0.05f))
             .border(1.dp, ink.copy(alpha = 0.12f), RoundedCornerShape(28.dp)),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        ) {
             if (asking) {
-                Text(Prompts.DEFAULT, fontFamily = FontFamily.Serif, fontSize = 26.sp, color = ink)
-                Text(time, fontFamily = FontFamily.Serif, fontSize = 14.sp, color = ink.copy(alpha = 0.6f))
+                Text(
+                    text = Prompts.DEFAULT,
+                    fontFamily = SumiFonts.mincho,
+                    fontSize = 21.sp,
+                    lineHeight = 28.sp,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    color = ink
+                )
+                Text(time, fontFamily = FontFamily.Serif, fontSize = 13.sp, color = ink.copy(alpha = 0.7f))
             } else {
-                Text(time, fontFamily = FontFamily.Serif, fontSize = 44.sp, color = ink)
-                Text(date, fontFamily = FontFamily.Serif, fontSize = 14.sp, color = ink.copy(alpha = 0.6f))
+                Text(time, fontFamily = FontFamily.Serif, fontSize = 40.sp, color = ink)
+                Text(date, fontFamily = SumiFonts.mincho, fontSize = 13.sp, color = ink.copy(alpha = 0.7f))
             }
         }
     }
