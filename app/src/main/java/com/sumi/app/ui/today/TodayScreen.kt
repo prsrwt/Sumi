@@ -128,7 +128,7 @@ fun TodayScreen(
                 containerColor = MaterialTheme.colorScheme.onBackground,
                 contentColor = MaterialTheme.colorScheme.background
             ) {
-                Text("What are you doing?")
+                Text("Note this hour")
             }
         }
     }

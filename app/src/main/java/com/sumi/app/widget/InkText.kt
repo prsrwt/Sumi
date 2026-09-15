@@ -47,7 +47,8 @@ object InkText {
         color: Int,
         maxWidthPx: Int,
         maxLines: Int,
-        minSizePx: Float = sizePx
+        minSizePx: Float = sizePx,
+        alignment: Layout.Alignment = Layout.Alignment.ALIGN_CENTER
     ): Bitmap {
         val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             textSize = sizePx
@@ -73,7 +74,7 @@ object InkText {
         val width = natural.coerceIn(1, maxWidthPx.coerceAtLeast(1))
 
         val layout = StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
-            .setAlignment(Layout.Alignment.ALIGN_CENTER)
+            .setAlignment(alignment)
             .setIncludePad(false)
             .setMaxLines(maxLines)
             .setEllipsize(TextUtils.TruncateAt.END)
@@ -85,6 +86,14 @@ object InkText {
             layout.draw(this)
         }
         return bitmap
+    }
+
+    /** Whether [text] fits within [widthPx] on one line at [sizePx], stroke included. */
+    fun fitsOneLine(context: Context, text: String, sizePx: Float, widthPx: Int): Boolean {
+        val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { textSize = sizePx }
+        paint.typeface = typefaceFor(context, text, paint)
+        val bleed = 2 * (ceil(sizePx * EXTRA_WEIGHT).toInt() + 1)
+        return StaticLayout.getDesiredWidth(text, paint) + bleed <= widthPx
     }
 
     /**

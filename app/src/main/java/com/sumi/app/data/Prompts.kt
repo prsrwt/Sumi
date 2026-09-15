@@ -3,23 +3,24 @@ package com.sumi.app.data
 import java.time.Instant
 
 /**
- * The ways Sumi asks what you are doing.
+ * The ways Sumi asks where your time has gone.
  *
  * Varied so the question does not become wallpaper the eye stops reading. Every
- * phrasing is descriptive and open - none of them imply there is a right answer,
- * or that the gap since the last entry was a failing.
+ * phrasing is gentle and open: none of them demand an answer, imply there is a
+ * right one, or treat the gap since the last entry as a failing. Kept short, so
+ * each fits a one-row widget.
  */
 object Prompts {
 
     private val questions = listOf(
-        "What are you doing?",
-        "Where is your attention?",
         "What has this hour held?",
-        "What are you giving your time to?",
-        "What is in your hands right now?",
+        "Where has your time gone?",
+        "Where is your attention?",
+        "What fills this moment?",
         "What have you been tending to?",
-        "Where did the last while go?",
-        "What fills this moment?"
+        "How was this hour spent?",
+        "What is in your hands?",
+        "What filled the last while?"
     )
 
     /**
@@ -32,5 +33,6 @@ object Prompts {
         return questions[index]
     }
 
-    const val DEFAULT = "What are you doing?"
+    /** The very first ask, before anything has been logged. */
+    const val DEFAULT = "What is this hour holding?"
 }

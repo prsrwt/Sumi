@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">Sumi</string>
     <string name="widget_label">Sumi</string>
-    <string name="widget_description">What are you doing right now?</string>
+    <string name="widget_description">A quiet clock that asks where your time has gone</string>
 </resources>

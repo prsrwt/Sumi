@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.text.Layout
 import android.util.SizeF
 import android.util.TypedValue
 import android.widget.RemoteViews
@@ -172,14 +173,23 @@ object SumiWidget {
             is WidgetFace.Asking -> if (compact) {
                 RemoteViews(context.packageName, R.layout.widget_asking_compact).apply {
                     // Side padding, the gap, and about the small clock's width.
-                    val roomDp = widthDp - 48f - 12f - 40f
-                    setImageViewBitmap(
-                        R.id.widget_question,
+                    val room = px(widthDp - 48f - 12f - 40f).toInt()
+                    val oneLineMin = px(15f)
+                    // One line if it fits once shrunk a little; otherwise two smaller
+                    // lines, so a longer question is never cut short at one row tall.
+                    val question = if (InkText.fitsOneLine(context, face.question, oneLineMin, room)) {
                         InkText.render(
                             context, face.question, px((heightDp * 0.26f).coerceIn(15f, 24f)),
-                            style.ink, px(roomDp).toInt(), maxLines = 1, minSizePx = px(13f)
+                            style.ink, room, maxLines = 1, minSizePx = oneLineMin,
+                            alignment = Layout.Alignment.ALIGN_NORMAL
                         )
-                    )
+                    } else {
+                        InkText.render(
+                            context, face.question, px((heightDp * 0.19f).coerceIn(12f, 16f)),
+                            style.ink, room, maxLines = 2, alignment = Layout.Alignment.ALIGN_NORMAL
+                        )
+                    }
+                    setImageViewBitmap(R.id.widget_question, question)
                 }
             } else {
                 RemoteViews(context.packageName, R.layout.widget_asking).apply {
