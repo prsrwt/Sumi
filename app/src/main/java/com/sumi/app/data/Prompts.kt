@@ -14,7 +14,7 @@ object Prompts {
 
     private val questions = listOf(
         "What has this hour held?",
-        "Where has your time gone?",
+        "How is this hour going?",
         "Where is your attention?",
         "What fills this moment?",
         "What have you been tending to?",
