@@ -146,8 +146,8 @@ fun SetupScreen(
         TextButton(onClick = onShowIntroduction) { Text("Show the introduction again") }
 
         Text(
-            text = "Sumi asks; it never nags. The widget quietly changes its words — " +
-                "there are no notifications, and nothing counts a missed hour against you.",
+            text = "Sumi asks; it never nags. The widget quietly changes its words. " +
+                "There are no notifications, and nothing counts a missed hour against you.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 12.dp)

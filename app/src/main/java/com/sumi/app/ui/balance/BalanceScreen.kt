@@ -117,8 +117,8 @@ fun BalanceScreen(
         )
 
         Text(
-            text = "This shows where your energy has gone, so you can shift your focus " +
-                "— not a scorecard to keep perfect.",
+            text = "This shows where your energy has gone, so you can shift your focus. " +
+                "It is not a scorecard to keep perfect.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp)

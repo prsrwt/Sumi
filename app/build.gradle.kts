@@ -118,6 +118,52 @@ androidComponents {
     }
 }
 
+/*
+ * One house rule for all prose in this project, from code comments to the README:
+ * no em dashes. Every build scans the project's text files first and stops, naming
+ * each line, if one has crept in. Third-party licence text is left as written.
+ */
+abstract class CheckNoEmDashes : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val sources: ConfigurableFileCollection
+
+    @get:Internal
+    abstract val projectRoot: DirectoryProperty
+
+    @TaskAction
+    fun check() {
+        val emDash = Char(0x2014)
+        val root = projectRoot.get().asFile
+        val found = sources.files.sorted().flatMap { file ->
+            file.readLines().mapIndexedNotNull { index, line ->
+                if (emDash in line) "${file.relativeTo(root)}:${index + 1}" else null
+            }
+        }
+        if (found.isNotEmpty()) {
+            throw GradleException(
+                "This project does not use em dashes. Replace them with a comma, colon, " +
+                    "full stop or parentheses in:\n" + found.joinToString("\n")
+            )
+        }
+    }
+}
+
+val checkNoEmDashes = tasks.register<CheckNoEmDashes>("checkNoEmDashes") {
+    projectRoot.set(rootProject.layout.projectDirectory)
+    sources.from(
+        rootProject.fileTree(rootProject.projectDir) {
+            include(
+                "**/*.kt", "**/*.kts", "**/*.java", "**/*.xml", "**/*.md", "**/*.html", "**/*.js",
+                "**/*.css", "**/*.json", "**/*.pro", "**/*.toml", "**/*.yml", "**/*.yaml", "**/*.txt"
+            )
+            exclude("**/build/**", "**/.gradle/**", "**/.git/**", "**/.idea/**", "**/assets/licenses/**")
+        }
+    )
+}
+
+tasks.named("preBuild") { dependsOn(checkNoEmDashes) }
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
