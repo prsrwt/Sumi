@@ -38,3 +38,14 @@ enum class Element(
         fun fromStored(value: String?): Element? = entries.firstOrNull { it.name == value }
     }
 }
+
+/**
+ * Time logged without an element. Not a sixth element: it has no goal, no spoke
+ * on the pentagon and no place in the composer. It only gives untagged time a
+ * mark of its own - 無, "without" - in a grey that sits back from the five colours.
+ */
+object Untagged {
+    const val KANJI = "無"
+    const val NAME = "Untagged"
+    val color: Int = Color.rgb(150, 150, 150)
+}

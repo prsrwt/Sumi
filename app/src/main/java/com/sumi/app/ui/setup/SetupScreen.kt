@@ -95,6 +95,7 @@ fun SetupScreen(
             goals.sortedBy { it.slot }.forEach { goal ->
                 GoalRow(
                     goal = goal,
+                    goals = goals,
                     name = currentNames.getOrElse(goal.slot) { "" },
                     onName = { viewModel.onNameChanged(goal.slot, it) },
                     onElement = { viewModel.assign(goal.slot, it) }
@@ -161,6 +162,7 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun GoalRow(
     goal: Goal,
+    goals: List<Goal>,
     name: String,
     onName: (String) -> Unit,
     onElement: (Element) -> Unit
@@ -189,8 +191,15 @@ private fun GoalRow(
                         text = {
                             Column {
                                 Text("${element.kanji}  ${element.displayName}", fontFamily = SumiFonts.mincho)
+                                // Choosing an element another goal holds swaps the two,
+                                // so say whose it is by the name the user gave it.
+                                val holder = goals.firstOrNull { it.element == element && it.slot != goal.slot }
                                 Text(
-                                    text = element.affinity,
+                                    text = if (holder != null && holder.name.isNotBlank()) {
+                                        "${holder.name} · swaps with this goal"
+                                    } else {
+                                        element.affinity
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

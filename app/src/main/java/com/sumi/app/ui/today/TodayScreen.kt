@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.Goal
+import com.sumi.app.data.Untagged
+import com.sumi.app.data.nameFor
 import com.sumi.app.ui.Format
 import com.sumi.app.ui.SumiFonts
 import com.sumi.app.ui.composer.ComposerActivity
@@ -174,9 +176,15 @@ private fun LoggedRow(
 ) {
     val context = LocalContext.current
     val element = row.entry.element
-    val label = row.entry.text
-        ?: goals.firstOrNull { it.element == element }?.displayName
-        ?: ""
+    val goalName = goals.nameFor(element)
+    val note = row.entry.text
+    // A note is the headline when there is one; the goal's name then sits under it,
+    // so time tagged Workout always says Workout somewhere on its row.
+    val label = note ?: goalName
+    val detail = listOfNotNull(
+        goalName.takeIf { note != null && element != null },
+        Timeline.spill(row)?.let { spillText(context, it) }
+    ).joinToString(" · ")
 
     Row(
         modifier = modifier
@@ -189,14 +197,12 @@ private fun LoggedRow(
         TimeColumn(context, row)
 
         Box(modifier = Modifier.width(36.dp), contentAlignment = Alignment.Center) {
-            if (element != null) {
-                Text(
-                    text = element.kanji,
-                    color = Color(element.color),
-                    fontSize = 20.sp,
-                    fontFamily = SumiFonts.mincho
-                )
-            }
+            Text(
+                text = element?.kanji ?: Untagged.KANJI,
+                color = Color(element?.color ?: Untagged.color),
+                fontSize = 20.sp,
+                fontFamily = SumiFonts.mincho
+            )
         }
 
         Column(modifier = Modifier.weight(1f)) {
@@ -207,9 +213,9 @@ private fun LoggedRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Timeline.spill(row)?.let { spill ->
+            if (detail.isNotEmpty()) {
                 Text(
-                    text = spillText(context, spill),
+                    text = detail,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

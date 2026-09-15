@@ -78,6 +78,15 @@ data class Goal(
     val displayName: String get() = name.ifBlank { element.displayName }
 }
 
+/**
+ * What the user calls an element's time: their goal's name ("Workout") wherever
+ * one is set, the element's own name otherwise, and "Untagged" for no element.
+ * Every screen names time through this, so a rename shows up everywhere at once.
+ */
+fun List<Goal>.nameFor(element: Element?): String =
+    if (element == null) Untagged.NAME
+    else firstOrNull { it.element == element }?.displayName ?: element.displayName
+
 data class Entry(
     val id: Long,
     val start: Instant,
