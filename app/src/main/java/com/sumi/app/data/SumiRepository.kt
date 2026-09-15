@@ -53,14 +53,18 @@ class SumiRepository(private val db: SumiDatabase) {
 
     suspend fun settingsNow(): Settings = dao.getSettings()?.toSettings() ?: Settings.Default
 
-    suspend fun saveSettings(settings: Settings) = dao.putSettings(
-        SettingsEntity(
-            id = 0,
-            askIntervalMinutes = settings.askInterval.toMinutes().toInt(),
-            quietStartMinute = settings.quietStart.toSecondOfDay() / 60,
-            quietEndMinute = settings.quietEnd.toSecondOfDay() / 60
-        )
+    suspend fun saveSettings(settings: Settings) = dao.saveRhythm(
+        interval = settings.askInterval.toMinutes().toInt(),
+        quietStart = settings.quietStart.toSecondOfDay() / 60,
+        quietEnd = settings.quietEnd.toSecondOfDay() / 60
     )
+
+    // ---- the first-launch introduction ----
+
+    /** Null until the settings row has been read, so the app can wait instead of flashing a screen. */
+    fun observeOnboarded(): Flow<Boolean?> = dao.observeOnboarded()
+
+    suspend fun finishOnboarding() = dao.setOnboardedAt(System.currentTimeMillis())
 
     // ---- the Google Sheets link ----
 
@@ -243,6 +247,8 @@ class SumiRepository(private val db: SumiDatabase) {
         dao.purgeEntries()
         dao.resetGoals(Element.defaultOrder.map { it.name })
         saveSettings(Settings.Default)
+        // As installed means the introduction greets them again, too.
+        dao.setOnboardedAt(null)
         dao.clearSyncState()
         dao.clearAllDirty()
     }

@@ -62,7 +62,9 @@ data class SettingsEntity(
     @PrimaryKey val id: Int = 0,
     val askIntervalMinutes: Int,
     val quietStartMinute: Int,
-    val quietEndMinute: Int
+    val quietEndMinute: Int,
+    /** When the first-launch introduction was finished or skipped; null shows it. */
+    val onboardedAt: Long? = null
 )
 
 /**

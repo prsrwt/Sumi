@@ -132,8 +132,18 @@ abstract class SumiDao {
     @Query("SELECT * FROM settings WHERE id = 0")
     abstract suspend fun getSettings(): SettingsEntity?
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    abstract suspend fun putSettings(settings: SettingsEntity)
+    /**
+     * Only the rhythm columns. Replacing the whole row would also wipe fields that
+     * belong to other features, such as when the introduction was finished.
+     */
+    @Query("UPDATE settings SET askIntervalMinutes = :interval, quietStartMinute = :quietStart, quietEndMinute = :quietEnd WHERE id = 0")
+    abstract suspend fun saveRhythm(interval: Int, quietStart: Int, quietEnd: Int)
+
+    @Query("SELECT onboardedAt IS NOT NULL FROM settings WHERE id = 0")
+    abstract fun observeOnboarded(): Flow<Boolean?>
+
+    @Query("UPDATE settings SET onboardedAt = :at WHERE id = 0")
+    abstract suspend fun setOnboardedAt(at: Long?)
 
     // ---- resetting ----
 

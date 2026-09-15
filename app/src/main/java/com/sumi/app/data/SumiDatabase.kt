@@ -15,7 +15,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SyncStateEntity::class,
         DirtyMonthEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class SumiDatabase : RoomDatabase() {
@@ -34,7 +34,7 @@ abstract class SumiDatabase : RoomDatabase() {
         private fun build(context: Context): SumiDatabase =
             Room.databaseBuilder(context, SumiDatabase::class.java, "sumi.db")
                 .addCallback(Seed)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
 
         /**
@@ -53,6 +53,17 @@ abstract class SumiDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `dirty_months` (`month` TEXT NOT NULL, PRIMARY KEY(`month`))"
                 )
+            }
+        }
+
+        /**
+         * Version 3 remembers when the first-launch introduction was finished. The
+         * column starts empty for everyone, so people upgrading see the
+         * introduction once too, which is how they find out it exists.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `settings` ADD COLUMN `onboardedAt` INTEGER")
             }
         }
 

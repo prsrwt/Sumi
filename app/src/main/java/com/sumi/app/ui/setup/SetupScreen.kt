@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun SetupScreen(
     onBack: () -> Unit,
+    onShowIntroduction: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SetupViewModel = viewModel()
 ) {
@@ -140,6 +141,7 @@ fun SetupScreen(
         )
 
         AboutSection()
+        TextButton(onClick = onShowIntroduction) { Text("Show the introduction again") }
 
         Text(
             text = "Sumi asks; it never nags. The widget quietly changes its words — " +
@@ -162,7 +164,7 @@ internal fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun GoalRow(
+internal fun GoalRow(
     goal: Goal,
     goals: List<Goal>,
     name: String,
@@ -230,7 +232,7 @@ private fun GoalRow(
 }
 
 @Composable
-private fun TimeButton(time: LocalTime, onPicked: (LocalTime) -> Unit) {
+internal fun TimeButton(time: LocalTime, onPicked: (LocalTime) -> Unit) {
     val context = LocalContext.current
     val is24 = DateFormat.is24HourFormat(context)
     val formatter = DateTimeFormatter.ofPattern(if (is24) "HH:mm" else "h:mm a")
@@ -253,7 +255,7 @@ private fun TimeButton(time: LocalTime, onPicked: (LocalTime) -> Unit) {
  * find-it-in-the-list, drag-it-out dance. Hidden where the launcher can't pin.
  */
 @Composable
-private fun AddWidgetButton() {
+internal fun AddWidgetButton() {
     val context = LocalContext.current
     val manager = remember { context.getSystemService(AppWidgetManager::class.java) }
     if (manager == null || !manager.isRequestPinAppWidgetSupported) return

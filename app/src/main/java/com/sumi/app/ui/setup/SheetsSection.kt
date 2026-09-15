@@ -33,7 +33,11 @@ import java.time.format.DateTimeFormatter
  * quiet line and a Reconnect button, never a notification.
  */
 @Composable
-fun SheetsSection(viewModel: SheetsViewModel = viewModel()) {
+fun SheetsSection(
+    /** The introduction page brings its own title and explanation. */
+    inOnboarding: Boolean = false,
+    viewModel: SheetsViewModel = viewModel()
+) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val consent by viewModel.consent.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -48,13 +52,15 @@ fun SheetsSection(viewModel: SheetsViewModel = viewModel()) {
         viewModel.consentLaunched()
     }
 
-    SectionTitle("Google Sheets")
+    if (!inOnboarding) SectionTitle("Google Sheets")
     if (!ui.loaded) return
 
     val link = ui.link
     when {
         link == null -> {
-            Body("Keep a copy of your log in a spreadsheet in your own Google Drive. Sumi can only see the one sheet it makes.")
+            if (!inOnboarding) {
+                Body("Keep a copy of your log in a spreadsheet in your own Google Drive. Sumi can only see the one sheet it makes.")
+            }
             OutlinedButton(
                 onClick = viewModel::connect,
                 enabled = !ui.working,

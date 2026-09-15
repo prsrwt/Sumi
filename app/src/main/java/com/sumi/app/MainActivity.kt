@@ -10,6 +10,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,16 +25,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiTheme
 import com.sumi.app.ui.balance.BalanceScreen
+import com.sumi.app.ui.onboarding.OnboardingScreen
+import com.sumi.app.ui.onboarding.OnboardingViewModel
 import com.sumi.app.ui.setup.SetupScreen
 import com.sumi.app.ui.today.TodayScreen
 import com.sumi.app.widget.WidgetSync
@@ -64,25 +70,53 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private enum class Screen { WAITING, INTRODUCTION, SETUP, HOME }
+
 @Composable
-private fun SumiHome(modifier: Modifier = Modifier) {
+private fun SumiHome(modifier: Modifier = Modifier, onboarding: OnboardingViewModel = viewModel()) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
-    var showSetup by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
+    var showSetup by rememberSaveable { mutableStateOf(false) }
+    var replayingIntroduction by rememberSaveable { mutableStateOf(false) }
+    val onboarded by onboarding.onboarded.collectAsStateWithLifecycle()
     val tabs = remember { listOf("Today", "Balance") }
 
-    BackHandler(enabled = showSetup) { showSetup = false }
+    val screen = when {
+        onboarded == null -> Screen.WAITING
+        onboarded == false || replayingIntroduction -> Screen.INTRODUCTION
+        showSetup -> Screen.SETUP
+        else -> Screen.HOME
+    }
 
-    // Setup fades over the home screen rather than replacing it in a single frame.
+    BackHandler(enabled = screen == Screen.SETUP) { showSetup = false }
+
+    // Each screen fades over the last rather than replacing it in a single frame.
     AnimatedContent(
-        targetState = showSetup,
+        targetState = screen,
         transitionSpec = { fadeIn(tween(240)) togetherWith fadeOut(tween(180)) },
         modifier = modifier,
-        label = "setup"
-    ) { inSetup ->
-        if (inSetup) {
-            SetupScreen(onBack = { showSetup = false })
-        } else {
-            HomeTabs(
+        label = "screen"
+    ) { current ->
+        when (current) {
+            // One database read at launch; a blank page beats a flash of the wrong screen.
+            Screen.WAITING -> Box(Modifier.fillMaxSize())
+
+            Screen.INTRODUCTION -> OnboardingScreen(
+                onFinish = {
+                    onboarding.finish()
+                    replayingIntroduction = false
+                    showSetup = false
+                    selectedTab = 0
+                },
+                onClose = if (replayingIntroduction) ({ replayingIntroduction = false }) else null
+            )
+
+            Screen.SETUP -> SetupScreen(
+                onBack = { showSetup = false },
+                onShowIntroduction = { replayingIntroduction = true }
+            )
+
+            Screen.HOME -> 
+HomeTabs(
                 selectedTab = selectedTab,
                 tabs = tabs,
                 onSelectTab = { selectedTab = it },
