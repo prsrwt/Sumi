@@ -192,7 +192,4 @@ dependencies {
     implementation(libs.play.services.auth)
     // Background sync that waits for a network and survives restarts.
     implementation(libs.androidx.work.runtime.ktx)
-
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.glance.material3)
 }

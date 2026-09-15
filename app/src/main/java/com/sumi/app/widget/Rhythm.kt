@@ -7,7 +7,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.glance.appwidget.updateAll
 import com.sumi.app.data.Settings
 import com.sumi.app.data.SumiRepository
 import kotlinx.coroutines.CoroutineScope
@@ -135,8 +134,7 @@ class RhythmReceiver : BroadcastReceiver() {
         val appContext = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             try {
-                SumiWidget().updateAll(appContext)
-                Rhythm.scheduleNext(appContext)
+                SumiWidget.updateAll(appContext)
             } finally {
                 pending.finish()
             }

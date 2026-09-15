@@ -44,7 +44,7 @@ Sumi borrows two methods from psychology: **experience sampling**, which prompts
 |---|---|
 | Language | Kotlin 2.0 |
 | Screens | Jetpack Compose, Material 3 |
-| Widget | Jetpack Glance, with Mincho text drawn into images and a live system clock |
+| Widget | RemoteViews drawn directly, with Mincho text drawn into images and a live system clock |
 | Data | Room (SQLite), with exported schemas and tested migrations |
 | Timing | AlarmManager, one alarm for the next moment the widget should change |
 | Sync | Google Play services authorization, the Sheets and Drive REST APIs over plain HTTPS, WorkManager |
@@ -104,7 +104,7 @@ app/src/main/java/com/sumi/app/
   ui/setup/         Setup and the Google Sheets section
   ui/onboarding/    the first-launch introduction
   ui/guide/         the study guide screen
-  widget/           the Glance widget, glass, Mincho text and alarms
+  widget/           the widget, glass, Mincho text and alarms
   sync/             Google authorization, HTTPS, the spreadsheet and WorkManager
 app/src/test/       unit tests
 app/schemas/        every database version's layout

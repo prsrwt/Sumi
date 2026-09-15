@@ -1,7 +1,6 @@
 package com.sumi.app.widget
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
 import com.sumi.app.sync.SheetsSync
 
 /**
@@ -16,8 +15,8 @@ object WidgetSync {
 
     suspend fun onEntriesChanged(context: Context) {
         val appContext = context.applicationContext
-        SumiWidget().updateAll(appContext)
-        Rhythm.scheduleNext(appContext)
+        // Redrawing also re-arms the rhythm, so the next question is timed from this change.
+        SumiWidget.updateAll(appContext)
         SheetsSync.requestIfNeeded(appContext)
     }
 }

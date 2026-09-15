@@ -145,7 +145,7 @@ ui/today/              Timeline and the Today tab
 ui/balance/            Balance math and the pentagon
 ui/setup/              Setup and the Google Sheets section
 ui/onboarding/         the first-launch introduction
-widget/                Glance widget, glass, Mincho text, alarms
+widget/                the widget, glass, Mincho text, alarms
 sync/                  Google sign-in, HTTPS, the sheet, WorkManager`
         }
       },
@@ -504,30 +504,27 @@ if (!start.isBefore(end)) start = endDay.minusDays(1).atTime(from).atZone(zone).
     kanji: "窓",
     element: "water",
     title: "The widget",
-    blurb: "Glance, RemoteViews, thin glass, and words drawn in Mincho.",
+    blurb: "RemoteViews, instant redraws, thin glass, and words drawn in Mincho.",
     slides: [
       {
         title: "A widget is drawn by someone else",
         body: `
           <p>Your launcher draws widgets, not the app. The app sends a description of views called <strong>RemoteViews</strong>, which only allows a short list of view types and settings. No blur, no gradients, no custom fonts.</p>
-          <p>Sumi builds the widget with <strong>Jetpack Glance</strong>, which lets you write widget UI in a Compose style and turns it into RemoteViews for you.</p>`,
-        why: `Every visual decision on the widget starts from these limits. The glass, the text and the clock are each built in the one way RemoteViews allows.`
+          <p>Sumi builds its RemoteViews directly and hands them to <code>AppWidgetManager.updateAppWidget</code>, which reaches the launcher at once.</p>`,
+        why: `Sumi first used Jetpack Glance, a library for writing widgets in a Compose style. Glance runs each update as a queued background session and worked out the widget's face once per session, so logging while a session was alive redrew the old face: the widget kept asking after you had answered. Drawing directly removed both the delay and the stale face, and made the app 600 KB smaller.`
       },
       {
         title: "Two layers: glass and text",
         body: `
           <p><strong>The glass</strong> is a bitmap (an image) drawn with Android's Canvas: one flat fill, a faint grain, one hairline edge. No shadows or bevels; an earlier version with them read as a raised object instead of a quiet surface.</p>
-          <p><strong>The text</strong> sits on top as real views, because the clock has to be a <code>TextClock</code>. The system ticks a TextClock every minute at no cost, while widget redraws are throttled to roughly every 30 minutes.</p>`,
+          <p><strong>The text</strong> sits on top as real views, because the clock has to be a <code>TextClock</code>. The system ticks a TextClock every minute at no cost, while an app redraws its widget only now and then.</p>`,
         code: {
           file: "app/src/main/java/com/sumi/app/widget/SumiWidget.kt",
-          text: `Box(modifier = GlanceModifier.fillMaxSize().clickable(actionStartActivity<ComposerActivity>())) {
-    Image(
-        provider = ImageProvider(glass),
-        contentDescription = null,
-        contentScale = ContentScale.FillBounds,
-        modifier = GlanceModifier.fillMaxSize()
-    )
-    AndroidRemoteViews(remoteViews = text, modifier = GlanceModifier.fillMaxSize())
+          text: `return RemoteViews(context.packageName, R.layout.widget_root).apply {
+    setImageViewBitmap(R.id.widget_glass, GlassRenderer.render(widthPx, heightPx, density, style))
+    removeAllViews(R.id.widget_text)
+    addView(R.id.widget_text, textLayer(context, face, style, today, sizeDp.width, sizeDp.height))
+    setOnClickPendingIntent(R.id.widget_root, composerIntent(context))
 }`
         }
       },
@@ -1161,7 +1158,7 @@ fun \`nothing is called quiet in the first days of use\`() {
             <dt>Migration</dt><dd>SQL that upgrades an existing database to a new layout.</dd>
             <dt>Soft delete</dt><dd>Marking a row deleted with a timestamp instead of removing it.</dd>
             <dt>RemoteViews</dt><dd>The limited view description a launcher draws a widget from.</dd>
-            <dt>Glance</dt><dd>A library for writing widgets in a Compose style.</dd>
+            <dt>AppWidgetManager</dt><dd>The system service an app sends its widget's RemoteViews to.</dd>
             <dt>TextClock</dt><dd>A widget view the system updates every minute.</dd>
           </dl>`
       },

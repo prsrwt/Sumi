@@ -61,8 +61,8 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Anything changed in the app should be on the widget by the time the user is
-     * back on the home screen. Also what pulls a freshly installed widget off
-     * Glance's loading placeholder.
+     * back on the home screen, including a wallpaper change made while Sumi was
+     * open, which Android never tells widgets about.
      */
     override fun onStop() {
         super.onStop()

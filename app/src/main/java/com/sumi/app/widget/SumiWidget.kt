@@ -1,93 +1,122 @@
 package com.sumi.app.widget
 
+import android.app.PendingIntent
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.Bundle
+import android.util.SizeF
 import android.util.TypedValue
 import android.widget.RemoteViews
-import androidx.compose.runtime.remember
-import androidx.glance.GlanceId
-import androidx.glance.GlanceModifier
-import androidx.glance.Image
-import androidx.glance.ImageProvider
-import androidx.glance.LocalSize
-import androidx.glance.action.actionStartActivity
-import androidx.glance.action.clickable
-import androidx.glance.appwidget.AndroidRemoteViews
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.provideContent
-import androidx.glance.layout.Box
-import androidx.glance.layout.ContentScale
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.semantics.contentDescription
-import androidx.glance.semantics.semantics
+import androidx.core.os.BundleCompat
 import com.sumi.app.R
 import com.sumi.app.data.SumiRepository
 import com.sumi.app.ui.composer.ComposerActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 /**
- * The home-screen widget: pale glass with the time on it, which becomes a
+ * The home-screen widget: thin glass with the time on it, which becomes a
  * question once enough time has passed since the last entry. Tapping anywhere
  * opens the composer.
  *
+ * Drawn directly with RemoteViews and pushed to the launcher with
+ * AppWidgetManager, the moment anything changes. An earlier version used Glance,
+ * which runs each update through a queued background session and worked out the
+ * face once per session: logging while a session was still alive redrew the old
+ * face, so the widget could keep asking after an answer. Here every redraw reads
+ * the latest entry afresh and reaches the launcher at once.
+ *
  * Built in two layers. The glass is a bitmap, because RemoteViews cannot draw
  * gradients, blur or antialiased shapes. The text is real views on top, because
- * a clock drawn into a bitmap would be stale - widget redraws are throttled to
- * about half-hourly, while a TextClock is ticked by the system every minute.
+ * a clock drawn into a bitmap would be stale: widget redraws are rare, while a
+ * TextClock is ticked by the system every minute.
  */
-class SumiWidget : GlanceAppWidget() {
+object SumiWidget {
 
-    override val sizeMode: SizeMode = SizeMode.Exact
-
-    override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val repository = SumiRepository.get(context)
+    /** Redraws every Sumi widget on the home screen and re-arms the next change. */
+    suspend fun updateAll(context: Context) = withContext(Dispatchers.Default) {
+        val app = context.applicationContext
+        val repository = SumiRepository.get(app)
         val zone = ZoneId.systemDefault()
         val latest = repository.latestEntry()
         val settings = repository.settingsNow()
-        val face = WidgetFace.compute(latest = latest, settings = settings, now = Instant.now(), zone = zone)
 
         // Re-arm on every draw as well as on every save, so a dropped or cleared
         // alarm heals the next time the widget renders for any reason.
-        Rhythm.schedule(context, latest?.end, settings)
-        val style = WallpaperTone.styleFor(context)
-        // Read once per redraw, so the Mincho date is drawn again when the day turns.
+        Rhythm.schedule(app, latest?.end, settings)
+
+        val manager = AppWidgetManager.getInstance(app) ?: return@withContext
+        val ids = manager.getAppWidgetIds(ComponentName(app, SumiWidgetReceiver::class.java))
+        if (ids.isEmpty()) return@withContext
+
+        val face = WidgetFace.compute(latest = latest, settings = settings, now = Instant.now(), zone = zone)
+        val style = WallpaperTone.styleFor(app)
         val today = LocalDate.now(zone)
-        val density = context.resources.displayMetrics.density
 
-        provideContent {
-            val size = LocalSize.current
-            val widthPx = (size.width.value * density).toInt().coerceIn(1, MAX_DIMENSION)
-            val heightPx = (size.height.value * density).toInt().coerceIn(1, MAX_DIMENSION)
-
-            val glass = remember(widthPx, heightPx, style) {
-                GlassRenderer.render(widthPx, heightPx, density, style)
-            }
-            val text = remember(face, size, style, today) { textLayer(context, face, style, today, size.width.value, size.height.value) }
-
-            Box(
-                modifier = GlanceModifier
-                    .fillMaxSize()
-                    .clickable(actionStartActivity<ComposerActivity>())
-                    .semantics {
-                        contentDescription = when (face) {
-                            is WidgetFace.Asking -> "${face.question} Tap to log."
-                            WidgetFace.Resting -> "Sumi. Tap to log what you are doing."
-                        }
-                    }
-            ) {
-                Image(
-                    provider = ImageProvider(glass),
-                    contentDescription = null,
-                    contentScale = ContentScale.FillBounds,
-                    modifier = GlanceModifier.fillMaxSize()
-                )
-                AndroidRemoteViews(remoteViews = text, modifier = GlanceModifier.fillMaxSize())
-            }
+        ids.forEach { id ->
+            manager.updateAppWidget(id, viewsFor(app, manager.getAppWidgetOptions(id), face, style, today))
         }
     }
+
+    /**
+     * Android 12 and later say every size the widget can appear at (usually one
+     * for portrait and one for landscape) and pick the matching layout itself.
+     * Older versions give a size range; the portrait size is the width's lower
+     * bound with the height's upper bound.
+     */
+    private fun viewsFor(context: Context, options: Bundle, face: WidgetFace, style: GlassStyle, today: LocalDate): RemoteViews {
+        val sizes = sizesOf(options)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && sizes.size > 1) {
+            RemoteViews(sizes.associateWith { render(context, it, face, style, today) })
+        } else {
+            render(context, sizes.first(), face, style, today)
+        }
+    }
+
+    private fun sizesOf(options: Bundle): List<SizeF> {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val exact = BundleCompat.getParcelableArrayList(options, AppWidgetManager.OPTION_APPWIDGET_SIZES, SizeF::class.java)
+            if (!exact.isNullOrEmpty()) return exact.distinct().take(Sizes.MAX_SIZES)
+        }
+        val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH).takeIf { it > 0 } ?: Sizes.DEFAULT_WIDTH_DP
+        val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT).takeIf { it > 0 } ?: Sizes.DEFAULT_HEIGHT_DP
+        return listOf(SizeF(width.toFloat(), height.toFloat()))
+    }
+
+    private fun render(context: Context, sizeDp: SizeF, face: WidgetFace, style: GlassStyle, today: LocalDate): RemoteViews {
+        val density = context.resources.displayMetrics.density
+        val widthPx = (sizeDp.width * density).toInt().coerceIn(1, Sizes.MAX_DIMENSION)
+        val heightPx = (sizeDp.height * density).toInt().coerceIn(1, Sizes.MAX_DIMENSION)
+
+        return RemoteViews(context.packageName, R.layout.widget_root).apply {
+            setImageViewBitmap(R.id.widget_glass, GlassRenderer.render(widthPx, heightPx, density, style))
+            removeAllViews(R.id.widget_text)
+            addView(R.id.widget_text, textLayer(context, face, style, today, sizeDp.width, sizeDp.height))
+            setOnClickPendingIntent(R.id.widget_root, composerIntent(context))
+            setContentDescription(
+                R.id.widget_root,
+                when (face) {
+                    is WidgetFace.Asking -> "${face.question} Tap to log."
+                    WidgetFace.Resting -> "Sumi. Tap to log what you are doing."
+                }
+            )
+        }
+    }
+
+    private fun composerIntent(context: Context): PendingIntent =
+        PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, ComposerActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
     /**
      * The text layer, chosen and sized for the space the widget actually has.
@@ -106,7 +135,7 @@ class SumiWidget : GlanceAppWidget() {
         widthDp: Float,
         heightDp: Float
     ): RemoteViews {
-        val compact = heightDp < COMPACT_BELOW_DP
+        val compact = heightDp < Sizes.COMPACT_BELOW_DP
         val density = context.resources.displayMetrics.density
         fun px(dp: Float) = dp * density
 
@@ -121,7 +150,7 @@ class SumiWidget : GlanceAppWidget() {
                     setImageViewBitmap(
                         R.id.widget_date,
                         InkText.render(
-                            context, SHORT_DATE.format(today), px((clockDp * 0.42f).coerceIn(12f, 17f)),
+                            context, Sizes.SHORT_DATE.format(today), px((clockDp * 0.42f).coerceIn(12f, 17f)),
                             style.inkMuted, px(roomDp).toInt(), maxLines = 1, minSizePx = px(11f)
                         )
                     )
@@ -133,7 +162,7 @@ class SumiWidget : GlanceAppWidget() {
                     setImageViewBitmap(
                         R.id.widget_date,
                         InkText.render(
-                            context, LONG_DATE.format(today), px((clockDp * 0.30f).coerceIn(13f, 22f)),
+                            context, Sizes.LONG_DATE.format(today), px((clockDp * 0.30f).coerceIn(13f, 22f)),
                             style.inkMuted, px(widthDp - 48f).toInt(), maxLines = 1
                         )
                     )
@@ -172,7 +201,14 @@ class SumiWidget : GlanceAppWidget() {
         return views
     }
 
-    private companion object {
+    private object Sizes {
+        /** A launcher that reports no size at all gets a plain four-by-one widget. */
+        const val DEFAULT_WIDTH_DP = 250
+        const val DEFAULT_HEIGHT_DP = 70
+
+        /** Android allows at most 16 sizes; two or three is normal. */
+        const val MAX_SIZES = 16
+
         /** Guards against an absurd bitmap if a launcher reports a bogus size. */
         const val MAX_DIMENSION = 3000
 
