@@ -87,6 +87,37 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+/*
+ * The study guide lives once, in docs/ at the top of the repository, where GitHub
+ * Pages can serve it. This copies it into the app's assets on every build, so the
+ * guide inside Sumi and the one on the web are always the same files.
+ */
+abstract class SyncStudyGuide : DefaultTask() {
+    @get:InputFiles
+    abstract val guideFiles: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val target = outputDir.get().asFile.resolve("guide")
+        target.deleteRecursively()
+        target.mkdirs()
+        guideFiles.forEach { it.copyTo(target.resolve(it.name), overwrite = true) }
+    }
+}
+
+val syncStudyGuide = tasks.register<SyncStudyGuide>("syncStudyGuide") {
+    guideFiles.from(rootProject.file("docs/index.html"), rootProject.file("docs/content.js"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(syncStudyGuide, SyncStudyGuide::outputDir)
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

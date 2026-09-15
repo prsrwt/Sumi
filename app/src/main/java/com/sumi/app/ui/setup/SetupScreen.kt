@@ -3,6 +3,7 @@ package com.sumi.app.ui.setup
 import android.app.TimePickerDialog
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
+import android.content.Intent
 import android.text.format.DateFormat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -52,6 +53,7 @@ import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiFonts
+import com.sumi.app.ui.guide.GuideActivity
 import com.sumi.app.widget.SumiWidgetReceiver
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -381,6 +383,17 @@ private fun AboutSection() {
     Text(
         text = "Set in Shippori Mincho, © The Shippori Mincho Project Authors, " +
             "under the SIL Open Font License 1.1.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    OutlinedButton(
+        onClick = { context.startActivity(Intent(context, GuideActivity::class.java)) },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text("Inside Sumi")
+    }
+    Text(
+        text = "A study guide to how this app is built, chapter by chapter, with the real code.",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )

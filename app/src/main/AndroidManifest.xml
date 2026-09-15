@@ -33,6 +33,14 @@
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Sumi.Composer" />
 
+        <!-- The study guide, bundled from docs/. Rotation keeps the open slide
+             instead of reloading the page. -->
+        <activity
+            android:name=".ui.guide.GuideActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:theme="@style/Theme.Sumi" />
+
         <receiver
             android:name=".widget.SumiWidgetReceiver"
             android:exported="true"
