@@ -8,6 +8,7 @@ import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
 import com.sumi.app.data.Settings
 import com.sumi.app.data.SumiRepository
+import com.sumi.app.sync.SheetsSync
 import com.sumi.app.widget.WidgetSync
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,7 +53,10 @@ class SetupViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Swaps with whichever goal already had this element, keeping the mapping one-to-one. */
     fun assign(slot: Int, element: Element) {
-        viewModelScope.launch { repository.assignElement(slot, element) }
+        viewModelScope.launch {
+            repository.assignElement(slot, element)
+            SheetsSync.requestIfNeeded(getApplication())
+        }
     }
 
     // ---- resetting ----
@@ -65,7 +69,11 @@ class SetupViewModel(app: Application) : AndroidViewModel(app) {
 
     fun resetGoalsAndRhythm() = reset("Goals and rhythm reset.") { repository.resetGoalsAndSettings() }
 
-    fun eraseEverything() = reset("Everything erased.") { repository.eraseEverything() }
+    fun eraseEverything() = reset("Everything erased.") {
+        repository.eraseEverything()
+        // The link is gone from the database; stop any sync still queued for it.
+        SheetsSync.cancel(getApplication())
+    }
 
     private fun reset(done: String, action: suspend () -> Unit) {
         viewModelScope.launch {
@@ -107,6 +115,7 @@ class SetupViewModel(app: Application) : AndroidViewModel(app) {
             .debounce(350)
             .collectLatest { current ->
                 current.take(GOAL_COUNT).forEachIndexed { slot, name -> repository.setGoalName(slot, name) }
+                SheetsSync.requestIfNeeded(getApplication())
             }
     }
 }

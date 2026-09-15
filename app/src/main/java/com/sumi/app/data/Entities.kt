@@ -65,6 +65,31 @@ data class SettingsEntity(
     val quietEndMinute: Int
 )
 
+/**
+ * The link to the user's Google Sheet. The row exists only while connected, so
+ * "connected" is simply "a row is here". No access token is ever stored: Google
+ * Play services keeps those, and hands a fresh one over when asked.
+ */
+@Entity(tableName = "sync_state")
+data class SyncStateEntity(
+    @PrimaryKey val id: Int = 0,
+    val accountEmail: String,
+    val spreadsheetId: String,
+    val lastSyncedAt: Long?,
+    /** Google stopped handing out tokens without asking the user again. */
+    val needsReconnect: Boolean
+)
+
+/**
+ * A month ("2026-09") whose tab in the sheet no longer matches the phone. It is
+ * written in the same transaction as the change that caused it, so an entry can
+ * never be saved without its month also being queued for the sheet.
+ */
+@Entity(tableName = "dirty_months")
+data class DirtyMonthEntity(
+    @PrimaryKey val month: String
+)
+
 // ---------------------------------------------------------------------------
 // Domain
 // ---------------------------------------------------------------------------
@@ -128,3 +153,10 @@ data class Settings(
         )
     }
 }
+
+data class SheetsLink(
+    val accountEmail: String,
+    val spreadsheetId: String,
+    val lastSyncedAt: Instant?,
+    val needsReconnect: Boolean
+)

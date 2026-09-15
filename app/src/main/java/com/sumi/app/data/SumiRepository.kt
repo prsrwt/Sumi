@@ -8,6 +8,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.ZoneId
 
 /**
@@ -25,14 +26,24 @@ class SumiRepository(private val db: SumiDatabase) {
 
     suspend fun goalsNow(): List<Goal> = dao.getGoals().map { it.toGoal() }
 
+    /**
+     * Goal names appear on every row of the sheet, so a real rename queues every
+     * month for rewriting. Re-saving the same name, which the debounced fields do
+     * all the time, changes nothing and queues nothing.
+     */
     suspend fun setGoalName(slot: Int, name: String) {
         require(slot in 0 until GOAL_COUNT) { "slot out of range: $slot" }
-        dao.setGoalName(slot, name.trim())
+        db.withTransaction {
+            if (dao.setGoalName(slot, name.trim()) > 0) markEveryMonthDirty()
+        }
     }
 
     suspend fun assignElement(slot: Int, element: Element) {
         require(slot in 0 until GOAL_COUNT) { "slot out of range: $slot" }
-        dao.assignElement(slot, element.name)
+        db.withTransaction {
+            dao.assignElement(slot, element.name)
+            markEveryMonthDirty()
+        }
     }
 
     // ---- settings ----
@@ -50,6 +61,50 @@ class SumiRepository(private val db: SumiDatabase) {
             quietEndMinute = settings.quietEnd.toSecondOfDay() / 60
         )
     )
+
+    // ---- the Google Sheets link ----
+
+    fun observeSheetsLink(): Flow<SheetsLink?> = dao.observeSyncState().map { it?.toLink() }
+
+    suspend fun sheetsLinkNow(): SheetsLink? = dao.getSyncState()?.toLink()
+
+    suspend fun saveSheetsLink(link: SheetsLink) = dao.putSyncState(
+        SyncStateEntity(
+            accountEmail = link.accountEmail,
+            spreadsheetId = link.spreadsheetId,
+            lastSyncedAt = link.lastSyncedAt?.toEpochMilli(),
+            needsReconnect = link.needsReconnect
+        )
+    )
+
+    suspend fun clearSheetsLink() = dao.clearSyncState()
+
+    // ---- months waiting for the sheet ----
+
+    fun observeDirtyCount(): Flow<Int> = dao.observeDirtyCount()
+
+    suspend fun dirtyMonths(): List<YearMonth> = dao.dirtyMonths().map(SheetMonths::parse)
+
+    suspend fun markDirty(month: YearMonth) = dao.markDirty(listOf(DirtyMonthEntity(SheetMonths.key(month))))
+
+    suspend fun clearDirty(month: YearMonth) = dao.clearDirty(SheetMonths.key(month))
+
+    /** Every month that holds an entry - for a fresh connection, a rename or a reset. */
+    suspend fun markEveryMonthDirty() {
+        val months = dao.entryStarts().map { SheetMonths.of(it.startMillis, it.zoneId) }.distinct()
+        dao.markDirty(months.map { DirtyMonthEntity(SheetMonths.key(it)) })
+    }
+
+    /** The entries that belong on one month's tab, oldest first. */
+    suspend fun entriesForMonth(month: YearMonth): List<Entry> {
+        val (from, to) = SheetMonths.searchWindow(month)
+        return dao.entriesStartingBetween(from, to)
+            .filter { SheetMonths.of(it.startMillis, it.zoneId) == month }
+            .map { it.toEntry() }
+    }
+
+    private suspend fun markDirty(startMillis: Long, zoneId: String) =
+        dao.markDirty(listOf(DirtyMonthEntity(SheetMonths.key(SheetMonths.of(startMillis, zoneId)))))
 
     // ---- reading entries ----
 
@@ -95,7 +150,11 @@ class SumiRepository(private val db: SumiDatabase) {
         element: Element?
     ): SaveResult = save(existingId = id, start, end, text, element, ZoneId.systemDefault())
 
-    suspend fun delete(id: Long) = dao.softDelete(id, System.currentTimeMillis())
+    suspend fun delete(id: Long) = db.withTransaction {
+        val existing = dao.getEntry(id) ?: return@withTransaction
+        dao.softDelete(id, System.currentTimeMillis())
+        markDirty(existing.startMillis, existing.zoneId)
+    }
 
     /**
      * Entries may overlap freely. Doing two things at once - drinking water during
@@ -134,6 +193,7 @@ class SumiRepository(private val db: SumiDatabase) {
                         syncedAt = null
                     )
                 )
+                markDirty(start.toEpochMilli(), zone.id)
                 SaveResult.Saved(id)
             } else {
                 val existing = dao.getEntry(existingId)
@@ -147,6 +207,9 @@ class SumiRepository(private val db: SumiDatabase) {
                         updatedAt = now
                     )
                 )
+                // Both months: the one it was on, and the one it may have moved to.
+                markDirty(existing.startMillis, existing.zoneId)
+                markDirty(start.toEpochMilli(), existing.zoneId)
                 SaveResult.Saved(existingId)
             }
         }
@@ -154,20 +217,34 @@ class SumiRepository(private val db: SumiDatabase) {
 
     // ---- resetting ----
 
-    /** Every entry gone; goals and settings untouched. */
-    suspend fun clearLog() = dao.purgeEntries()
+    /**
+     * Every entry gone; goals and settings untouched. The months are queued first,
+     * while the entries still say which months they were in, so a connected sheet
+     * has those tabs emptied too.
+     */
+    suspend fun clearLog() = db.withTransaction {
+        markEveryMonthDirty()
+        dao.purgeEntries()
+    }
 
     /** Names cleared, elements and rhythm back to defaults; the log untouched. */
     suspend fun resetGoalsAndSettings() = db.withTransaction {
         dao.resetGoals(Element.defaultOrder.map { it.name })
         saveSettings(Settings.Default)
+        markEveryMonthDirty()
     }
 
-    /** Sumi as it was when installed. One transaction, so it never half-happens. */
+    /**
+     * Sumi as it was when installed. One transaction, so it never half-happens.
+     * Google Sheets is disconnected, but the spreadsheet is left alone: Sumi never
+     * deletes anything from someone's Drive.
+     */
     suspend fun eraseEverything() = db.withTransaction {
         dao.purgeEntries()
         dao.resetGoals(Element.defaultOrder.map { it.name })
         saveSettings(Settings.Default)
+        dao.clearSyncState()
+        dao.clearAllDirty()
     }
 
     // ---- mapping ----
@@ -191,6 +268,13 @@ class SumiRepository(private val db: SumiDatabase) {
         askInterval = Duration.ofMinutes(askIntervalMinutes.toLong()),
         quietStart = LocalTime.ofSecondOfDay(quietStartMinute * 60L),
         quietEnd = LocalTime.ofSecondOfDay(quietEndMinute * 60L)
+    )
+
+    private fun SyncStateEntity.toLink() = SheetsLink(
+        accountEmail = accountEmail,
+        spreadsheetId = spreadsheetId,
+        lastSyncedAt = lastSyncedAt?.let(Instant::ofEpochMilli),
+        needsReconnect = needsReconnect
     )
 
     companion object {

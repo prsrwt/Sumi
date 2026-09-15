@@ -130,6 +130,8 @@ fun SetupScreen(
 
         AddWidgetButton()
 
+        SheetsSection()
+
         ResetSection(
             message = resetMessage,
             onClearLog = viewModel::clearLog,
@@ -150,7 +152,7 @@ fun SetupScreen(
 }
 
 @Composable
-private fun SectionTitle(text: String) {
+internal fun SectionTitle(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
@@ -277,7 +279,8 @@ private enum class ResetKind(
     LOG(
         button = "Clear time log",
         title = "Clear your time log?",
-        body = "Every entry on this phone is deleted. Your five goals and your rhythm settings stay as they are.",
+        body = "Every entry on this phone is deleted. Your five goals and your rhythm settings stay as they are. " +
+            "If Google Sheets is connected, its month tabs are emptied too.",
         confirm = "Clear log"
     ),
     GOALS(
@@ -291,7 +294,7 @@ private enum class ResetKind(
         button = "Erase everything",
         title = "Erase everything?",
         body = "Your time log, your five goals and your settings are all deleted, and Sumi goes back to how " +
-            "it was when you installed it.",
+            "it was when you installed it. Google Sheets is disconnected; the spreadsheet itself stays in your Drive.",
         confirm = "Erase everything"
     )
 }

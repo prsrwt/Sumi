@@ -19,8 +19,9 @@ abstract class SumiDao {
     @Query("SELECT * FROM goals ORDER BY slot")
     abstract suspend fun getGoals(): List<GoalEntity>
 
-    @Query("UPDATE goals SET name = :name WHERE slot = :slot")
-    abstract suspend fun setGoalName(slot: Int, name: String)
+    /** Returns how many rows changed: 0 when the name was already this. */
+    @Query("UPDATE goals SET name = :name WHERE slot = :slot AND name != :name")
+    abstract suspend fun setGoalName(slot: Int, name: String): Int
 
     @Query("UPDATE goals SET element = :element WHERE slot = :slot")
     protected abstract suspend fun setGoalElement(slot: Int, element: String)
@@ -84,6 +85,44 @@ abstract class SumiDao {
 
     @Query("UPDATE entries SET syncedAt = :at WHERE id IN (:ids)")
     abstract suspend fun markSynced(ids: List<Long>, at: Long)
+
+    // ---- the Google Sheets link ----
+
+    @Query("SELECT * FROM sync_state WHERE id = 0")
+    abstract fun observeSyncState(): Flow<SyncStateEntity?>
+
+    @Query("SELECT * FROM sync_state WHERE id = 0")
+    abstract suspend fun getSyncState(): SyncStateEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun putSyncState(state: SyncStateEntity)
+
+    @Query("DELETE FROM sync_state")
+    abstract suspend fun clearSyncState()
+
+    // ---- months waiting for the sheet ----
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun markDirty(months: List<DirtyMonthEntity>)
+
+    @Query("SELECT month FROM dirty_months ORDER BY month")
+    abstract suspend fun dirtyMonths(): List<String>
+
+    @Query("SELECT COUNT(*) FROM dirty_months")
+    abstract fun observeDirtyCount(): Flow<Int>
+
+    @Query("DELETE FROM dirty_months WHERE month = :month")
+    abstract suspend fun clearDirty(month: String)
+
+    @Query("DELETE FROM dirty_months")
+    abstract suspend fun clearAllDirty()
+
+    /** Where every live entry starts, to work out which months it lives in. */
+    @Query("SELECT startMillis, zoneId FROM entries WHERE deletedAt IS NULL")
+    abstract suspend fun entryStarts(): List<EntryStart>
+
+    @Query("SELECT * FROM entries WHERE deletedAt IS NULL AND startMillis >= :from AND startMillis < :to ORDER BY startMillis, id")
+    abstract suspend fun entriesStartingBetween(from: Long, to: Long): List<EntryEntity>
 
     // ---- settings ----
 

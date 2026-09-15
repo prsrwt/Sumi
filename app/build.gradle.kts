@@ -78,6 +78,15 @@ android {
     }
 }
 
+/*
+ * Room writes each database version's layout to app/schemas. Those files are
+ * committed, so every future change to the tables can be checked against the
+ * exact layout that is already on people's phones.
+ */
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -98,6 +107,14 @@ dependencies {
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
+    // Android's own org.json is only a stub in plain JVM tests; this is the real one.
+    testImplementation(libs.org.json)
+
+    // Asking for permission to the user's Drive. Everything after that is plain
+    // HTTPS, so none of Google's heavy API client libraries are needed.
+    implementation(libs.play.services.auth)
+    // Background sync that waits for a network and survives restarts.
+    implementation(libs.androidx.work.runtime.ktx)
 
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
