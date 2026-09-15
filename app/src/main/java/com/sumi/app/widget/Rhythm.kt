@@ -23,7 +23,8 @@ import java.time.ZoneId
  * A widget only changes when something redraws it, so Sumi works out the next
  * moment the face ought to differ and asks to be woken then. Not a fixed tick:
  * the moments are when the ask interval since the last entry runs out, when
- * quiet hours begin, and when they end. Logging early simply moves the next ask.
+ * quiet hours begin, when they end, and midnight, when the date drawn on the
+ * widget turns over. Logging early simply moves the next ask.
  */
 object Rhythm {
 
@@ -43,14 +44,16 @@ object Rhythm {
     private const val WINDOW_MILLIS = 10 * 60 * 1_000L
 
     /**
-     * The next instant at which the widget's face could change, or null if it
-     * never will without the user doing something.
+     * The next instant at which the widget's face could change. There is always
+     * one, since at the latest the date changes at midnight.
      */
-    fun nextChange(latestEnd: Instant?, settings: Settings, now: Instant, zone: ZoneId): Instant? {
+    fun nextChange(latestEnd: Instant?, settings: Settings, now: Instant, zone: ZoneId): Instant {
         val hasQuietHours = settings.quietStart != settings.quietEnd
         val quietNow = settings.isQuiet(now.atZone(zone).toLocalTime())
 
         val candidates = buildList {
+            // The date on the widget is drawn, not ticked, so a new day needs a redraw.
+            add(nextOccurrence(LocalTime.MIDNIGHT, now, zone))
             if (quietNow) {
                 // Whatever is due has to wait; the only change coming is quiet ending.
                 add(nextOccurrence(settings.quietEnd, now, zone))
@@ -62,7 +65,7 @@ object Rhythm {
                 }
             }
         }
-        return candidates.minOrNull()
+        return candidates.min()
     }
 
     /**
@@ -85,10 +88,6 @@ object Rhythm {
         val alarms = context.getSystemService(AlarmManager::class.java) ?: return
         val operation = pendingIntent(context)
         val next = nextChange(latestEnd, settings, Instant.now(), ZoneId.systemDefault())
-        if (next == null) {
-            alarms.cancel(operation)
-            return
-        }
 
         val triggerAt = next.toEpochMilli() + SETTLE_MILLIS
         val canBeExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarms.canScheduleExactAlarms()

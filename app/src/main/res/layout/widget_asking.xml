@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The asking face: a question in place of the time, with the time kept small
-  underneath so the widget never stops being useful as a clock.
+  underneath so the widget never stops being useful as a clock. The question is
+  an image drawn in Mincho (see InkText); the time stays a live TextClock.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -11,17 +12,11 @@
     android:paddingStart="28dp"
     android:paddingEnd="28dp">
 
-    <TextView
+    <ImageView
         android:id="@+id/widget_question"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:fontFamily="serif"
-        android:gravity="center"
-        android:includeFontPadding="false"
-        android:maxLines="2"
-        android:textColor="@color/sumi_ink"
-        android:textSize="24sp" />
+        android:importantForAccessibility="no" />
 
     <TextClock
         android:id="@+id/widget_small_clock"
@@ -29,6 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:fontFamily="serif"
+        android:textStyle="bold"
         android:format12Hour="h:mm"
         android:format24Hour="HH:mm"
         android:textColor="@color/sumi_ink_muted"

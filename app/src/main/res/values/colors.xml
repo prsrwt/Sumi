@@ -5,6 +5,6 @@
 
     <!-- Sumi ink, for text on the widget's pale glass. Warm near-black rather
          than pure black, the way ink sits on paper. -->
-    <color name="sumi_ink">#FF1C1A17</color>
-    <color name="sumi_ink_muted">#991C1A17</color>
+    <color name="sumi_ink">#FF111111</color>
+    <color name="sumi_ink_muted">#D9111111</color>
 </resources>

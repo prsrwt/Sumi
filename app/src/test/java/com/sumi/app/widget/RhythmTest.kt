@@ -2,7 +2,6 @@ package com.sumi.app.widget
 
 import com.sumi.app.data.Settings
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
@@ -45,8 +44,20 @@ class RhythmTest {
     }
 
     @Test
-    fun `with no quiet hours and nothing logged there is nothing to wait for`() {
-        assertNull(Rhythm.nextChange(null, noQuiet, at("2026-09-13T12:00"), utc))
+    fun `with no quiet hours and nothing logged the next change is midnight`() {
+        assertEquals(at("2026-09-14T00:00"), Rhythm.nextChange(null, noQuiet, at("2026-09-13T12:00"), utc))
+    }
+
+    @Test
+    fun `midnight comes before a later ask, so the date turns over on time`() {
+        val next = Rhythm.nextChange(at("2026-09-13T23:30"), noQuiet, at("2026-09-13T23:40"), utc)
+        assertEquals(at("2026-09-14T00:00"), next)
+    }
+
+    @Test
+    fun `during quiet hours midnight still redraws the date before quiet ends`() {
+        val next = Rhythm.nextChange(at("2026-09-13T20:00"), quiet23to7, at("2026-09-13T23:30"), utc)
+        assertEquals(at("2026-09-14T00:00"), next)
     }
 
     @Test

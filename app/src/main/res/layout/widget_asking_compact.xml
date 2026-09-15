@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The asking face at one row tall: the question takes the space it needs and
-  gives up the rest to the small clock on the right. One line, so a long
-  phrasing ellipsizes rather than pushing the clock off the glass.
+  The asking face at one row tall: the Mincho question takes the space it needs
+  and gives up the rest to the small live clock on the right. The question image
+  is drawn to fit that space, cut short with an ellipsis if it must be.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -12,17 +12,13 @@
     android:paddingStart="24dp"
     android:paddingEnd="24dp">
 
-    <TextView
+    <ImageView
         android:id="@+id/widget_question"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:ellipsize="end"
-        android:fontFamily="serif"
-        android:includeFontPadding="false"
-        android:maxLines="1"
-        android:textColor="@color/sumi_ink"
-        android:textSize="18sp" />
+        android:importantForAccessibility="no"
+        android:scaleType="fitStart" />
 
     <TextClock
         android:id="@+id/widget_small_clock"
@@ -30,6 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:fontFamily="serif"
+        android:textStyle="bold"
         android:format12Hour="h:mm"
         android:format24Hour="HH:mm"
         android:textColor="@color/sumi_ink_muted"

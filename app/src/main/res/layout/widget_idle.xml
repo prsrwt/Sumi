@@ -2,10 +2,11 @@
 <!--
   The resting face: the time and the date.
 
-  TextClock rather than text we render ourselves. Android throttles widget
-  updates to about every 30 minutes, so a clock we drew into the bitmap would be
-  wrong most of the time. TextClock is one of the few views RemoteViews allows
-  that the system itself ticks every minute, at no cost to the battery.
+  The time is a TextClock, one of the few views RemoteViews allows that the system
+  itself ticks every minute. Android throttles widget redraws to about every 30
+  minutes, so a clock drawn into an image would be wrong most of the time. The
+  date changes once a day, so it is an image drawn in Mincho (see InkText), and
+  the widget redraws just after midnight to turn it over.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -24,15 +25,11 @@
         android:textColor="@color/sumi_ink"
         android:textSize="52sp" />
 
-    <TextClock
+    <ImageView
         android:id="@+id/widget_date"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:fontFamily="serif"
-        android:format12Hour="EEEE · d MMMM"
-        android:format24Hour="EEEE · d MMMM"
-        android:textColor="@color/sumi_ink_muted"
-        android:textSize="14sp" />
+        android:importantForAccessibility="no" />
 
 </LinearLayout>

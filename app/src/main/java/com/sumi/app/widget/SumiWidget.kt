@@ -24,7 +24,9 @@ import com.sumi.app.R
 import com.sumi.app.data.SumiRepository
 import com.sumi.app.ui.composer.ComposerActivity
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 /**
  * The home-screen widget: pale glass with the time on it, which becomes a
@@ -51,6 +53,8 @@ class SumiWidget : GlanceAppWidget() {
         // alarm heals the next time the widget renders for any reason.
         Rhythm.schedule(context, latest?.end, settings)
         val style = WallpaperTone.styleFor(context)
+        // Read once per redraw, so the Mincho date is drawn again when the day turns.
+        val today = LocalDate.now(zone)
         val density = context.resources.displayMetrics.density
 
         provideContent {
@@ -61,7 +65,7 @@ class SumiWidget : GlanceAppWidget() {
             val glass = remember(widthPx, heightPx, style) {
                 GlassRenderer.render(widthPx, heightPx, density, style)
             }
-            val text = remember(face, size) { textLayer(context, face, size.width.value, size.height.value) }
+            val text = remember(face, size, style, today) { textLayer(context, face, style, today, size.width.value, size.height.value) }
 
             Box(
                 modifier = GlanceModifier
@@ -90,39 +94,81 @@ class SumiWidget : GlanceAppWidget() {
      *
      * Below about one and a half rows the stacked layout has no room, so the time
      * and date (or the question and time) sit side by side instead. Above it,
-     * they stack. Sizes scale with the space too - fixed sp would leave a large
-     * widget with a small clock.
+     * they stack. Sizes scale with the space too: fixed sp would leave a large
+     * widget with a small clock. The clocks are live TextClocks; the question and
+     * the date are Mincho images from [InkText], drawn at exactly the size needed.
      */
-    private fun textLayer(context: Context, face: WidgetFace, widthDp: Float, heightDp: Float): RemoteViews {
+    private fun textLayer(
+        context: Context,
+        face: WidgetFace,
+        style: GlassStyle,
+        today: LocalDate,
+        widthDp: Float,
+        heightDp: Float
+    ): RemoteViews {
         val compact = heightDp < COMPACT_BELOW_DP
-        return when (face) {
+        val density = context.resources.displayMetrics.density
+        fun px(dp: Float) = dp * density
+
+        val views = when (face) {
             WidgetFace.Resting -> if (compact) {
                 RemoteViews(context.packageName, R.layout.widget_idle_compact).apply {
                     val clockDp = (heightDp * 0.40f).coerceIn(20f, 44f)
                     setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_DIP, clockDp)
-                    setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_DIP, (clockDp * 0.40f).coerceIn(11f, 16f))
+                    // Room left beside the clock: side padding, the gap, and roughly
+                    // the clock's own width at this size.
+                    val roomDp = widthDp - 48f - 16f - clockDp * 2.6f
+                    setImageViewBitmap(
+                        R.id.widget_date,
+                        InkText.render(
+                            context, SHORT_DATE.format(today), px((clockDp * 0.42f).coerceIn(12f, 17f)),
+                            style.inkMuted, px(roomDp).toInt(), maxLines = 1
+                        )
+                    )
                 }
             } else {
                 RemoteViews(context.packageName, R.layout.widget_idle).apply {
                     val clockDp = minOf(heightDp * 0.36f, widthDp * 0.2f).coerceIn(28f, 96f)
                     setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_DIP, clockDp)
-                    setTextViewTextSize(R.id.widget_date, TypedValue.COMPLEX_UNIT_DIP, (clockDp * 0.27f).coerceIn(11f, 20f))
+                    setImageViewBitmap(
+                        R.id.widget_date,
+                        InkText.render(
+                            context, LONG_DATE.format(today), px((clockDp * 0.30f).coerceIn(13f, 22f)),
+                            style.inkMuted, px(widthDp - 48f).toInt(), maxLines = 1
+                        )
+                    )
                 }
             }
 
             is WidgetFace.Asking -> if (compact) {
                 RemoteViews(context.packageName, R.layout.widget_asking_compact).apply {
-                    setTextViewText(R.id.widget_question, face.question)
-                    setTextViewTextSize(R.id.widget_question, TypedValue.COMPLEX_UNIT_DIP, (heightDp * 0.24f).coerceIn(14f, 22f))
+                    val roomDp = widthDp - 48f - 12f - 44f
+                    setImageViewBitmap(
+                        R.id.widget_question,
+                        InkText.render(
+                            context, face.question, px((heightDp * 0.26f).coerceIn(15f, 24f)),
+                            style.ink, px(roomDp).toInt(), maxLines = 1
+                        )
+                    )
                 }
             } else {
                 RemoteViews(context.packageName, R.layout.widget_asking).apply {
-                    setTextViewText(R.id.widget_question, face.question)
-                    val questionDp = minOf(heightDp * 0.17f, widthDp * 0.075f).coerceIn(16f, 34f)
-                    setTextViewTextSize(R.id.widget_question, TypedValue.COMPLEX_UNIT_DIP, questionDp)
+                    val questionDp = minOf(heightDp * 0.18f, widthDp * 0.08f).coerceIn(17f, 36f)
+                    setImageViewBitmap(
+                        R.id.widget_question,
+                        InkText.render(context, face.question, px(questionDp), style.ink, px(widthDp - 56f).toInt(), maxLines = 2)
+                    )
                 }
             }
         }
+
+        // Ink follows the glass: dark on light wallpapers, paper-white on dark ones.
+        // The Mincho images are already drawn in it; the live clocks are set here.
+        when (face) {
+            WidgetFace.Resting -> views.setTextColor(R.id.widget_clock, style.ink)
+            is WidgetFace.Asking -> views.setTextColor(R.id.widget_small_clock, style.ink)
+        }
+        return views
     }
 
     private companion object {
@@ -131,5 +177,8 @@ class SumiWidget : GlanceAppWidget() {
 
         /** Launchers report one row at roughly 70-120 dp and two at 180-240. */
         const val COMPACT_BELOW_DP = 150f
+
+        val LONG_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE · d MMMM")
+        val SHORT_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE · d MMM")
     }
 }

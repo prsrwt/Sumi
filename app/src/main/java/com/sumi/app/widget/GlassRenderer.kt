@@ -10,30 +10,37 @@ import android.graphics.RectF
 import android.graphics.Shader
 
 /**
- * How milky the glass is. Pale, warm, paper-like - ink is always dark, so the
- * glass has to carry its own light for the text to read on any wallpaper.
+ * The glass and the ink that sits on it, chosen together for the wallpaper.
+ *
+ * The glass is thin on purpose, so the wallpaper shows through clearly. That puts
+ * readability on the text rather than on a milky layer: near-black ink over light
+ * wallpapers, and paper-white ink on a faint dark glass over dark ones. Milky glass
+ * with dark ink on a dark wallpaper was the alternative, and it looked washed out.
  */
 data class GlassStyle(
     val fill: Int,
     val border: Int,
-    val grainAlpha: Int
+    val grainAlpha: Int,
+    /** The clock and the question. */
+    val ink: Int,
+    /** The date and the small clock: a little softer, still fully legible. */
+    val inkMuted: Int
 ) {
     companion object {
-        /**
-         * Over a dark wallpaper the glass must be milkier, or dark ink sinks into
-         * what shows through behind it.
-         */
         val OnDarkWallpaper = GlassStyle(
-            fill = Color.argb(128, 250, 248, 244),
-            border = Color.argb(96, 255, 255, 255),
-            grainAlpha = 9
+            fill = Color.argb(82, 18, 17, 16),
+            border = Color.argb(56, 255, 255, 255),
+            grainAlpha = 4,
+            ink = Color.rgb(250, 248, 244),
+            inkMuted = Color.argb(217, 250, 248, 244)
         )
 
-        /** Over a pale wallpaper the ink already has contrast, so more shows through. */
         val OnLightWallpaper = GlassStyle(
-            fill = Color.argb(96, 252, 250, 246),
-            border = Color.argb(128, 255, 255, 255),
-            grainAlpha = 7
+            fill = Color.argb(56, 252, 250, 246),
+            border = Color.argb(64, 255, 255, 255),
+            grainAlpha = 4,
+            ink = Color.rgb(17, 17, 17),
+            inkMuted = Color.argb(217, 17, 17, 17)
         )
     }
 }
