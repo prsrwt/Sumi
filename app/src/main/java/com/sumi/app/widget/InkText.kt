@@ -10,6 +10,7 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextUtils
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.createBitmap
 import com.sumi.app.R
 import kotlin.math.ceil
 
@@ -78,7 +79,7 @@ object InkText {
             .setEllipsize(TextUtils.TruncateAt.END)
             .build()
 
-        val bitmap = Bitmap.createBitmap(width, (layout.height + bleed * 2).coerceAtLeast(1), Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, (layout.height + bleed * 2).coerceAtLeast(1))
         Canvas(bitmap).apply {
             translate(0f, bleed.toFloat())
             layout.draw(this)

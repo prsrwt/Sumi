@@ -79,13 +79,6 @@ abstract class SumiDao {
     @Query("UPDATE entries SET deletedAt = :at, updatedAt = :at WHERE id = :id")
     abstract suspend fun softDelete(id: Long, at: Long)
 
-    /** Rows never synced, or changed (including deleted) since they last were. */
-    @Query("SELECT * FROM entries WHERE syncedAt IS NULL OR updatedAt > syncedAt ORDER BY startMillis")
-    abstract suspend fun unsyncedEntries(): List<EntryEntity>
-
-    @Query("UPDATE entries SET syncedAt = :at WHERE id IN (:ids)")
-    abstract suspend fun markSynced(ids: List<Long>, at: Long)
-
     // ---- the Google Sheets link ----
 
     @Query("SELECT * FROM sync_state WHERE id = 0")

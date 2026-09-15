@@ -2,7 +2,6 @@ package com.sumi.app.ui.setup
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -20,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.sync.Timesheet
@@ -99,7 +99,7 @@ fun SheetsSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 OutlinedButton(onClick = {
-                    val open = Intent(Intent.ACTION_VIEW, Uri.parse(Timesheet.url(link.spreadsheetId)))
+                    val open = Intent(Intent.ACTION_VIEW, Timesheet.url(link.spreadsheetId).toUri())
                     try {
                         context.startActivity(open)
                     } catch (e: ActivityNotFoundException) {

@@ -8,6 +8,8 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Shader
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.withClip
 
 /**
  * The glass and the ink that sits on it, chosen together for the wallpaper.
@@ -61,7 +63,7 @@ object GlassRenderer {
     fun render(widthPx: Int, heightPx: Int, density: Float, style: GlassStyle): Bitmap {
         val width = widthPx.coerceAtLeast(1)
         val height = heightPx.coerceAtLeast(1)
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(width, height)
         val canvas = Canvas(bitmap)
 
         val hairline = maxOf(1f, density)
@@ -76,12 +78,11 @@ object GlassRenderer {
         canvas.drawRoundRect(pane, radius, radius, fill)
 
         val clip = Path().apply { addRoundRect(pane, radius, radius, Path.Direction.CW) }
-        canvas.save()
-        canvas.clipPath(clip)
-        fill.shader = grain
-        fill.alpha = style.grainAlpha
-        canvas.drawRect(pane, fill)
-        canvas.restore()
+        canvas.withClip(clip) {
+            fill.shader = grain
+            fill.alpha = style.grainAlpha
+            drawRect(pane, fill)
+        }
 
         // One even hairline all the way round. No gradient, so no implied light.
         val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -103,7 +104,7 @@ object GlassRenderer {
         val size = 64
         val random = java.util.Random(7)
         val pixels = IntArray(size * size) { Color.argb(104 + random.nextInt(48), 255, 255, 255) }
-        val noise = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val noise = createBitmap(size, size)
         noise.setPixels(pixels, 0, size, 0, 0, size, size)
         BitmapShader(noise, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }

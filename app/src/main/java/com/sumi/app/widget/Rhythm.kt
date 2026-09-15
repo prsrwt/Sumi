@@ -1,5 +1,6 @@
 package com.sumi.app.widget
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -83,7 +84,14 @@ object Rhythm {
         schedule(context, repository.latestEntry()?.end, repository.settingsNow())
     }
 
-    /** For callers that already hold the latest entry and settings, to skip re-reading them. */
+    /**
+     * For callers that already hold the latest entry and settings, to skip re-reading them.
+     *
+     * Exact alarms are used only where the system allows them; everywhere else
+     * this falls back to a ten-minute window, so no exact-alarm permission is
+     * requested and lint's warning about one is expected.
+     */
+    @SuppressLint("MissingPermission")
     fun schedule(context: Context, latestEnd: Instant?, settings: Settings) {
         val alarms = context.getSystemService(AlarmManager::class.java) ?: return
         val operation = pendingIntent(context)
@@ -120,6 +128,9 @@ object Rhythm {
 class RhythmReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        // The receiver has to be exported to hear boot and clock changes, which
+        // means any app could send it something. Only these are acted on.
+        if (intent.action !in HANDLED_ACTIONS) return
         val pending = goAsync()
         val appContext = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
@@ -132,3 +143,10 @@ class RhythmReceiver : BroadcastReceiver() {
         }
     }
 }
+
+private val HANDLED_ACTIONS = setOf(
+    Rhythm.ACTION_TICK,
+    Intent.ACTION_BOOT_COMPLETED,
+    Intent.ACTION_TIME_CHANGED,
+    Intent.ACTION_TIMEZONE_CHANGED
+)
