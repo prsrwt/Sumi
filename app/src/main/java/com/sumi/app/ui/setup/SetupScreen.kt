@@ -41,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -181,7 +183,10 @@ internal fun GoalRow(
                 modifier = Modifier
                     .size(52.dp)
                     .clip(CircleShape)
-                    .clickable { menuOpen = true },
+                    .clickable { menuOpen = true }
+                    .clearAndSetSemantics {
+                        contentDescription = "${goal.element.displayName} element for ${goal.displayName}. Change element"
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(

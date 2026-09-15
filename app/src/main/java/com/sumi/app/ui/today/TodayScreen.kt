@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -191,6 +193,16 @@ private fun LoggedRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
+            // One sentence for a screen reader instead of a kanji and loose fragments.
+            .clearAndSetSemantics {
+                contentDescription = listOf(
+                    "${Format.time(context, row.shownStart)} to ${Format.time(context, row.shownEnd)}",
+                    label,
+                    detail,
+                    Format.spokenDuration(Duration.between(row.shownStart, row.shownEnd)),
+                    "Edit"
+                ).filter { it.isNotEmpty() }.joinToString(". ")
+            }
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -269,6 +281,9 @@ private fun UnloggedRow(row: TimelineRow.Unlogged, onClick: () -> Unit, modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = "Unlogged, ${Format.spokenDuration(Duration.between(row.from, row.to))}. Fill it in"
+            }
             .padding(vertical = 10.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

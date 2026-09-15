@@ -27,4 +27,17 @@ object Format {
             else -> "${hours}h ${minutes}m"
         }
     }
+
+    /** The same length for a screen reader, which would read "1h 10m" awkwardly: "1 hour 10 minutes". */
+    fun spokenDuration(duration: Duration): String {
+        val totalMinutes = duration.toMinutes().coerceAtLeast(0)
+        val hours = totalMinutes / 60
+        val minutes = totalMinutes % 60
+        fun count(n: Long, unit: String) = if (n == 1L) "1 $unit" else "$n ${unit}s"
+        return when {
+            hours == 0L -> count(minutes, "minute")
+            minutes == 0L -> count(hours, "hour")
+            else -> "${count(hours, "hour")} ${count(minutes, "minute")}"
+        }
+    }
 }

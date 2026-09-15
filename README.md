@@ -25,6 +25,7 @@ No streaks, no scores, no notifications. A missed hour is just a missed hour.
 - **Balance.** A pentagon of the last 7 or 14 days, a dated 30-day grid, and a gentle note when a goal has been quiet lately.
 - **Google Sheets, optional.** Keeps a spreadsheet in your own Google Drive up to date, one tab per month, even after being offline.
 - **Inside Sumi.** A slideshow study guide to how the app is built, readable inside the app.
+- **Readable by screen readers.** With TalkBack on, the pentagon, the 30-day grid, every row and every kanji are described in plain words.
 
 ## The research behind it
 

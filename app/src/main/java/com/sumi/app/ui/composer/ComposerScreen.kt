@@ -54,6 +54,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -331,6 +336,11 @@ private fun ElementRow(
                         )
                         bloomed = goal.element
                         onElement(goal.element)
+                    }
+                    .clearAndSetSemantics {
+                        contentDescription = "Log to ${goal.displayName}"
+                        role = Role.Button
+                        if (isSelected) stateDescription = "Selected"
                     }
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

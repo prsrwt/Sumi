@@ -33,6 +33,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.text.font.FontWeight
@@ -158,7 +161,11 @@ private fun Pentagon(snapshot: BalanceSnapshot, goals: List<Goal>, modifier: Mod
         )
     }
 
-    Canvas(modifier = modifier.aspectRatio(1f)) {
+    // The drawing read aloud: every goal and its time, in Setup's order.
+    val description = "Balance over the last ${snapshot.windowDays} days. " + goals.sortedBy { it.slot }
+        .joinToString(". ") { "${it.displayName}, ${Format.spokenDuration(snapshot.perElement.getValue(it.element))}" }
+
+    Canvas(modifier = modifier.aspectRatio(1f).semantics { contentDescription = description }) {
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension * 0.30f
         val elements = Element.entries
@@ -265,7 +272,10 @@ private fun BreakdownRow(kanji: String, color: Color, name: String, time: Durati
             fontFamily = SumiFonts.mincho,
             fontSize = 20.sp,
             color = color,
-            modifier = Modifier.width(32.dp)
+            // Decorative beside the name, which a screen reader reads instead.
+            modifier = Modifier
+                .width(32.dp)
+                .clearAndSetSemantics {}
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(name, style = MaterialTheme.typography.bodyMedium)
@@ -314,7 +324,15 @@ private fun MonthGrid(days: List<DayMark>, modifier: Modifier = Modifier) {
     val columns = 10
     val rows = ((days.size + columns - 1) / columns).coerceAtLeast(1)
 
-    Canvas(modifier = modifier.aspectRatio(columns / (rows * ROW_HEIGHT))) {
+    val touchedDays = days.count { it.elementsTouched > 0 }
+    val description = "Last ${days.size} days. Your five had time on $touchedDays of them" +
+        (days.lastOrNull()?.let { ". Today, ${it.elementsTouched} of five" } ?: "")
+
+    Canvas(
+        modifier = modifier
+            .aspectRatio(columns / (rows * ROW_HEIGHT))
+            .semantics { contentDescription = description }
+    ) {
         val cell = size.width / columns
         val r = cell * 0.30f
         val hairline = 1.dp.toPx()
