@@ -728,7 +728,7 @@ if (canBeExact) {
         title: "Motion with a purpose",
         body: `
           <ul>
-            <li>The sheet rises in 260 ms and falls in 200 ms.</li>
+            <li>The sheet rises in 260 ms. On closing, the keyboard goes down first and the sheet sinks with it over 300 ms, so nothing vanishes in a single frame.</li>
             <li>A tapped kanji blooms: its ink spreads outward and fades over 380 ms, with a confirming vibration.</li>
             <li>After saving, the sheet holds 240 ms so you see the bloom before it closes.</li>
             <li>If the phone's animations are turned off, the hold is skipped too.</li>

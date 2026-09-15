@@ -1,5 +1,15 @@
 package com.sumi.app.ui.composer
 
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.first
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.FastOutLinearInEasing
 import android.animation.ValueAnimator
 import android.os.Build
 import android.view.HapticFeedbackConstants
@@ -89,10 +99,21 @@ fun ComposerScreen(
     // loading finishing and the sheet being told to appear also looks like "idle
     // and hidden", and the composer would finish itself the instant it opened.
     var closing by remember { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     fun close() {
+        if (closing) return
+        // The keyboard goes down first, as its own smooth motion, and the sheet
+        // sinks with it. Leaving the keyboard up until the window closed made it
+        // vanish in a single frame, which read as a stutter.
+        focusManager.clearFocus()
+        keyboard?.hide()
         closing = true
         shown.targetState = false
     }
+
+    // How much of the screen the keyboard still covers, readable from a coroutine.
+    val imeBottom by rememberUpdatedState(WindowInsets.ime.getBottom(LocalDensity.current))
 
     LaunchedEffect(state.loading) {
         if (!state.loading) shown.targetState = true
@@ -108,9 +129,14 @@ fun ComposerScreen(
         }
     }
 
-    // Finish the activity only after the exit animation has run.
+    // Finish the activity only once the sheet has sunk away and the keyboard is
+    // down, so nothing disappears abruptly with the window. The wait for the
+    // keyboard is capped, for phones whose keyboard never reports closing.
     LaunchedEffect(closing, shown.isIdle, shown.currentState) {
-        if (closing && shown.isIdle && !shown.currentState) onClose()
+        if (closing && shown.isIdle && !shown.currentState) {
+            withTimeoutOrNull(KEYBOARD_WAIT_MILLIS) { snapshotFlow { imeBottom }.first { it == 0 } }
+            onClose()
+        }
     }
 
     val noRipple = remember { MutableInteractionSource() }
@@ -120,7 +146,7 @@ fun ComposerScreen(
         AnimatedVisibility(
             visibleState = shown,
             enter = fadeIn(tween(ENTER_MILLIS)),
-            exit = fadeOut(tween(EXIT_MILLIS))
+            exit = fadeOut(tween(EXIT_MILLIS, easing = LinearOutSlowInEasing))
         ) {
             Box(
                 modifier = Modifier
@@ -134,7 +160,9 @@ fun ComposerScreen(
             visibleState = shown,
             modifier = Modifier.align(Alignment.BottomCenter),
             enter = slideInVertically(tween(ENTER_MILLIS)) { it / 3 } + fadeIn(tween(ENTER_MILLIS)),
-            exit = slideOutVertically(tween(EXIT_MILLIS)) { it / 3 } + fadeOut(tween(EXIT_MILLIS))
+            // Sinks all the way down, easing into the motion like something let go.
+            exit = slideOutVertically(tween(EXIT_MILLIS, easing = FastOutLinearInEasing)) { it } +
+                fadeOut(tween(EXIT_MILLIS, delayMillis = EXIT_MILLIS / 3))
         ) {
             Surface(
                 modifier = Modifier
@@ -163,7 +191,10 @@ fun ComposerScreen(
 }
 
 private const val ENTER_MILLIS = 260
-private const val EXIT_MILLIS = 200
+private const val EXIT_MILLIS = 300
+
+/** The longest the composer waits for the keyboard to finish going down. */
+private const val KEYBOARD_WAIT_MILLIS = 450L
 
 /** Long enough to see the bloom, short enough that logging still feels instant. */
 private const val SAVE_HOLD_MILLIS = 240L
