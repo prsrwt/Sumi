@@ -21,6 +21,7 @@ No streaks, no scores, no notifications. A missed hour is just a missed hour.
 - **Asks, never nags.** The widget turns into a question once your chosen interval (30, 45, 60 or 90 minutes) has passed since your last entry, and stays quiet during quiet hours.
 - **One tap to log.** Tap a kanji to log the time to that goal, type a line for anything else, or both.
 - **Five goals, five elements.** Your goals are paired with the Godai, the five classical Japanese elements: 地 Earth, 水 Water, 火 Fire, 風 Wind and 空 Void. Name Fire "Workout" and it is called Workout everywhere. Time with no element is 無, untagged.
+- **Ready-made fives.** Behind the mark at the top left: a wheel of ready-made sets to start from, with the pentagon beside it changing shape as the wheel turns. The sets come from the nine divisions of the UN time use classification, collapsed five different ways, and each one says what it gives up.
 - **Today.** The day as a timesheet, with unlogged gaps you can tap to fill.
 - **Balance.** A pentagon of the last 7 or 14 days and a dated 30-day grid, showing where to push and where you may be pushing too hard: a gentle note when a goal has been quiet lately, or when one has taken more than half your time.
 - **Shape, not figures.** Balance carries no hours at all: the length of a spoke and of a bar is the amount. The exact times stay where they are needed, in the composer, on Today, in your Google Sheet, and in what a screen reader reads aloud.
@@ -99,13 +100,13 @@ Google recognises the app by its package name and signing certificate, so no cli
 
 ```text
 app/src/main/java/com/sumi/app/
-  MainActivity.kt   tabs, Setup and the introduction
+  MainActivity.kt   tabs, Setup, You and the introduction
   data/             elements, database, repository, and the time logic
   ui/composer/      the log sheet opened from the widget
   ui/today/         the timesheet
   ui/balance/       the pentagon and the 30-day grid
-  ui/setup/         Setup, and the Google Sheets section it lends out
-  ui/account/       the mark at the top left and what it opens
+  ui/setup/         Setup, and the goal rows and Sheets section it lends out
+  ui/account/       You: the five, the wheel of ready-made fives, Google Sheets
   ui/onboarding/    the first-launch introduction
   ui/guide/         the study guide screen
   widget/           the widget, glass, Mincho text and alarms

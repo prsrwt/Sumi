@@ -40,7 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiTheme
 import com.sumi.app.ui.account.AccountMark
-import com.sumi.app.ui.account.AccountSheet
+import com.sumi.app.ui.account.YouScreen
 import com.sumi.app.ui.balance.BalanceScreen
 import com.sumi.app.ui.onboarding.OnboardingScreen
 import com.sumi.app.ui.onboarding.OnboardingViewModel
@@ -76,7 +76,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Screen { WAITING, INTRODUCTION, SETUP, HOME }
+private enum class Screen { WAITING, INTRODUCTION, SETUP, YOU, HOME }
 
 @Composable
 private fun SumiHome(
@@ -87,6 +87,7 @@ private fun SumiHome(
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showSetup by rememberSaveable { mutableStateOf(false) }
+    var showYou by rememberSaveable { mutableStateOf(false) }
     var replayingIntroduction by rememberSaveable { mutableStateOf(false) }
     val onboarded by onboarding.onboarded.collectAsStateWithLifecycle()
     val tabs = remember { listOf("Today", "Balance") }
@@ -95,6 +96,7 @@ private fun SumiHome(
         onboarded == null -> Screen.WAITING
         onboarded == false || replayingIntroduction -> Screen.INTRODUCTION
         showSetup -> Screen.SETUP
+        showYou -> Screen.YOU
         else -> Screen.HOME
     }
 
@@ -102,8 +104,9 @@ private fun SumiHome(
 
     // Back always walks home: to Today, on today's date. Only from there, already
     // on today, does it leave the app.
-    BackHandler(enabled = screen == Screen.SETUP) {
+    BackHandler(enabled = screen == Screen.SETUP || screen == Screen.YOU) {
         showSetup = false
+        showYou = false
         selectedTab = 0
         today.showToday()
     }
@@ -126,6 +129,7 @@ private fun SumiHome(
                     onboarding.finish()
                     replayingIntroduction = false
                     showSetup = false
+                    showYou = false
                     selectedTab = 0
                 },
                 onClose = if (replayingIntroduction) ({ replayingIntroduction = false }) else null
@@ -136,12 +140,15 @@ private fun SumiHome(
                 onShowIntroduction = { replayingIntroduction = true }
             )
 
+            Screen.YOU -> YouScreen(onBack = { showYou = false })
+
             Screen.HOME -> 
 HomeTabs(
                 selectedTab = selectedTab,
                 tabs = tabs,
                 onSelectTab = { selectedTab = it },
                 onOpenSetup = { showSetup = true },
+                onOpenYou = { showYou = true },
                 onOpenDay = { day ->
                     today.showDay(day)
                     selectedTab = 0
@@ -157,10 +164,9 @@ private fun HomeTabs(
     tabs: List<String>,
     onSelectTab: (Int) -> Unit,
     onOpenSetup: () -> Unit,
+    onOpenYou: () -> Unit,
     onOpenDay: (LocalDate) -> Unit
 ) {
-    var showAccount by rememberSaveable { mutableStateOf(false) }
-
     Column(modifier = Modifier.fillMaxSize()) {
         // You on the left, Sumi's own settings on the right, and the tabs centred
         // between two marks of the same size rather than pushed off by one.
@@ -171,7 +177,7 @@ private fun HomeTabs(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            AccountMark(onClick = { showAccount = true })
+            AccountMark(onClick = onOpenYou)
             GlassTabs(
                 tabs = tabs,
                 selectedIndex = selectedTab,
@@ -181,10 +187,6 @@ private fun HomeTabs(
             IconButton(onClick = onOpenSetup, modifier = Modifier.size(40.dp)) {
                 Icon(Icons.Filled.Settings, contentDescription = "Setup")
             }
-        }
-
-        if (showAccount) {
-            AccountSheet(onDismiss = { showAccount = false })
         }
 
         AnimatedContent(

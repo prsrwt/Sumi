@@ -76,6 +76,30 @@ window.SUMI_GUIDE = [
         }
       },
       {
+        title: "Ready-made fives",
+        body: `
+          <p>Five empty rows on day one is a hard question, so the You screen has a wheel of ready-made sets, and the pentagon above it changes shape as the wheel turns.</p>
+          <p>The sets come from the UN classification for time use statistics (ICATUS 2016), which splits all human activity into nine divisions: employment, production for own use, unpaid domestic services, unpaid caregiving, volunteer work, learning, socialising and community, culture and leisure, and self care. Sumi has five spokes, so every preset is one way of collapsing nine into five, and each one drops something. "Work and home" gives a spoke to unpaid work at home and loses learning; "Studying" makes study the work and loses the paid job. The blurb under each name says what it gives up rather than pretending one set fits everyone.</p>
+          <p>Unpaid domestic and care work gets its own spoke in two of the sets because worldwide it is 4 hours 25 minutes a day for women against 1 hour 23 for men (ILO), and 708 million women are outside the labour force because of it. A set of five that only knows about paid jobs would erase the largest block of time in hundreds of millions of lives.</p>
+          <p>Names must be broad enough to hold many activities over years. "Health" holds the run, the cooking, the sleep you protect and the doctor. "Gym" holds one hour a week and would sit near the centre of the pentagon forever, which is why no preset names an activity.</p>`,
+        code: {
+          file: "app/src/main/java/com/sumi/app/data/Presets.kt",
+          text: `Preset(
+    title = "Work and home",
+    blurb = "A job and a household, the double shift. Learning gives up its place.",
+    names = mapOf(
+        Element.EARTH to "Health",
+        Element.WATER to "People",
+        Element.FIRE to "Job",
+        Element.WIND to "Home and care",
+        Element.VOID to "Rest"
+    ),
+    ...
+)`
+        },
+        why: `The example shape beside the wheel leans on purpose. Someone who sees a lopsided pentagon before they log anything reads their own lopsided pentagon as normal rather than as failure.`
+      },
+      {
         title: "Try it",
         body: `
           <p>Before reading any code, use Sumi for a morning. Notice three things:</p>
@@ -105,8 +129,8 @@ window.SUMI_GUIDE = [
             <li><strong>Composer.</strong> The sheet that rises when you tap the widget: from and to, a line of text, the five kanji.</li>
             <li><strong>Today.</strong> The day as a timesheet, newest first, with unlogged gaps you can fill.</li>
             <li><strong>Balance.</strong> A pentagon of the last 7 or 14 days and a 30-day grid.</li>
-            <li><strong>Setup.</strong> Behind the gear: your five, the rhythm, quiet hours, resets, about.</li>
-            <li><strong>You.</strong> Behind the mark at the top left: the Google account your log is copied to.</li>
+            <li><strong>Setup.</strong> Behind the gear: the rhythm, quiet hours, resets, about. Sumi's own settings.</li>
+            <li><strong>You.</strong> Behind the mark at the top left: your five, a wheel of ready-made fives, and the Google account your log is copied to.</li>
             <li><strong>Introduction.</strong> Seven pages on first launch.</li>
             <li><strong>Sync.</strong> Invisible: copies the log to Google Sheets in the background.</li>
           </ul>`
@@ -993,6 +1017,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
     onboarded == null -> Screen.WAITING
     onboarded == false || replayingIntroduction -> Screen.INTRODUCTION
     showSetup -> Screen.SETUP
+    showYou -> Screen.YOU
     else -> Screen.HOME
 }`
         }

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.sumi.app.data.Element
 import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
+import com.sumi.app.data.Preset
+import com.sumi.app.data.Presets
 import com.sumi.app.data.Settings
 import com.sumi.app.data.SumiRepository
 import com.sumi.app.sync.SheetsSync
@@ -49,6 +51,17 @@ class SetupViewModel(app: Application) : AndroidViewModel(app) {
 
     fun onNameChanged(slot: Int, value: String) {
         _names.update { current -> current?.toMutableList()?.also { it[slot] = value } }
+    }
+
+    /**
+     * Writes a ready-made set of five into the name fields. It goes through the
+     * same fields the text boxes use, so it saves by the same debounced path and
+     * the boxes show the new names immediately. Names are matched by element
+     * rather than by slot, so a preset still lands correctly after someone has
+     * moved an element from one goal to another.
+     */
+    fun applyPreset(preset: Preset) {
+        _names.value = Presets.namesForSlots(preset, goals.value)
     }
 
     /** Swaps with whichever goal already had this element, keeping the mapping one-to-one. */

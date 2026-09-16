@@ -258,7 +258,7 @@ private fun FivePage(setup: SetupViewModel) {
                 )
             }
         }
-        Body("Anything else is ${Untagged.KANJI}, untagged. You can change these later in Setup.")
+        Body("Anything else is ${Untagged.KANJI}, untagged. You can change these later, or pick a ready-made five, from the mark at the top left.")
     }
 }
 

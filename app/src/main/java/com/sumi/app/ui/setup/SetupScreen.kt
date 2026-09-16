@@ -50,7 +50,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.BuildConfig
 import com.sumi.app.data.Element
-import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
 import com.sumi.app.ui.ClockDialog
 import com.sumi.app.ui.GlassTabs
@@ -67,8 +66,6 @@ fun SetupScreen(
     modifier: Modifier = Modifier,
     viewModel: SetupViewModel = viewModel()
 ) {
-    val goals by viewModel.goals.collectAsStateWithLifecycle()
-    val names by viewModel.names.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val resetMessage by viewModel.resetMessage.collectAsStateWithLifecycle()
 
@@ -85,27 +82,6 @@ fun SetupScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
             Text("Setup", style = MaterialTheme.typography.headlineSmall)
-        }
-
-        SectionTitle("Your five")
-        Text(
-            text = "The five things you most want your time to go to. Each gets an element; " +
-                "tap an element in the composer and that time is logged to it.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        val currentNames = names
-        if (currentNames != null && goals.size == GOAL_COUNT) {
-            goals.sortedBy { it.slot }.forEach { goal ->
-                GoalRow(
-                    goal = goal,
-                    goals = goals,
-                    name = currentNames.getOrElse(goal.slot) { "" },
-                    onName = { viewModel.onNameChanged(goal.slot, it) },
-                    onElement = { viewModel.assign(goal.slot, it) }
-                )
-            }
         }
 
         SectionTitle("Rhythm")
