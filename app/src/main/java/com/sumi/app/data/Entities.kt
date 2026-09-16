@@ -1,6 +1,7 @@
 package com.sumi.app.data
 
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import java.time.Duration
@@ -34,6 +35,47 @@ data class GoalEntity(
  * timesheet stays correct across daylight saving changes and travel. Either the
  * text or the element may be missing, never both.
  */
+/**
+ * A part of life under one element: Health under 地, Work under 火. An element can
+ * hold several, which is what keeps the five spokes broad while the words stay
+ * yours. The element is stored by name, as everywhere else.
+ */
+@Entity(tableName = "domains", indices = [Index(value = ["element", "name"], unique = true)])
+data class DomainEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val element: String,
+    /** Where it sits in its element's list, so the order is the user's own. */
+    val position: Int
+)
+
+/**
+ * A word inside a domain: run, thesis, cooking. Free to invent while logging, the
+ * way a board takes a new pin.
+ *
+ * [uses] and [lastUsedAt] are what the composer ranks by, so the words you
+ * actually use rise to the front without anybody managing a list.
+ */
+@Entity(
+    tableName = "activities",
+    foreignKeys = [
+        ForeignKey(
+            entity = DomainEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["domainId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["domainId", "name"], unique = true)]
+)
+data class ActivityEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val domainId: Long,
+    val name: String,
+    val uses: Int = 0,
+    val lastUsedAt: Long? = null
+)
+
 @Entity(
     tableName = "entries",
     indices = [Index("startMillis"), Index("endMillis")]
@@ -45,6 +87,14 @@ data class EntryEntity(
     val zoneId: String,
     val text: String?,
     val element: String?,
+    /**
+     * What it was logged as, if anything. Kept as references rather than copied
+     * words, so renaming an activity carries its whole history with it. Nothing
+     * points back: an entry whose activity is deleted simply loses the tag and
+     * keeps its note, which is the honest outcome.
+     */
+    val domainId: Long? = null,
+    val activityId: Long? = null,
     val updatedAt: Long,
     /** When this row was last copied to Google Sheets; null means never. */
     val syncedAt: Long?,
@@ -114,13 +164,32 @@ fun List<Goal>.nameFor(element: Element?): String =
     if (element == null) Untagged.NAME
     else firstOrNull { it.element == element }?.displayName ?: element.displayName
 
+/** One of an element's parts of life, as the app talks about it. */
+data class Domain(
+    val id: Long,
+    val name: String,
+    val element: Element,
+    val position: Int
+)
+
+/** A word inside a domain, with how much it has been used. */
+data class Activity(
+    val id: Long,
+    val domainId: Long,
+    val name: String,
+    val uses: Int,
+    val lastUsedAt: Instant?
+)
+
 data class Entry(
     val id: Long,
     val start: Instant,
     val end: Instant,
     val zone: ZoneId,
     val text: String?,
-    val element: Element?
+    val element: Element?,
+    val domainId: Long? = null,
+    val activityId: Long? = null
 ) {
     val duration: Duration get() = Duration.between(start, end)
 

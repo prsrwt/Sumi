@@ -52,6 +52,80 @@ abstract class SumiDao {
         setGoalElement(holder, current.element)
     }
 
+    // ---- domains and activities ----
+
+    @Query("SELECT * FROM domains ORDER BY element, position, name")
+    abstract fun observeDomains(): Flow<List<DomainEntity>>
+
+    @Query("SELECT * FROM domains ORDER BY element, position, name")
+    abstract suspend fun getDomains(): List<DomainEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun insertDomain(domain: DomainEntity): Long
+
+    @Query("SELECT * FROM domains WHERE element = :element AND name = :name LIMIT 1")
+    abstract suspend fun domainNamed(element: String, name: String): DomainEntity?
+
+    @Query("SELECT IFNULL(MAX(position), -1) + 1 FROM domains WHERE element = :element")
+    abstract suspend fun nextDomainPosition(element: String): Int
+
+    @Query("UPDATE domains SET name = :name WHERE id = :id")
+    abstract suspend fun renameDomain(id: Long, name: String)
+
+    @Query("UPDATE domains SET element = :element, position = :position WHERE id = :id")
+    abstract suspend fun setDomainElement(id: Long, element: String, position: Int)
+
+    @Query("DELETE FROM domains WHERE id = :id")
+    abstract suspend fun deleteDomain(id: Long)
+
+    @Query("SELECT * FROM activities ORDER BY name")
+    abstract fun observeActivities(): Flow<List<ActivityEntity>>
+
+    @Query("SELECT * FROM activities WHERE domainId = :domainId ORDER BY name")
+    abstract suspend fun activitiesIn(domainId: Long): List<ActivityEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun insertActivity(activity: ActivityEntity): Long
+
+    @Query("SELECT * FROM activities WHERE domainId = :domainId AND name = :name LIMIT 1")
+    abstract suspend fun activityNamed(domainId: Long, name: String): ActivityEntity?
+
+    @Query("SELECT * FROM activities WHERE id = :id")
+    abstract suspend fun activity(id: Long): ActivityEntity?
+
+    @Query("UPDATE activities SET name = :name WHERE id = :id")
+    abstract suspend fun renameActivity(id: Long, name: String)
+
+    @Query("UPDATE activities SET domainId = :domainId WHERE id = :id")
+    abstract suspend fun setActivityDomain(id: Long, domainId: Long)
+
+    @Query("UPDATE activities SET uses = uses + 1, lastUsedAt = :at WHERE id = :id")
+    abstract suspend fun touchActivity(id: Long, at: Long)
+
+    @Query("DELETE FROM activities WHERE id = :id")
+    abstract suspend fun deleteActivity(id: Long)
+
+    /**
+     * The words used under one element, the most recently used first. What the
+     * composer offers, so the list is always the user's own habits rather than
+     * anything Sumi decided.
+     */
+    @Query(
+        "SELECT a.* FROM activities a JOIN domains d ON a.domainId = d.id " +
+            "WHERE d.element = :element ORDER BY a.lastUsedAt DESC, a.uses DESC, a.name LIMIT :limit"
+    )
+    abstract suspend fun recentActivities(element: String, limit: Int): List<ActivityEntity>
+
+    /** Entries keep their note when a tag disappears, rather than pointing at nothing. */
+    @Query("UPDATE entries SET activityId = NULL WHERE activityId = :id")
+    abstract suspend fun untagActivity(id: Long)
+
+    @Query("UPDATE entries SET domainId = NULL, activityId = NULL WHERE domainId = :id")
+    abstract suspend fun untagDomain(id: Long)
+
+    @Query("UPDATE entries SET domainId = :domainId WHERE activityId = :activityId")
+    abstract suspend fun retagEntriesOfActivity(activityId: Long, domainId: Long)
+
     // ---- entries ----
 
     @Insert
@@ -153,6 +227,9 @@ abstract class SumiDao {
 
     @Query("UPDATE goals SET name = ''")
     protected abstract suspend fun clearGoalNames()
+
+    @Query("DELETE FROM domains")
+    abstract suspend fun purgeDomains()
 
     /**
      * Clears every name and puts each goal back on its original element.

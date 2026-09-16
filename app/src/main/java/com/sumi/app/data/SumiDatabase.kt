@@ -10,12 +10,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 @Database(
     entities = [
         GoalEntity::class,
+        DomainEntity::class,
+        ActivityEntity::class,
         EntryEntity::class,
         SettingsEntity::class,
         SyncStateEntity::class,
         DirtyMonthEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class SumiDatabase : RoomDatabase() {
@@ -34,7 +36,7 @@ abstract class SumiDatabase : RoomDatabase() {
         private fun build(context: Context): SumiDatabase =
             Room.databaseBuilder(context, SumiDatabase::class.java, "sumi.db")
                 .addCallback(Seed)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
 
         /**
@@ -64,6 +66,43 @@ abstract class SumiDatabase : RoomDatabase() {
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `settings` ADD COLUMN `onboardedAt` INTEGER")
+            }
+        }
+
+        /**
+         * Version 4 gives each element several domains, and each domain its own
+         * activities, with the entry carrying which two it was logged under.
+         *
+         * Nothing already logged moves: every entry keeps the element it was
+         * saved with, and the two new columns start empty. The five names people
+         * already chose become the first domain under their element, so an
+         * upgrade opens with the life they had already described rather than an
+         * empty list.
+         */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `domains` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `element` TEXT NOT NULL, `position` INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_domains_element_name` ON `domains` (`element`, `name`)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `activities` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`domainId` INTEGER NOT NULL, `name` TEXT NOT NULL, `uses` INTEGER NOT NULL, " +
+                        "`lastUsedAt` INTEGER, FOREIGN KEY(`domainId`) REFERENCES `domains`(`id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_activities_domainId_name` ON `activities` (`domainId`, `name`)"
+                )
+                db.execSQL("ALTER TABLE `entries` ADD COLUMN `domainId` INTEGER")
+                db.execSQL("ALTER TABLE `entries` ADD COLUMN `activityId` INTEGER")
+                db.execSQL(
+                    "INSERT INTO `domains` (`name`, `element`, `position`) " +
+                        "SELECT TRIM(`name`), `element`, 0 FROM `goals` WHERE TRIM(`name`) != ''"
+                )
             }
         }
 

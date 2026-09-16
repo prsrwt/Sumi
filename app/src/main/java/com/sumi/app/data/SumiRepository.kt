@@ -46,6 +46,103 @@ class SumiRepository(private val db: SumiDatabase) {
         }
     }
 
+    // ---- domains and activities ----
+
+    fun observeDomains(): Flow<List<Domain>> =
+        dao.observeDomains().map { rows -> rows.map { it.toDomain() } }
+
+    suspend fun domainsNow(): List<Domain> = dao.getDomains().map { it.toDomain() }
+
+    fun observeActivities(): Flow<List<Activity>> =
+        dao.observeActivities().map { rows -> rows.map { it.toActivity() } }
+
+    /**
+     * Adds a domain under an element, or returns the one already there. Two
+     * domains with the same name under one element would be indistinguishable on
+     * every screen, so the name is what identifies it.
+     */
+    suspend fun addDomain(name: String, element: Element): Domain? {
+        val clean = name.trim()
+        if (clean.isBlank()) return null
+        return db.withTransaction {
+            val existing = dao.domainNamed(element.name, clean)
+            if (existing != null) return@withTransaction existing.toDomain()
+            val position = dao.nextDomainPosition(element.name)
+            val id = dao.insertDomain(DomainEntity(name = clean, element = element.name, position = position))
+            if (id <= 0) null else Domain(id, clean, element, position)
+        }
+    }
+
+    suspend fun renameDomain(id: Long, name: String) {
+        val clean = name.trim()
+        if (clean.isBlank()) return
+        db.withTransaction {
+            dao.renameDomain(id, clean)
+            markEveryMonthDirty()
+        }
+    }
+
+    /**
+     * Moves a domain to another element. Entries keep the element they were logged
+     * under: the pentagon is a record of where time went, not of where it would go
+     * if today's arrangement had always been true.
+     */
+    suspend fun moveDomain(id: Long, element: Element) = db.withTransaction {
+        dao.setDomainElement(id, element.name, dao.nextDomainPosition(element.name))
+        markEveryMonthDirty()
+    }
+
+    /** The domain goes, its activities go with it, and the entries keep their notes. */
+    suspend fun removeDomain(id: Long) = db.withTransaction {
+        dao.untagDomain(id)
+        dao.deleteDomain(id)
+        markEveryMonthDirty()
+    }
+
+    suspend fun addActivity(domainId: Long, name: String): Activity? {
+        val clean = name.trim()
+        if (clean.isBlank()) return null
+        return db.withTransaction {
+            val existing = dao.activityNamed(domainId, clean)
+            if (existing != null) return@withTransaction existing.toActivity()
+            val id = dao.insertActivity(ActivityEntity(domainId = domainId, name = clean))
+            if (id <= 0) null else Activity(id, domainId, clean, uses = 0, lastUsedAt = null)
+        }
+    }
+
+    suspend fun renameActivity(id: Long, name: String) {
+        val clean = name.trim()
+        if (clean.isBlank()) return
+        db.withTransaction {
+            dao.renameActivity(id, clean)
+            markEveryMonthDirty()
+        }
+    }
+
+    /**
+     * An activity lives in one domain at a time, so moving it takes it out of the
+     * one it was in. Entries logged with it follow, since the activity is the same
+     * thing wherever it is kept.
+     */
+    suspend fun moveActivity(id: Long, toDomainId: Long) = db.withTransaction {
+        dao.setActivityDomain(id, toDomainId)
+        dao.retagEntriesOfActivity(id, toDomainId)
+        markEveryMonthDirty()
+    }
+
+    suspend fun removeActivity(id: Long) = db.withTransaction {
+        dao.untagActivity(id)
+        dao.deleteActivity(id)
+        markEveryMonthDirty()
+    }
+
+    suspend fun activitiesIn(domainId: Long): List<Activity> =
+        dao.activitiesIn(domainId).map { it.toActivity() }
+
+    /** What the composer offers under an element: your own words, most recent first. */
+    suspend fun recentActivities(element: Element, limit: Int = RECENT_ACTIVITIES): List<Activity> =
+        dao.recentActivities(element.name, limit).map { it.toActivity() }
+
     // ---- settings ----
 
     fun observeSettings(): Flow<Settings> =
@@ -146,16 +243,18 @@ class SumiRepository(private val db: SumiDatabase) {
         end: Instant,
         text: String?,
         element: Element?,
+        activityId: Long? = null,
         zone: ZoneId = ZoneId.systemDefault()
-    ): SaveResult = save(existingId = null, start, end, text, element, zone)
+    ): SaveResult = save(existingId = null, start, end, text, element, activityId, zone)
 
     suspend fun update(
         id: Long,
         start: Instant,
         end: Instant,
         text: String?,
-        element: Element?
-    ): SaveResult = save(existingId = id, start, end, text, element, ZoneId.systemDefault())
+        element: Element?,
+        activityId: Long? = null
+    ): SaveResult = save(existingId = id, start, end, text, element, activityId, ZoneId.systemDefault())
 
     suspend fun delete(id: Long) = db.withTransaction {
         val existing = dao.getEntry(id) ?: return@withTransaction
@@ -175,6 +274,7 @@ class SumiRepository(private val db: SumiDatabase) {
         end: Instant,
         text: String?,
         element: Element?,
+        activityId: Long?,
         zone: ZoneId
     ): SaveResult {
         val cleanText = text?.trim()?.ifBlank { null }
@@ -188,6 +288,10 @@ class SumiRepository(private val db: SumiDatabase) {
 
         return db.withTransaction {
             val now = System.currentTimeMillis()
+            // The activity says which domain, so the two can never disagree. A word
+            // that has been deleted since it was offered simply tags nothing.
+            val activity = activityId?.let { dao.activity(it) }
+            if (activity != null) dao.touchActivity(activity.id, now)
             if (existingId == null) {
                 val id = dao.insertEntry(
                     EntryEntity(
@@ -196,6 +300,8 @@ class SumiRepository(private val db: SumiDatabase) {
                         zoneId = zone.id,
                         text = cleanText,
                         element = element?.name,
+                        domainId = activity?.domainId,
+                        activityId = activity?.id,
                         updatedAt = now,
                         syncedAt = null
                     )
@@ -211,6 +317,8 @@ class SumiRepository(private val db: SumiDatabase) {
                         endMillis = end.toEpochMilli(),
                         text = cleanText,
                         element = element?.name,
+                        domainId = activity?.domainId ?: existing.domainId,
+                        activityId = activity?.id ?: existing.activityId,
                         updatedAt = now
                     )
                 )
@@ -237,6 +345,9 @@ class SumiRepository(private val db: SumiDatabase) {
     /** Names cleared, elements and rhythm back to defaults; the log untouched. */
     suspend fun resetGoalsAndSettings() = db.withTransaction {
         dao.resetGoals(Element.defaultOrder.map { it.name })
+        // The domains and their activities are those names in another form, so
+        // they go with them. Entries keep their notes and their elements.
+        dao.purgeDomains()
         saveSettings(Settings.Default)
         markEveryMonthDirty()
     }
@@ -249,6 +360,7 @@ class SumiRepository(private val db: SumiDatabase) {
     suspend fun eraseEverything() = db.withTransaction {
         dao.purgeEntries()
         dao.resetGoals(Element.defaultOrder.map { it.name })
+        dao.purgeDomains()
         saveSettings(Settings.Default)
         // As installed means the introduction greets them again, too.
         dao.setOnboardedAt(null)
@@ -270,7 +382,24 @@ class SumiRepository(private val db: SumiDatabase) {
         end = Instant.ofEpochMilli(endMillis),
         zone = runCatching { ZoneId.of(zoneId) }.getOrDefault(ZoneId.systemDefault()),
         text = text,
-        element = Element.fromStored(element)
+        element = Element.fromStored(element),
+        domainId = domainId,
+        activityId = activityId
+    )
+
+    private fun DomainEntity.toDomain() = Domain(
+        id = id,
+        name = name,
+        element = Element.fromStored(element) ?: Element.EARTH,
+        position = position
+    )
+
+    private fun ActivityEntity.toActivity() = Activity(
+        id = id,
+        domainId = domainId,
+        name = name,
+        uses = uses,
+        lastUsedAt = lastUsedAt?.let(Instant::ofEpochMilli)
     )
 
     private fun SettingsEntity.toSettings() = Settings(
@@ -288,6 +417,9 @@ class SumiRepository(private val db: SumiDatabase) {
 
     companion object {
         private val MAX_ENTRY: Duration = Duration.ofHours(24)
+
+        /** How many words the composer offers under one element. */
+        const val RECENT_ACTIVITIES = 8
 
         fun dayBounds(date: LocalDate, zone: ZoneId): Pair<Instant, Instant> =
             date.atStartOfDay(zone).toInstant() to date.plusDays(1).atStartOfDay(zone).toInstant()
