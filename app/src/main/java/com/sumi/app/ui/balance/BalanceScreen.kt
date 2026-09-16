@@ -5,6 +5,11 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import java.time.LocalDate
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -61,9 +66,11 @@ import kotlin.math.sin
 
 @Composable
 fun BalanceScreen(
+    onOpenDay: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BalanceViewModel = viewModel()
 ) {
+    var showHistory by rememberSaveable { mutableStateOf(false) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val window by viewModel.windowDays.collectAsStateWithLifecycle()
     val snapshot = state.snapshot ?: return
@@ -117,17 +124,35 @@ fun BalanceScreen(
 
         Breakdown(snapshot = snapshot, goals = state.goals)
 
-        Text(
-            text = "Last 30 days",
-            style = MaterialTheme.typography.titleSmall,
-            modifier = Modifier.padding(top = 12.dp)
-        )
-        MonthGrid(days = snapshot.days, modifier = Modifier.fillMaxWidth())
-        Text(
-            text = "Each dot fills with how many of your five got any time that day. Today is ringed.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // The grid is a window on the whole log; tapping it opens the rest.
+        Column(
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .clickable { showHistory = true }
+                .padding(vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Last 30 days",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = "All days →",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            MonthGrid(days = snapshot.days, modifier = Modifier.fillMaxWidth())
+            Text(
+                text = "Each dot fills with how many of your five got any time that day. Today is ringed. " +
+                    "Tap to look back through every day.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
         Text(
             text = "This shows where your energy has gone, so you can shift your focus. " +
@@ -135,6 +160,16 @@ fun BalanceScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 16.dp)
+        )
+    }
+
+    if (showHistory) {
+        HistorySheet(
+            onOpenDay = {
+                showHistory = false
+                onOpenDay(it)
+            },
+            onDismiss = { showHistory = false }
         )
     }
 }

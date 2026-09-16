@@ -118,6 +118,9 @@ class SumiRepository(private val db: SumiDatabase) {
 
     suspend fun entry(id: Long): Entry? = dao.getEntry(id)?.toEntry()
 
+    fun observeAllEntries(): Flow<List<Entry>> =
+        dao.observeAllEntries().map { rows -> rows.map { it.toEntry() } }
+
     fun observeBetween(from: Instant, to: Instant): Flow<List<Entry>> =
         dao.observeOverlapping(from.toEpochMilli(), to.toEpochMilli())
             .map { rows -> rows.map { it.toEntry() } }

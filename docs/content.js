@@ -812,6 +812,26 @@ if (tagged >= MIN_TAGGED_FOR_SHARE && time.toMinutes() > tagged.toMinutes() * MA
         why: `Both notes describe what happened and never judge it. A long week can be exactly what a deadline needed; Sumi only makes it visible.`
       },
       {
+        title: "Looking back through every day",
+        body: `
+          <p>The 30-day grid is a window on a longer record. Tapping it opens a sheet of month calendars, newest first, that scrolls back to the first day you ever logged. Tapping a day closes the sheet and opens that day on Today.</p>
+          <p>Whole months here, rather than a rolling window: this is for finding a particular day again, and people look for days by date. The weeks start on whichever day this phone's language starts them.</p>`,
+        code: {
+          file: "app/src/main/java/com/sumi/app/ui/balance/History.kt",
+          text: `private fun dayOf(date: LocalDate, entries: List<Entry>, zone: ZoneId): HistoryDay {
+    val (from, to) = SumiRepository.dayBounds(date, zone)
+    val onDay = entries.filter { it.start.isBefore(to) && it.end.isAfter(from) }
+    val clipped = onDay.map { maxOf(it.start, from) to minOf(it.end, to) }
+    return HistoryDay(
+        date = date,
+        elementsTouched = onDay.mapNotNull { it.element }.distinct().size,
+        logged = Intervals.covered(clipped)
+    )
+}`
+        },
+        why: `The whole log is only read while the sheet is open, so the rest of the app never carries every entry you have ever made around with it.`
+      },
+      {
         title: "The 30-day grid",
         body: `
           <p>Thirty dots, ten across, oldest first and today last with a ring. Each fills darker with how many of your five got any time that day. Each dot carries its day number, and the 1st of a month shows the month's name.</p>

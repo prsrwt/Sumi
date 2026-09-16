@@ -42,6 +42,8 @@ import com.sumi.app.ui.onboarding.OnboardingScreen
 import com.sumi.app.ui.onboarding.OnboardingViewModel
 import com.sumi.app.ui.setup.SetupScreen
 import com.sumi.app.ui.today.TodayScreen
+import com.sumi.app.ui.today.TodayViewModel
+import java.time.LocalDate
 import com.sumi.app.widget.WidgetSync
 import kotlinx.coroutines.launch
 
@@ -73,7 +75,12 @@ class MainActivity : ComponentActivity() {
 private enum class Screen { WAITING, INTRODUCTION, SETUP, HOME }
 
 @Composable
-private fun SumiHome(modifier: Modifier = Modifier, onboarding: OnboardingViewModel = viewModel()) {
+private fun SumiHome(
+    modifier: Modifier = Modifier,
+    onboarding: OnboardingViewModel = viewModel(),
+    // Shared with the Today tab, so a day picked in the history opens there.
+    today: TodayViewModel = viewModel()
+) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     var showSetup by rememberSaveable { mutableStateOf(false) }
     var replayingIntroduction by rememberSaveable { mutableStateOf(false) }
@@ -120,7 +127,11 @@ HomeTabs(
                 selectedTab = selectedTab,
                 tabs = tabs,
                 onSelectTab = { selectedTab = it },
-                onOpenSetup = { showSetup = true }
+                onOpenSetup = { showSetup = true },
+                onOpenDay = { day ->
+                    today.showDay(day)
+                    selectedTab = 0
+                }
             )
         }
     }
@@ -131,7 +142,8 @@ private fun HomeTabs(
     selectedTab: Int,
     tabs: List<String>,
     onSelectTab: (Int) -> Unit,
-    onOpenSetup: () -> Unit
+    onOpenSetup: () -> Unit,
+    onOpenDay: (LocalDate) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
@@ -158,7 +170,7 @@ private fun HomeTabs(
         ) { tab ->
             when (tab) {
                 0 -> TodayScreen(onOpenSetup = onOpenSetup)
-                else -> BalanceScreen()
+                else -> BalanceScreen(onOpenDay = onOpenDay)
             }
         }
     }

@@ -114,6 +114,10 @@ abstract class SumiDao {
     @Query("SELECT startMillis, zoneId FROM entries WHERE deletedAt IS NULL")
     abstract suspend fun entryStarts(): List<EntryStart>
 
+    /** Everything ever logged, for the history sheet's month calendars. */
+    @Query("SELECT * FROM entries WHERE deletedAt IS NULL ORDER BY startMillis")
+    abstract fun observeAllEntries(): Flow<List<EntryEntity>>
+
     @Query("SELECT * FROM entries WHERE deletedAt IS NULL AND startMillis >= :from AND startMillis < :to ORDER BY startMillis, id")
     abstract suspend fun entriesStartingBetween(from: Long, to: Long): List<EntryEntity>
 
