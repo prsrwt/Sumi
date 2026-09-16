@@ -105,7 +105,8 @@ window.SUMI_GUIDE = [
             <li><strong>Composer.</strong> The sheet that rises when you tap the widget: from and to, a line of text, the five kanji.</li>
             <li><strong>Today.</strong> The day as a timesheet, newest first, with unlogged gaps you can fill.</li>
             <li><strong>Balance.</strong> A pentagon of the last 7 or 14 days and a 30-day grid.</li>
-            <li><strong>Setup.</strong> Your five, the rhythm, quiet hours, Google Sheets, resets.</li>
+            <li><strong>Setup.</strong> Behind the gear: your five, the rhythm, quiet hours, resets, about.</li>
+            <li><strong>You.</strong> Behind the mark at the top left: the Google account your log is copied to.</li>
             <li><strong>Introduction.</strong> Seven pages on first launch.</li>
             <li><strong>Sync.</strong> Invisible: copies the log to Google Sheets in the background.</li>
           </ul>`
@@ -143,7 +144,8 @@ data/                  Element, entities, DAO, database, repository,
 ui/composer/           the log sheet opened from the widget
 ui/today/              Timeline and the Today tab
 ui/balance/            Balance math and the pentagon
-ui/setup/              Setup and the Google Sheets section
+ui/setup/              Setup, and the Google Sheets section it lends out
+ui/account/            the mark at the top left and what it opens
 ui/onboarding/         the first-launch introduction
 widget/                the widget, glass, Mincho text, alarms
 sync/                  Google sign-in, HTTPS, the sheet, WorkManager`
@@ -941,7 +943,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
           <ul>
             <li><strong>Expired token (401):</strong> drop it and retry with a new one.</li>
             <li><strong>Busy or down (429, 5xx), offline:</strong> retry later.</li>
-            <li><strong>Access revoked or account removed:</strong> stop, and show Reconnect in Setup. No notifications.</li>
+            <li><strong>Access revoked or account removed:</strong> stop, and show Reconnect behind the mark at the top left. No notifications.</li>
             <li><strong>Sheet deleted or binned:</strong> find or create another and fill every month.</li>
           </ul>`,
         why: `APPEND_OR_REPLACE queues a new sync behind one already running, so an entry saved mid-sync is never skipped.`
@@ -950,7 +952,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
         title: "Try it",
         body: `
           <ol>
-            <li>Connect Sheets, then log in airplane mode. What does Setup say, and which database table explains it?</li>
+            <li>Connect Sheets, then log in airplane mode. What does the You sheet say, and which database table explains it?</li>
             <li>Delete the sheet in Drive and log something. Watch what Sumi does in the next minute.</li>
             <li>Read <code>SheetRowsTest.kt</code> and find the test that proves a formula-like note stays text.</li>
           </ol>`

@@ -135,8 +135,6 @@ fun SetupScreen(
 
         AddWidgetButton()
 
-        SheetsSection()
-
         ResetSection(
             message = resetMessage,
             onClearLog = viewModel::clearLog,

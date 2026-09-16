@@ -10,12 +10,14 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -37,6 +39,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiTheme
+import com.sumi.app.ui.account.AccountMark
+import com.sumi.app.ui.account.AccountSheet
 import com.sumi.app.ui.balance.BalanceScreen
 import com.sumi.app.ui.onboarding.OnboardingScreen
 import com.sumi.app.ui.onboarding.OnboardingViewModel
@@ -155,22 +159,32 @@ private fun HomeTabs(
     onOpenSetup: () -> Unit,
     onOpenDay: (LocalDate) -> Unit
 ) {
+    var showAccount by rememberSaveable { mutableStateOf(false) }
+
     Column(modifier = Modifier.fillMaxSize()) {
+        // You on the left, Sumi's own settings on the right, and the tabs centred
+        // between two marks of the same size rather than pushed off by one.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 24.dp, end = 12.dp, top = 16.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            AccountMark(onClick = { showAccount = true })
             GlassTabs(
                 tabs = tabs,
                 selectedIndex = selectedTab,
                 onSelect = onSelectTab,
                 modifier = Modifier.weight(1f)
             )
-            IconButton(onClick = onOpenSetup) {
+            IconButton(onClick = onOpenSetup, modifier = Modifier.size(40.dp)) {
                 Icon(Icons.Filled.Settings, contentDescription = "Setup")
             }
+        }
+
+        if (showAccount) {
+            AccountSheet(onDismiss = { showAccount = false })
         }
 
         AnimatedContent(

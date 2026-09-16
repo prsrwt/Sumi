@@ -308,7 +308,7 @@ private fun SheetsPage() {
     Page(title = "Keep a copy in Google Sheets") {
         Body(
             "Optional. Sumi makes one spreadsheet in your own Google Drive and keeps it up to date, " +
-                "with a tab for each month. You can also connect later in Setup."
+                "with a tab for each month. You can also connect it later from the mark at the top left of the app."
         )
         SheetsSection(inOnboarding = true)
     }

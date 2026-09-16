@@ -24,7 +24,7 @@ No streaks, no scores, no notifications. A missed hour is just a missed hour.
 - **Today.** The day as a timesheet, with unlogged gaps you can tap to fill.
 - **Balance.** A pentagon of the last 7 or 14 days and a dated 30-day grid, showing where to push and where you may be pushing too hard: a gentle note when a goal has been quiet lately, or when one has taken more than half your time.
 - **Every day you have logged.** Tap the grid to open month calendars you can scroll back through, and tap any day to see what it held.
-- **Google Sheets, optional.** Keeps a spreadsheet in your own Google Drive up to date, one tab per month, even after being offline.
+- **Google Sheets, optional.** Behind the mark at the top left, Sumi keeps a spreadsheet in your own Google Drive up to date, one tab per month, even after being offline.
 - **Inside Sumi.** A slideshow study guide to how the app is built, readable inside the app.
 - **Readable by screen readers.** With TalkBack on, the pentagon, the 30-day grid, every row and every kanji are described in plain words.
 
@@ -103,7 +103,8 @@ app/src/main/java/com/sumi/app/
   ui/composer/      the log sheet opened from the widget
   ui/today/         the timesheet
   ui/balance/       the pentagon and the 30-day grid
-  ui/setup/         Setup and the Google Sheets section
+  ui/setup/         Setup, and the Google Sheets section it lends out
+  ui/account/       the mark at the top left and what it opens
   ui/onboarding/    the first-launch introduction
   ui/guide/         the study guide screen
   widget/           the widget, glass, Mincho text and alarms
