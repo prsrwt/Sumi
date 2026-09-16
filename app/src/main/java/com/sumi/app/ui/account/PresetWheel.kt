@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +32,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -145,7 +147,11 @@ private fun PresetPicker(
     // passed the middle and the fourth is coming up. Measured from where the rows
     // actually are rather than from the scroll offset, so the row in the middle of
     // the window is always the one the wheel calls chosen, whichever end it is at.
-    val position by remember {
+    //
+    // Held as state rather than read here: the drawing and the fading read it while
+    // the wheel turns, which redraws them without composing anything again. Only
+    // the chosen row below causes real work, and only when it changes.
+    val position = remember {
         derivedStateOf {
             val info = state.layoutInfo
             val middle = (info.viewportStartOffset + info.viewportEndOffset) / 2f
@@ -155,14 +161,13 @@ private fun PresetPicker(
             else nearest.index + (middle - (nearest.offset + nearest.size / 2f)) / nearest.size
         }
     }
-    val centre = position.roundToInt().coerceIn(0, presets.lastIndex)
-    val lower = floor(position).toInt().coerceIn(0, presets.lastIndex)
-    val upper = (lower + 1).coerceAtMost(presets.lastIndex)
-    val shape = Presets.shapeBetween(presets[lower], presets[upper], position - lower)
+    val centre by remember {
+        derivedStateOf { position.value.roundToInt().coerceIn(0, presets.lastIndex) }
+    }
 
     // A small tick as each name passes the centre, the way a dial clicks.
     LaunchedEffect(state) {
-        snapshotFlow { position.roundToInt() }.drop(1).collect {
+        snapshotFlow { centre }.drop(1).collect {
             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
         }
     }
@@ -170,7 +175,7 @@ private fun PresetPicker(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ShapePreview(
             preset = presets[centre],
-            shape = shape,
+            position = position,
             aspect = previewAspect,
             modifier = Modifier
                 .fillMaxWidth()
@@ -198,12 +203,15 @@ private fun PresetPicker(
                 }
         ) {
             items(presets.size) { index ->
-                val distance = abs(position - index)
-                val fade = (1f - distance * 0.34f).coerceIn(0.25f, 1f)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(itemHeight)
+                        // Fading happens as the wheel turns, so it is set on the
+                        // layer rather than composed: turning costs no recomposition.
+                        .graphicsLayer {
+                            alpha = (1f - abs(position.value - index) * 0.34f).coerceIn(0.25f, 1f)
+                        }
                         .selectable(
                             selected = index == centre,
                             onClick = { scope.launch { state.animateScrollToItem(index) } }
@@ -214,7 +222,7 @@ private fun PresetPicker(
                         text = presets[index].title,
                         style = if (index == centre) MaterialTheme.typography.titleMedium
                         else MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = fade),
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -246,12 +254,16 @@ private fun PresetPicker(
 @Composable
 private fun ShapePreview(
     preset: Preset,
-    shape: Map<Element, Float>,
+    /** Read inside the drawing, so turning the wheel redraws without recomposing. */
+    position: State<Float>,
     aspect: Float,
     modifier: Modifier = Modifier
 ) {
+    val presets = Presets.all
     val ink = MaterialTheme.colorScheme.onBackground
-    val measurer = rememberTextMeasurer()
+    // Ten pieces of text are measured on every frame, more than the default cache
+    // holds, which would throw every measurement away between frames.
+    val measurer = rememberTextMeasurer(cacheSize = 16)
     val kanjiStyle = TextStyle(fontFamily = SumiFonts.mincho, fontSize = 18.sp)
     val nameStyle = TextStyle(fontSize = 11.sp, color = ink)
     val description = if (preset.isBlank) "No example shape" else
@@ -286,6 +298,13 @@ private fun ShapePreview(
         elements.indices.forEach { i ->
             drawLine(ink.copy(alpha = 0.10f), center, vertex(i, radius), hairline)
         }
+
+        // Part way between the shapes either side of the middle, so the drawing
+        // flows with the wheel rather than jumping at each name.
+        val at = position.value
+        val lower = floor(at).toInt().coerceIn(0, presets.lastIndex)
+        val upper = (lower + 1).coerceAtMost(presets.lastIndex)
+        val shape = Presets.shapeBetween(presets[lower], presets[upper], at - lower)
 
         val drawn = Path().apply {
             elements.indices.forEach { i ->

@@ -182,7 +182,9 @@ fun BalanceScreen(
 @Composable
 private fun Pentagon(snapshot: BalanceSnapshot, goals: List<Goal>, modifier: Modifier = Modifier) {
     val ink = MaterialTheme.colorScheme.onBackground
-    val measurer = rememberTextMeasurer()
+    // Ten labels are measured on each frame of the growing and reshaping, more
+    // than the default cache holds, which would throw them all away every frame.
+    val measurer = rememberTextMeasurer(cacheSize = 16)
     val kanjiStyle = TextStyle(fontFamily = SumiFonts.mincho, fontSize = 22.sp)
     val nameStyle = TextStyle(fontSize = 12.sp, color = ink)
 

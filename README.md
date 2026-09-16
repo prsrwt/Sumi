@@ -40,7 +40,8 @@ Sumi borrows two methods from psychology: **experience sampling**, which prompts
 - Shares of time, not counts.
 - Rolling windows (the last 7 or 14 days), never calendar weeks.
 - Descriptive words: "Water has been quiet lately", never "You failed".
-- Balance means time shared across what matters to you ([Sheldon, Cummins and Kamble, 2010](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-6494.2010.00644.x)), so Sumi notes when one goal takes more than half your time, or averages more than 55 hours a week, the level the [WHO and ILO](https://www.who.int/news/item/17-05-2021-long-working-hours-increasing-deaths-from-heart-disease-and-stroke-who-ilo) link to heart disease and stroke.
+- Balance means time shared across what matters to you ([Sheldon, Cummins and Kamble, 2010](https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-6494.2010.00644.x)), so Sumi notes when one goal takes more than half your time, or averages more than 55 hours a week, the level the [WHO and ILO](https://www.who.int/news/item/17-05-2021-long-working-hours-increasing-deaths-from-heart-disease-and-stroke-who-ilo) link to heart disease and stroke. That same research found no single balanced shape to aim at, which is why Sumi draws no target: the chapter **Where to push, and where you are pushing too hard** in the study guide sets out the whole argument.
+- The ready-made fives collapse the nine divisions of the UN time use classification ([ICATUS 2016](https://unstats.un.org/unsd/classifications/Family/Detail/2083)) into five spokes, and two of them give unpaid work at home its own spoke, because worldwide it is 4 hours 25 minutes a day for women against 1 hour 23 for men ([ILO](https://www.ilo.org/sites/default/files/wcmsp5/groups/public/@dgreports/@dcomm/@publ/documents/publication/wcms_633135.pdf)).
 
 ## How it is built
 
@@ -54,7 +55,7 @@ Sumi borrows two methods from psychology: **experience sampling**, which prompts
 | Sync | Google Play services authorization, the Sheets and Drive REST APIs over plain HTTPS, WorkManager |
 | Android | 8.0 (API 26) and later, built for Android 16 (API 36) |
 
-To learn how every part works, read **Inside Sumi**: 14 short chapters with the real code, from the idea to release. Open it in the app from **Setup, About, Inside Sumi**, or read [`docs/index.html`](docs/index.html) (once GitHub Pages is on, at [prsrwt.github.io/Sumi](https://prsrwt.github.io/Sumi/)).
+To learn how every part works, read **Inside Sumi**: 15 short chapters with the real code, from the idea to release. Open it in the app from **Setup, About, Inside Sumi**, or read [`docs/index.html`](docs/index.html) (once GitHub Pages is on, at [prsrwt.github.io/Sumi](https://prsrwt.github.io/Sumi/)).
 
 ## Build it
 

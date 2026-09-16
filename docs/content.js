@@ -876,6 +876,81 @@ if (tagged >= MIN_TAGGED_FOR_SHARE && time.toMinutes() > tagged.toMinutes() * MA
 
   // ---------------------------------------------------------------------------
   {
+    id: "push",
+    kanji: "傾",
+    element: "fire",
+    title: "Where to push, and where you are pushing too hard",
+    blurb: "The idea the whole app is built around, and the research under it.",
+    slides: [
+      {
+        title: "The two sentences",
+        body: `
+          <p>Everything Sumi does comes down to two lines under the pentagon, and it says at most one of each:</p>
+          <ul>
+            <li><strong>"Reflection has been quiet lately."</strong> Somewhere to push.</li>
+            <li><strong>"Deep work has been taking long weeks lately."</strong> Somewhere you may be pushing too hard.</li>
+          </ul>
+          <p>Both are descriptions of what happened. Neither is advice, neither is a score, and nothing appears at all in the first days of use, when there is not enough log to say anything honest.</p>`,
+        why: `A log that only shows you your time is a spreadsheet. The two sentences are the reason to open the app: they say where a change would matter, and nowhere else in Sumi makes a claim about your life.`
+      },
+      {
+        title: "There is no number for balance",
+        body: `
+          <p>The obvious design is to give the user a target shape and measure the distance to it. The research says that target does not exist.</p>
+          <p>Sheldon, Cummins and Kamble (2010) measured life balance two ways: how evenly time is spread across domains, and how closely your actual time matches the time you say you want. Both predicted wellbeing, in the United States and in India, and both moved with wellbeing week to week. But the two measures barely agreed with each other. Two people can be equally in balance with completely different shapes.</p>
+          <p>The only firm numbers are at the edges, and they are limits rather than aims: the WHO and ILO link 55 or more working hours a week to higher risk of stroke and heart disease, and discretionary time follows an inverted U, where too little and too much both feel worse.</p>
+          <p>So Sumi asserts the two harm edges, and nothing else. It never draws an ideal pentagon, because it does not know one.</p>`,
+        code: {
+          file: "app/src/main/java/com/sumi/app/ui/balance/Balance.kt",
+          text: `const val MAJORITY_SHARE = 0.5
+val LONG_WEEK: Duration = Duration.ofHours(55)
+val MIN_TAGGED_FOR_SHARE: Duration = Duration.ofHours(10)
+val QUIET_AFTER: Duration = Duration.ofDays(3)`
+        }
+      },
+      {
+        title: "Quiet, and heavy",
+        body: `
+          <p><strong>Quiet</strong> needs three things at once: history older than 3 days, something else logged in that stretch, and one element with nothing in it. Without the first two, a user who was simply away would be told four of their five are neglected. When several qualify, only the one with the least time is named, because a list of neglected things is a scorecard wearing different clothes.</p>
+          <p><strong>Heavy</strong> is the calm opposite, and long weeks take precedence over shares: a 60 hour week matters even when everything else also got time. Shares are only spoken of once at least 10 hours are logged, since half of four hours means nothing.</p>`
+      },
+      {
+        title: "Why the spokes carry no hours",
+        body: `
+          <p>Balance shows no durations at all. A spoke's length is that element's time against the largest one, so the shape is a ratio; printing the hours beside it invites the wrong reading, that the number is the point.</p>
+          <p>The figures still exist where they are needed: in the composer while choosing a stretch, on Today, in the Google Sheet, and in what a screen reader reads aloud, since a blind user has no shape to look at.</p>`,
+        why: `Sumi is meant to be glanced at. A shape can be read in a second and cannot be compared with yesterday's shape to the minute, which is exactly the comparison that turns a log into a scoreboard.`
+      },
+      {
+        title: "Domains, not activities",
+        body: `
+          <p>Five slots only work if each can hold years of different activities. Worldwide, sport and exercise average around 20 to 30 minutes a day and socialising around 35, while paid work runs to several hours. A slot called "gym" would sit near the centre of the pentagon forever next to a slot called "work"; a slot called "Health", holding the run, the cooking, the sleep you protect and the doctor, can grow.</p>
+          <p>This is why the ready-made fives are built from the nine divisions of the UN time use classification rather than from hobbies, and why two of them give unpaid work at home its own spoke: worldwide that is 4 hours 25 minutes a day for women against 1 hour 23 for men.</p>`
+      },
+      {
+        title: "What Sumi refuses to do",
+        body: `
+          <ul>
+            <li><strong>No target shape.</strong> A draggable pentagon, where you set how long each spoke should be, was designed and dropped: it turns a description into a ring to fill, and demands setup before the app can say anything.</li>
+            <li><strong>No score, no points, no streaks.</strong> Any threshold in the code stays in the code; what reaches the screen is a sentence about days.</li>
+            <li><strong>No colour as judgement.</strong> Fire is orange rather than red. A short spoke is drawn small, never marked.</li>
+            <li><strong>No notification.</strong> The two sentences wait on Balance until you look.</li>
+          </ul>`,
+        why: `Every one of those is a way of turning "here is where your time went" into "here is how you did". The first is a mirror; the second is a judge, and a judge is what makes people close a journal app after a fortnight.`
+      },
+      {
+        title: "Try it",
+        body: `
+          <ol>
+            <li>Log 12 hours to one goal over 2 days and open Balance. Nothing is said. Find the line in <code>Balance.kt</code> that decides that, and explain why the rule is about the age of the log rather than its size.</li>
+            <li>Reword the heavy note to include the number of hours. Read it a few times. What changes about how the screen feels, and what would a user do differently?</li>
+          </ol>`
+      }
+    ]
+  },
+
+  // ---------------------------------------------------------------------------
+  {
     id: "sheets",
     kanji: "紙",
     element: "fire",
