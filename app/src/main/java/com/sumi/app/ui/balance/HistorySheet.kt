@@ -1,6 +1,8 @@
 package com.sumi.app.ui.balance
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Canvas
+import androidx.compose.material3.ModalBottomSheetProperties
 import java.time.Duration
 import com.sumi.app.data.nameFor
 import com.sumi.app.data.Untagged
@@ -82,20 +84,23 @@ fun HistorySheet(
     val weekdays = weekdayOrder(locale)
 
     ModalBottomSheet(
-        // Back, and a swipe down, step out of a day first and only then close the
-        // sheet. The sheet's own back handling runs before any handler put inside
-        // it, so this is where that step has to happen. Closing always leaves the
-        // sheet on the calendars, so reopening never lands on a day read days ago.
+        // Closing always leaves the sheet on the calendars, so reopening never
+        // lands on a day read days ago.
         onDismissRequest = {
-            if (openDay != null) {
-                viewModel.backToCalendar()
-            } else {
-                onDismiss()
-            }
+            viewModel.backToCalendar()
+            onDismiss()
         },
         sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false)
     ) {
+        // Back steps out of a day first, and only then closes the sheet. The sheet
+        // has its own window, which swallows Back before anything outside it, so
+        // its own dismissing on Back is turned off and handled here, inside.
+        BackHandler {
+            if (openDay != null) viewModel.backToCalendar() else onDismiss()
+        }
+
         AnimatedContent(
             targetState = openDay,
             transitionSpec = {
