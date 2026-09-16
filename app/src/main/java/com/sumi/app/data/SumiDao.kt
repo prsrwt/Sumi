@@ -157,8 +157,8 @@ abstract class SumiDao {
     @Query("UPDATE entries SET activityId = NULL WHERE activityId = :id")
     abstract suspend fun untagActivity(id: Long)
 
-    @Query("UPDATE entries SET domainId = :domainId, activityId = :activityId WHERE id = :id")
-    abstract suspend fun tagEntry(id: Long, domainId: Long, activityId: Long)
+    @Query("UPDATE entries SET domainId = :domainId, activityId = :activityId, element = :element WHERE id = :id")
+    abstract suspend fun tagEntry(id: Long, domainId: Long, activityId: Long, element: String)
 
     @Query("UPDATE entries SET domainId = NULL, activityId = NULL WHERE domainId = :id")
     abstract suspend fun untagDomain(id: Long)

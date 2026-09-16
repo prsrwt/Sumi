@@ -103,6 +103,7 @@ abstract class SumiDatabase : RoomDatabase() {
                     "INSERT INTO `domains` (`name`, `element`, `position`) " +
                         "SELECT TRIM(`name`), `element`, 0 FROM `goals` WHERE TRIM(`name`) != ''"
                 )
+                seedDomains(db)
             }
         }
 
@@ -111,9 +112,35 @@ abstract class SumiDatabase : RoomDatabase() {
          * settings row, so every other query can assume they exist. Raw SQL
          * because the DAO is not usable from inside the creation callback.
          */
+        /**
+         * Every part of life Sumi knows about, under its own element, each with the
+         * words it comes with. A phone that has never been set up can still offer
+         * something to tap, and picking a ready-made life only decides which of
+         * them comes first.
+         *
+         * Anything already there is left alone: this runs on an upgrade too, where
+         * the names somebody chose are already domains of their own.
+         */
+        private fun seedDomains(db: SupportSQLiteDatabase) {
+            Domains.common.forEachIndexed { index, idea ->
+                db.execSQL(
+                    "INSERT OR IGNORE INTO `domains` (`name`, `element`, `position`) VALUES (?, ?, ?)",
+                    arrayOf<Any>(idea.name, idea.element.name, index + 1)
+                )
+                idea.words.forEach { word ->
+                    db.execSQL(
+                        "INSERT OR IGNORE INTO `activities` (`domainId`, `name`, `uses`, `lastUsedAt`) " +
+                            "SELECT `id`, ?, 0, NULL FROM `domains` WHERE `element` = ? AND `name` = ?",
+                        arrayOf<Any>(word, idea.element.name, idea.name)
+                    )
+                }
+            }
+        }
+
         private object Seed : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
+                seedDomains(db)
                 Element.defaultOrder.forEachIndexed { slot, element ->
                     db.execSQL(
                         "INSERT INTO goals (slot, name, element) VALUES (?, ?, ?)",

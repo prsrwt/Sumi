@@ -101,21 +101,26 @@ fun FiveChooser(
     // Where the wheel opens, and whether replacing needs asking at all. Five names
     // that came from a preset are not "yours" in any sense worth protecting, so
     // swapping one ready-made set for another just happens.
-    val chosen = Presets.matching(goals, current)
+    // Empty five match the blank set, which is true but useless as a starting
+    // point: a wheel that opens on "None of these" shows nobody what it is for.
+    val chosen = Presets.matching(goals, current)?.takeIf { !it.isBlank }
     val theirOwn = chosen == null && current.any { it.isNotBlank() }
-    val automatic = applyOnSettle && !theirOwn
+    // In the introduction the wheel is always the choice, with no button of its
+    // own: Next is the only thing to press on those pages, whatever the five are
+    // called already. Turning the wheel there is deliberate enough to act on.
+    val automatic = applyOnSettle
+    val startAt = Presets.all.indexOf(chosen).coerceAtLeast(0)
 
-    // On the introduction page the wheel is the choice, and the one it opens on is
-    // a choice too: without this, pressing Next without touching it would leave
-    // somebody with five unnamed spokes.
+    // Where the wheel opens is a choice too: without this, pressing Next without
+    // touching it would leave somebody with five unnamed spokes.
     LaunchedEffect(automatic, current) {
         if (automatic && current.all { it.isBlank() }) {
-            Presets.all.firstOrNull()?.let { setup.applyPreset(it) }
+            Presets.all.getOrNull(startAt)?.takeIf { !it.isBlank }?.let { setup.applyPreset(it) }
         }
     }
 
     PresetPicker(
-        startAt = Presets.all.indexOf(chosen).coerceAtLeast(0),
+        startAt = startAt,
         onApply = { preset ->
             if (theirOwn) pending = preset else setup.applyPreset(preset)
         },

@@ -112,15 +112,15 @@ class SumiRepository(private val db: SumiDatabase) {
      */
     suspend fun applyPreset(parts: Map<Element, List<String>>) = db.withTransaction {
         Element.entries.forEach { element ->
-            val wanted = parts[element].orEmpty().map { it.trim() }.filter { it.isNotBlank() }
-            val here = dao.getDomains().filter { it.element == element.name }
-
-            here.filter { domain -> wanted.none { it.equals(domain.name, ignoreCase = true) } }
-                .filter { dao.activityCount(it.id) == 0 }
-                .forEach { empty ->
-                    dao.untagDomain(empty.id)
-                    dao.deleteDomain(empty.id)
-                }
+            // The set decides the order, not what exists: every part of life Sumi
+            // knows about stays under its element, so there is always somewhere to
+            // put an hour. Choosing a life only says which comes first, and the
+            // first is the name on the pentagon.
+            val chosen = parts[element].orEmpty().map { it.trim() }.filter { it.isNotBlank() }
+            val rest = Domains.under(element).map { it.name }.filter { idea ->
+                chosen.none { it.equals(idea, ignoreCase = true) }
+            }
+            val wanted = chosen + rest
 
             wanted.forEachIndexed { index, name ->
                 val existing = dao.domainNamed(element.name, name)
@@ -148,7 +148,9 @@ class SumiRepository(private val db: SumiDatabase) {
      * answered afterwards or not at all.
      */
     suspend fun tagEntry(entryId: Long, word: Word) = db.withTransaction {
-        dao.tagEntry(entryId, word.domainId, word.id)
+        // The part of life says the element too, so an hour sent without one lands
+        // on its spoke rather than staying untagged.
+        dao.tagEntry(entryId, word.domainId, word.id, word.element.name)
         dao.touchActivity(word.id, System.currentTimeMillis())
         val entry = dao.getEntry(entryId) ?: return@withTransaction
         markDirty(entry.startMillis, entry.zoneId)

@@ -147,7 +147,16 @@ class ComposerViewModel(
     fun logWord(word: Word) {
         val s = _state.value
         if (s.saving || s.loading) return
-        commit(element = word.element, word = word, line = s.text.ifBlank { word.name })
+        val typed = s.text.trim()
+        // A line already typed is what the entry says, so the word only lends its
+        // element: tagging "chai with dad" as "walk" because the chip was nearest
+        // would quietly file it in the wrong place.
+        val sameThing = typed.isEmpty() || typed.equals(word.name, ignoreCase = true)
+        commit(
+            element = word.element,
+            word = if (sameThing) word else null,
+            line = typed.ifEmpty { word.name }
+        )
     }
 
     /** Both ends at once, from the From | To picker. See [TimeRange] for how days are chosen. */
@@ -197,7 +206,9 @@ class ComposerViewModel(
                     WidgetSync.onEntriesChanged(getApplication())
                     // A word Sumi has not seen is worth one question, and only once
                     // the hour is safely logged.
-                    val unknown = s.editingId == null && tagged == null && element != null &&
+                    // Sent without an element too: choosing a part of life answers
+                    // both questions at once, and an untagged hour finds its spoke.
+                    val unknown = s.editingId == null && tagged == null &&
                         text.isNotBlank() && s.domains.isNotEmpty()
                     _state.update {
                         if (unknown) {
