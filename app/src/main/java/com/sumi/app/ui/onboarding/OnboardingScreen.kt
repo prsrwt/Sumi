@@ -75,7 +75,7 @@ import com.sumi.app.data.Untagged
 import com.sumi.app.ui.GlassTabs
 import com.sumi.app.ui.SumiFonts
 import com.sumi.app.ui.setup.AddWidgetButton
-import com.sumi.app.ui.setup.GoalRow
+import com.sumi.app.ui.account.ElementRow
 import com.sumi.app.ui.setup.SetupViewModel
 import com.sumi.app.ui.account.FiveChooser
 import com.sumi.app.ui.setup.SheetsSection
@@ -388,14 +388,11 @@ private fun FivePage(setup: SetupViewModel) {
 
     Page(title = "Your five", scrollable = WindowInsets.isImeVisible) {
         Body("Each gets one of the classical Japanese elements. Change any name that does not fit your life.")
-        val current = names
-        if (current != null && goals.size == GOAL_COUNT) {
+        if (goals.size == GOAL_COUNT) {
             goals.sortedBy { it.slot }.forEach { goal ->
-                GoalRow(
+                ElementRow(
                     goal = goal,
                     goals = goals,
-                    name = current.getOrElse(goal.slot) { "" },
-                    onName = { setup.onNameChanged(goal.slot, it) },
                     onElement = { setup.assign(goal.slot, it) }
                 )
             }

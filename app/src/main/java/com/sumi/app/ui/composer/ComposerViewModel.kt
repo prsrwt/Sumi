@@ -5,10 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.sumi.app.data.Element
+import com.sumi.app.data.Domain
 import com.sumi.app.data.Goal
 import com.sumi.app.data.Prompts
 import com.sumi.app.data.Word
-import com.sumi.app.data.nameFor
 import com.sumi.app.data.RangeSuggestion
 import com.sumi.app.data.SumiRepository
 import com.sumi.app.data.SumiRepository.SaveResult
@@ -35,8 +35,10 @@ data class ComposerState(
     val goals: List<Goal> = emptyList(),
     /** Your own words, most recently used first. Empty until you have used any. */
     val words: List<Word> = emptyList(),
-    /** Whether the line you have typed should be kept as a word of your own. */
-    val keeping: Boolean = false,
+    /** Every part of life, for choosing where a new word belongs. */
+    val domains: List<Domain> = emptyList(),
+    /** True while the "keep this word" question is open. */
+    val choosingHome: Boolean = false,
     val question: String = Prompts.DEFAULT,
     val message: String? = null,
     val saving: Boolean = false,
@@ -64,6 +66,7 @@ class ComposerViewModel(
 
         viewModelScope.launch {
             val words = repository.recentWords()
+            val domains = repository.domainsNow()
             val goals = repository.goalsNow()
             val settings = repository.settingsNow()
             val latest = repository.latestEntry()
@@ -81,6 +84,7 @@ class ComposerViewModel(
                     element = editing.element,
                     goals = goals,
                     words = words,
+                    domains = domains,
                     question = "Edit this entry"
                 )
 
@@ -90,6 +94,7 @@ class ComposerViewModel(
                     end = Instant.ofEpochMilli(presetEnd),
                     goals = goals,
                     words = words,
+                    domains = domains,
                     question = "What filled this gap?"
                 )
 
@@ -101,6 +106,7 @@ class ComposerViewModel(
                         end = range.endInclusive,
                         goals = goals,
                         words = words,
+                        domains = domains,
                         question = question
                     )
                 }
@@ -109,12 +115,26 @@ class ComposerViewModel(
     }
 
     fun onTextChange(text: String) = _state.update {
-        // A line that has changed is no longer the line that was going to be kept.
-        it.copy(text = text, message = null, keeping = it.keeping && text.isBlank())
+        // A line that has changed is no longer the line the question was about.
+        it.copy(text = text, message = null, choosingHome = false)
     }
 
-    /** The toggle beside a new line: keep this word, or let it be a note and go. */
-    fun toggleKeeping() = _state.update { it.copy(keeping = !it.keeping) }
+    /** Opens, or closes, the question of where a new word belongs. */
+    fun askWhereItGoes() = _state.update { it.copy(choosingHome = !it.choosingHome) }
+
+    /**
+     * Keeps the typed word in the part of life the user pointed at, and logs it
+     * there in the same move. Choosing a domain says the element too, so nothing
+     * else is left to answer.
+     */
+    fun keepInto(domain: Domain) {
+        val s = _state.value
+        if (s.saving || s.loading || s.text.isBlank()) return
+        viewModelScope.launch {
+            val word = repository.keepWordIn(domain, s.text)
+            commit(element = domain.element, word = word, line = s.text)
+        }
+    }
 
     /**
      * A word tapped is a whole log: its element, its domain, and the word itself as
@@ -159,7 +179,6 @@ class ComposerViewModel(
             val tagged = when {
                 word != null -> word
                 element == null || text.isBlank() -> null
-                s.keeping -> repository.keepWord(element, text, s.goals.nameFor(element))
                 else -> repository.wordUnder(element, text)
             }
 

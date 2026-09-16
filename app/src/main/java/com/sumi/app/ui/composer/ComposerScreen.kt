@@ -25,6 +25,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import com.sumi.app.data.Domain
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.heightIn
 import com.sumi.app.data.Word
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
@@ -195,7 +198,8 @@ fun ComposerScreen(
                     onSend = viewModel::send,
                     onElement = viewModel::commitWith,
                     onWord = viewModel::logWord,
-                    onKeep = viewModel::toggleKeeping,
+                    onKeep = viewModel::askWhereItGoes,
+                    onKeepInto = viewModel::keepInto,
                     onDelete = viewModel::delete
                 )
             }
@@ -221,6 +225,7 @@ private fun ComposerCard(
     onElement: (Element) -> Unit,
     onWord: (Word) -> Unit,
     onKeep: () -> Unit,
+    onKeepInto: (Domain) -> Unit,
     onDelete: () -> Unit
 ) {
     val focus = remember { FocusRequester() }
@@ -286,12 +291,22 @@ private fun ComposerCard(
             onKeep = onKeep
         )
 
-        ElementRow(
-            goals = state.goals,
-            selected = state.element,
-            enabled = !state.saving,
-            onElement = onElement
-        )
+        if (state.choosingHome) {
+            WhereItGoes(
+                word = state.text.trim(),
+                domains = state.domains,
+                enabled = !state.saving,
+                onChoose = onKeepInto,
+                onCancel = onKeep
+            )
+        } else {
+            ElementRow(
+                goals = state.goals,
+                selected = state.element,
+                enabled = !state.saving,
+                onElement = onElement
+            )
+        }
 
         state.message?.let {
             Text(
@@ -325,7 +340,8 @@ private fun WordRow(
 ) {
     val typed = state.text.trim()
     val alreadyKnown = state.words.any { it.name.equals(typed, ignoreCase = true) }
-    val canKeep = typed.isNotEmpty() && !alreadyKnown && state.editingId == null
+    val canKeep = typed.isNotEmpty() && !alreadyKnown && state.editingId == null &&
+        state.domains.isNotEmpty()
     if (state.words.isEmpty() && !canKeep) return
 
     Row(
@@ -338,10 +354,9 @@ private fun WordRow(
             WordChip(
                 label = "keep \u201C$typed\u201D",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                selected = state.keeping,
+                selected = state.choosingHome,
                 enabled = !state.saving,
-                description = if (state.keeping) "Keeping $typed as one of your words. Tap to stop"
-                else "Keep $typed as one of your words",
+                description = "Keep $typed as one of your words",
                 onClick = onKeep
             )
         }
@@ -355,6 +370,62 @@ private fun WordRow(
                 description = "Log ${word.name}",
                 onClick = { onWord(word) }
             )
+        }
+    }
+}
+
+/**
+ * Where a new word belongs, asked plainly and answered in one tap.
+ *
+ * Choosing a part of life says the element as well, so this replaces the row of
+ * kanji rather than sitting beside it: one question at a time.
+ */
+@Composable
+private fun WhereItGoes(
+    word: String,
+    domains: List<Domain>,
+    enabled: Boolean,
+    onChoose: (Domain) -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Where does \u201C$word\u201D go?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onCancel) { Text("Not now") }
+        }
+        Column(
+            modifier = Modifier
+                .heightIn(max = 168.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            domains.forEach { domain ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(enabled = enabled) { onChoose(domain) }
+                        .padding(vertical = 9.dp, horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = domain.element.kanji,
+                        color = Color(domain.element.color),
+                        fontFamily = SumiFonts.mincho,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(end = 10.dp)
+                    )
+                    Text(
+                        text = domain.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }

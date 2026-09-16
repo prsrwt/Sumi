@@ -19,6 +19,9 @@ abstract class SumiDao {
     @Query("SELECT * FROM goals ORDER BY slot")
     abstract suspend fun getGoals(): List<GoalEntity>
 
+    @Query("UPDATE goals SET name = :name WHERE element = :element AND name != :name")
+    abstract suspend fun setGoalNameForElement(element: String, name: String): Int
+
     /** Returns how many rows changed: 0 when the name was already this. */
     @Query("UPDATE goals SET name = :name WHERE slot = :slot AND name != :name")
     abstract suspend fun setGoalName(slot: Int, name: String): Int
@@ -71,6 +74,12 @@ abstract class SumiDao {
 
     @Query("UPDATE domains SET name = :name WHERE id = :id")
     abstract suspend fun renameDomain(id: Long, name: String)
+
+    @Query("UPDATE domains SET position = :position WHERE id = :id")
+    abstract suspend fun setDomainPosition(id: Long, position: Int)
+
+    @Query("SELECT COUNT(*) FROM activities WHERE domainId = :domainId")
+    abstract suspend fun activityCount(domainId: Long): Int
 
     @Query("UPDATE domains SET element = :element, position = :position WHERE id = :id")
     abstract suspend fun setDomainElement(id: Long, element: String, position: Int)

@@ -69,6 +69,7 @@ class SumiRepository(private val db: SumiDatabase) {
             if (existing != null) return@withTransaction existing.toDomain()
             val position = dao.nextDomainPosition(element.name)
             val id = dao.insertDomain(DomainEntity(name = clean, element = element.name, position = position))
+            nameSpokeAfterFirstDomain(element.name)
             if (id <= 0) null else Domain(id, clean, element, position)
         }
     }
@@ -77,9 +78,40 @@ class SumiRepository(private val db: SumiDatabase) {
         val clean = name.trim()
         if (clean.isBlank()) return
         db.withTransaction {
+            val domain = dao.getDomains().firstOrNull { it.id == id } ?: return@withTransaction
             dao.renameDomain(id, clean)
+            nameSpokeAfterFirstDomain(domain.element)
             markEveryMonthDirty()
         }
+    }
+
+    /**
+     * Puts a domain at the head of its element, which is also what the pentagon
+     * calls that spoke. Everything else shuffles down, so the order stays a list
+     * the user arranged rather than whatever order things were added in.
+     */
+    suspend fun makeFirstDomain(id: Long) = db.withTransaction {
+        val all = dao.getDomains()
+        val domain = all.firstOrNull { it.id == id } ?: return@withTransaction
+        val rest = all.filter { it.element == domain.element && it.id != id }
+            .sortedBy { it.position }
+        dao.setDomainPosition(id, 0)
+        rest.forEachIndexed { index, other -> dao.setDomainPosition(other.id, index + 1) }
+        nameSpokeAfterFirstDomain(domain.element)
+        markEveryMonthDirty()
+    }
+
+    /** How many words a domain holds, for the line under its name. */
+    suspend fun wordCount(domainId: Long): Int = dao.activityCount(domainId)
+
+    /**
+     * The spoke's name is the first domain under it, so the pentagon says "Health"
+     * rather than "Earth" and stays true when the domains change. An element with
+     * no domains left goes back to showing its own name.
+     */
+    private suspend fun nameSpokeAfterFirstDomain(element: String) {
+        val first = dao.firstDomain(element)
+        dao.setGoalNameForElement(element, first?.name.orEmpty())
     }
 
     /**
@@ -88,14 +120,19 @@ class SumiRepository(private val db: SumiDatabase) {
      * if today's arrangement had always been true.
      */
     suspend fun moveDomain(id: Long, element: Element) = db.withTransaction {
+        val was = dao.getDomains().firstOrNull { it.id == id }?.element
         dao.setDomainElement(id, element.name, dao.nextDomainPosition(element.name))
+        if (was != null) nameSpokeAfterFirstDomain(was)
+        nameSpokeAfterFirstDomain(element.name)
         markEveryMonthDirty()
     }
 
     /** The domain goes, its activities go with it, and the entries keep their notes. */
     suspend fun removeDomain(id: Long) = db.withTransaction {
+        val domain = dao.getDomains().firstOrNull { it.id == id }
         dao.untagDomain(id)
         dao.deleteDomain(id)
+        if (domain != null) nameSpokeAfterFirstDomain(domain.element)
         markEveryMonthDirty()
     }
 
@@ -152,6 +189,18 @@ class SumiRepository(private val db: SumiDatabase) {
         val clean = name.trim()
         if (clean.isBlank()) return null
         return dao.activityUnder(element.name, clean)?.toWord()
+    }
+
+    /** Keeps a word in the part of life the user pointed at. */
+    suspend fun keepWordIn(domain: Domain, name: String): Word? {
+        val clean = name.trim()
+        if (clean.isBlank()) return null
+        return db.withTransaction {
+            val existing = dao.activityNamed(domain.id, clean)
+            if (existing != null) return@withTransaction Word(existing.id, existing.name, domain.id, domain.element)
+            val id = dao.insertActivity(ActivityEntity(domainId = domain.id, name = clean))
+            if (id <= 0) null else Word(id, clean, domain.id, domain.element)
+        }
     }
 
     /**

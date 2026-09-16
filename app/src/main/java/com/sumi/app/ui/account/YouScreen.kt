@@ -33,7 +33,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.ui.SumiFonts
-import com.sumi.app.ui.setup.GoalRow
 import com.sumi.app.ui.setup.SectionTitle
 import com.sumi.app.ui.setup.SetupViewModel
 import com.sumi.app.ui.setup.SheetsSection
@@ -120,11 +119,9 @@ fun YouScreen(
             )
 
             goals.sortedBy { it.slot }.forEach { goal ->
-                GoalRow(
+                ElementRow(
                     goal = goal,
                     goals = goals,
-                    name = currentNames.getOrElse(goal.slot) { "" },
-                    onName = { viewModel.onNameChanged(goal.slot, it) },
                     onElement = { viewModel.assign(goal.slot, it) }
                 )
             }
