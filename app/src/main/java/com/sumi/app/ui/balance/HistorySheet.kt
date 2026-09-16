@@ -1,6 +1,24 @@
 package com.sumi.app.ui.balance
 
 import androidx.compose.foundation.Canvas
+import java.time.Duration
+import com.sumi.app.data.nameFor
+import com.sumi.app.data.Untagged
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.layout.width
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,9 +61,10 @@ import java.time.temporal.WeekFields
 import java.util.Locale
 
 /**
- * The whole log as month calendars you can scroll back through. Each day is the
- * same dot as the 30-day grid: darker the more of your five got time. Tapping one
- * opens that day on Today.
+ * The whole log, in two views inside one sheet: month calendars you can scroll
+ * back through, and one day's entries. Tapping a day opens it here rather than
+ * throwing you onto another screen, so your place in the calendars is kept.
+ * Tapping an entry then opens that day on Today, where it can be edited.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,17 +74,67 @@ fun HistorySheet(
     viewModel: HistoryViewModel = viewModel()
 ) {
     val months by viewModel.months.collectAsStateWithLifecycle()
+    val openDay by viewModel.openDay.collectAsStateWithLifecycle()
+    val day by viewModel.day.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val today = LocalDate.now()
     val locale = Locale.getDefault()
     val weekdays = weekdayOrder(locale)
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        // Back, and a swipe down, step out of a day first and only then close the
+        // sheet. The sheet's own back handling runs before any handler put inside
+        // it, so this is where that step has to happen. Closing always leaves the
+        // sheet on the calendars, so reopening never lands on a day read days ago.
+        onDismissRequest = {
+            if (openDay != null) {
+                viewModel.backToCalendar()
+            } else {
+                onDismiss()
+            }
+        },
         sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.background
     ) {
-        LazyColumn(
+        AnimatedContent(
+            targetState = openDay,
+            transitionSpec = {
+                if (targetState != null) {
+                    slideInHorizontally(tween(SLIDE_MILLIS)) { it / 4 } + fadeIn(tween(SLIDE_MILLIS)) togetherWith
+                        fadeOut(tween(FADE_MILLIS))
+                } else {
+                    slideInHorizontally(tween(SLIDE_MILLIS)) { -it / 4 } + fadeIn(tween(SLIDE_MILLIS)) togetherWith
+                        fadeOut(tween(FADE_MILLIS))
+                }
+            },
+            label = "history"
+        ) { date ->
+            if (date == null) {
+                Calendars(months, weekdays, locale, today, viewModel::open)
+            } else {
+                DayDetail(
+                    day = day,
+                    locale = locale,
+                    onBack = viewModel::backToCalendar,
+                    onOpenInToday = {
+                        viewModel.backToCalendar()
+                        onOpenDay(date)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Calendars(
+    months: List<HistoryMonth>,
+    weekdays: List<DayOfWeek>,
+    locale: Locale,
+    today: LocalDate,
+    onOpenDay: (LocalDate) -> Unit
+) {
+    LazyColumn(
             // About two thirds of the screen: enough for a month at a glance,
             // little enough that the sheet still reads as a sheet.
             modifier = Modifier
@@ -93,6 +162,98 @@ fun HistorySheet(
                     today = today,
                     onOpenDay = onOpenDay
                 )
+            }
+    }
+}
+
+/**
+ * One day inside the sheet: what was logged, newest first. Read only here, so
+ * nothing can be changed by accident while looking back; tapping a row opens the
+ * day on Today, where entries are edited and gaps filled.
+ */
+@Composable
+private fun DayDetail(
+    day: HistoryDayDetail,
+    locale: Locale,
+    onBack: () -> Unit,
+    onOpenInToday: () -> Unit
+) {
+    val context = LocalContext.current
+    val date = day.date ?: return
+    val title = remember(date, locale) { DateTimeFormatter.ofPattern("EEEE, d MMMM", locale).format(date) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxHeight(0.68f)
+            .padding(horizontal = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to the calendar")
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = if (day.total.isZero) "Nothing logged" else "${Format.duration(day.total)} logged",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(onClick = onOpenInToday) { Text("Open") }
+        }
+
+        if (day.rows.isEmpty()) {
+            Text(
+                text = "This day has nothing on it. Open it to fill something in.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 20.dp)
+            )
+            return@Column
+        }
+
+        LazyColumn(
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 8.dp, bottom = 40.dp)
+        ) {
+            items(day.rows.size, key = { day.rows[it].entry.id }) { index ->
+                val row = day.rows[index]
+                val element = row.entry.element
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable(onClick = onOpenInToday)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.width(72.dp)) {
+                        Text(Format.time(context, row.shownStart), style = MaterialTheme.typography.labelLarge)
+                        Text(
+                            text = Format.time(context, row.shownEnd),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        text = element?.kanji ?: Untagged.KANJI,
+                        fontFamily = SumiFonts.mincho,
+                        fontSize = 20.sp,
+                        color = Color(element?.color ?: Untagged.color),
+                        modifier = Modifier.width(34.dp)
+                    )
+                    Text(
+                        text = row.entry.text ?: day.goals.nameFor(element),
+                        style = MaterialTheme.typography.bodyLarge,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = Format.duration(Duration.between(row.shownStart, row.shownEnd)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -198,6 +359,9 @@ private fun DayCell(day: HistoryDay, today: LocalDate, onOpenDay: (LocalDate) ->
         )
     }
 }
+
+private const val SLIDE_MILLIS = 280
+private const val FADE_MILLIS = 160
 
 /** The week in the order this phone's locale shows it: Monday first, or Sunday. */
 private fun weekdayOrder(locale: Locale): List<DayOfWeek> {
