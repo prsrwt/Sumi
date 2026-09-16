@@ -17,7 +17,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SyncStateEntity::class,
         DirtyMonthEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class SumiDatabase : RoomDatabase() {
@@ -36,7 +36,7 @@ abstract class SumiDatabase : RoomDatabase() {
         private fun build(context: Context): SumiDatabase =
             Room.databaseBuilder(context, SumiDatabase::class.java, "sumi.db")
                 .addCallback(Seed)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
         /**
@@ -103,7 +103,36 @@ abstract class SumiDatabase : RoomDatabase() {
                     "INSERT INTO `domains` (`name`, `element`, `position`) " +
                         "SELECT TRIM(`name`), `element`, 0 FROM `goals` WHERE TRIM(`name`) != ''"
                 )
-                seedDomains(db)
+                seedWordsForExistingDomains(db)
+            }
+        }
+
+        /**
+         * Version 5 changes no tables. It gives the parts of life already on a
+         * phone the words they would have arrived with, for anybody who reached
+         * version 4 before Sumi came with any.
+         */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                seedWordsForExistingDomains(db)
+            }
+        }
+
+        /**
+         * Gives the parts of life already on the phone the words they would have
+         * arrived with. Only the ones somebody actually has: a database full of
+         * every part of life Sumi knows about would put twenty of them in front of
+         * a person who chose five.
+         */
+        private fun seedWordsForExistingDomains(db: SupportSQLiteDatabase) {
+            Domains.common.forEach { idea ->
+                idea.words.forEach { word ->
+                    db.execSQL(
+                        "INSERT OR IGNORE INTO `activities` (`domainId`, `name`, `uses`, `lastUsedAt`) " +
+                            "SELECT `id`, ?, 0, NULL FROM `domains` WHERE `name` = ?",
+                        arrayOf<Any>(word, idea.name)
+                    )
+                }
             }
         }
 
@@ -112,35 +141,9 @@ abstract class SumiDatabase : RoomDatabase() {
          * settings row, so every other query can assume they exist. Raw SQL
          * because the DAO is not usable from inside the creation callback.
          */
-        /**
-         * Every part of life Sumi knows about, under its own element, each with the
-         * words it comes with. A phone that has never been set up can still offer
-         * something to tap, and picking a ready-made life only decides which of
-         * them comes first.
-         *
-         * Anything already there is left alone: this runs on an upgrade too, where
-         * the names somebody chose are already domains of their own.
-         */
-        private fun seedDomains(db: SupportSQLiteDatabase) {
-            Domains.common.forEachIndexed { index, idea ->
-                db.execSQL(
-                    "INSERT OR IGNORE INTO `domains` (`name`, `element`, `position`) VALUES (?, ?, ?)",
-                    arrayOf<Any>(idea.name, idea.element.name, index + 1)
-                )
-                idea.words.forEach { word ->
-                    db.execSQL(
-                        "INSERT OR IGNORE INTO `activities` (`domainId`, `name`, `uses`, `lastUsedAt`) " +
-                            "SELECT `id`, ?, 0, NULL FROM `domains` WHERE `element` = ? AND `name` = ?",
-                        arrayOf<Any>(word, idea.element.name, idea.name)
-                    )
-                }
-            }
-        }
-
         private object Seed : RoomDatabase.Callback() {
             override fun onCreate(db: SupportSQLiteDatabase) {
                 super.onCreate(db)
-                seedDomains(db)
                 Element.defaultOrder.forEachIndexed { slot, element ->
                     db.execSQL(
                         "INSERT INTO goals (slot, name, element) VALUES (?, ?, ?)",

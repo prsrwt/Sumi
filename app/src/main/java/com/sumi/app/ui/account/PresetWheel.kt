@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -112,9 +113,12 @@ fun FiveChooser(
     val startAt = Presets.all.indexOf(chosen).coerceAtLeast(0)
 
     // Where the wheel opens is a choice too: without this, pressing Next without
-    // touching it would leave somebody with five unnamed spokes.
+    // touching it would leave somebody with five unnamed spokes. Once only, so
+    // choosing "None of these" is not undone the moment it takes effect.
+    var decided by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(automatic, current) {
-        if (automatic && current.all { it.isBlank() }) {
+        if (automatic && !decided && current.all { it.isBlank() }) {
+            decided = true
             Presets.all.getOrNull(startAt)?.takeIf { !it.isBlank }?.let { setup.applyPreset(it) }
         }
     }
@@ -124,7 +128,10 @@ fun FiveChooser(
         onApply = { preset ->
             if (theirOwn) pending = preset else setup.applyPreset(preset)
         },
-        onSettle = if (automatic) ({ preset -> setup.applyPreset(preset) }) else null,
+        onSettle = if (automatic) ({ preset ->
+            decided = true
+            setup.applyPreset(preset)
+        }) else null,
         visibleRows = visibleRows,
         previewAspect = previewAspect,
         showBlurb = showBlurb,

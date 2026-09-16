@@ -72,12 +72,18 @@ class PresetsTest {
         assertEquals(to.shape, Presets.shapeBetween(from, to, 4f))
     }
 
+    /**
+     * Two lives can call their spokes the same thing, so a set is recognised by
+     * those names rather than by identity: what matters is that the five are a
+     * ready-made set at all, not which of two identical ones they came from.
+     */
     @Test
-    fun `names that came from a preset are recognised as that preset`() {
+    fun `names that came from a preset are recognised as a preset`() {
         val goals = defaultGoals()
         Presets.all.forEach { preset ->
             val names = Presets.namesForSlots(preset, goals)
-            assertEquals(preset.title, preset, Presets.matching(goals, names))
+            val found = Presets.matching(goals, names)
+            assertEquals(preset.title, preset.names, found?.names)
         }
     }
 

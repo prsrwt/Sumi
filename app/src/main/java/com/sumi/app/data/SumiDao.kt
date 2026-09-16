@@ -81,6 +81,13 @@ abstract class SumiDao {
     @Query("SELECT COUNT(*) FROM activities WHERE domainId = :domainId")
     abstract suspend fun activityCount(domainId: Long): Int
 
+    /** Whether anything here has actually been used, which is what makes it worth keeping. */
+    @Query(
+        "SELECT (SELECT COUNT(*) FROM activities WHERE domainId = :domainId AND uses > 0) + " +
+            "(SELECT COUNT(*) FROM entries WHERE domainId = :domainId AND deletedAt IS NULL)"
+    )
+    abstract suspend fun timesUsed(domainId: Long): Int
+
     @Query("UPDATE domains SET element = :element, position = :position WHERE id = :id")
     abstract suspend fun setDomainElement(id: Long, element: String, position: Int)
 

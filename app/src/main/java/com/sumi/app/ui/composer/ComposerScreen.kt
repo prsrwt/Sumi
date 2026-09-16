@@ -428,9 +428,11 @@ private fun KeptWherePrompt(
             TextButton(onClick = onSkip) { Text("No need") }
         }
 
+        // Tall enough that more than one element is always in view, so the list
+        // reads as a list of five rather than as one element's parts.
         Column(
             modifier = Modifier
-                .heightIn(max = 260.dp)
+                .heightIn(max = 420.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Element.entries.forEach { element ->
@@ -464,7 +466,7 @@ private fun KeptWherePrompt(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { onChoose(domain) }
-                            .padding(vertical = 9.dp, horizontal = 26.dp)
+                            .padding(vertical = 7.dp, horizontal = 26.dp)
                     )
                 }
             }

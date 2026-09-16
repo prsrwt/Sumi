@@ -46,11 +46,11 @@ object Presets {
             title = "A bit of everything",
             blurb = "No single thing has taken over your week.",
             parts = mapOf(
-                Element.EARTH to listOf("Health", "Home and care"),
-                Element.WATER to listOf("People"),
-                Element.FIRE to listOf("Work"),
-                Element.WIND to listOf("Growth"),
-                Element.VOID to listOf("Rest")
+                Element.EARTH to listOf("Health", "Home and care", "Getting around"),
+                Element.WATER to listOf("People", "Community"),
+                Element.FIRE to listOf("Work", "Money and admin"),
+                Element.WIND to listOf("Growth", "Making"),
+                Element.VOID to listOf("Rest", "Play")
             ),
             shape = mapOf(
                 Element.EARTH to 0.50f,
@@ -64,11 +64,11 @@ object Presets {
             title = "A job and a home",
             blurb = "You work, and you run a household. The double shift.",
             parts = mapOf(
-                Element.EARTH to listOf("Home and care", "Health"),
-                Element.WATER to listOf("People"),
+                Element.EARTH to listOf("Home and care", "Health", "Getting around"),
+                Element.WATER to listOf("People", "Children"),
                 Element.FIRE to listOf("Work", "Money and admin"),
                 Element.WIND to listOf("Growth"),
-                Element.VOID to listOf("Rest")
+                Element.VOID to listOf("Rest", "Play")
             ),
             shape = mapOf(
                 Element.EARTH to 0.74f,
@@ -82,11 +82,11 @@ object Presets {
             title = "The home is the work",
             blurb = "The house and the people in it are your work.",
             parts = mapOf(
-                Element.EARTH to listOf("Home and care", "Health"),
-                Element.WATER to listOf("Family", "Community"),
-                Element.FIRE to listOf("Money and admin"),
-                Element.WIND to listOf("Growth"),
-                Element.VOID to listOf("Own time", "Rest")
+                Element.EARTH to listOf("Health", "Land and livestock"),
+                Element.WATER to listOf("Children", "People", "Looking after someone"),
+                Element.FIRE to listOf("Home and care", "Money and admin"),
+                Element.WIND to listOf("Growth", "Skills"),
+                Element.VOID to listOf("Rest", "Own time")
             ),
             shape = mapOf(
                 Element.EARTH to 1f,
@@ -100,11 +100,11 @@ object Presets {
             title = "Studying",
             blurb = "Study is your work, and skills are what you build beside it.",
             parts = mapOf(
-                Element.EARTH to listOf("Health"),
-                Element.WATER to listOf("People"),
+                Element.EARTH to listOf("Health", "Getting around"),
+                Element.WATER to listOf("People", "Community"),
                 Element.FIRE to listOf("Study"),
-                Element.WIND to listOf("Growth", "Building"),
-                Element.VOID to listOf("Rest", "Own time")
+                Element.WIND to listOf("Growth", "Skills", "Making"),
+                Element.VOID to listOf("Rest", "Play", "Own time")
             ),
             shape = mapOf(
                 Element.EARTH to 0.42f,
@@ -118,11 +118,11 @@ object Presets {
             title = "My own trade",
             blurb = "You work for yourself. Earning today and building the thing are different time.",
             parts = mapOf(
-                Element.EARTH to listOf("Health"),
+                Element.EARTH to listOf("Health", "Money and admin"),
                 Element.WATER to listOf("People"),
-                Element.FIRE to listOf("Work", "Money and admin"),
-                Element.WIND to listOf("Building", "Growth"),
-                Element.VOID to listOf("Rest")
+                Element.FIRE to listOf("Work", "Building"),
+                Element.WIND to listOf("Growth", "Skills"),
+                Element.VOID to listOf("Rest", "Play")
             ),
             shape = mapOf(
                 Element.EARTH to 0.34f,
@@ -137,9 +137,9 @@ object Presets {
             blurb = "Work has become purpose: community, family, what you pass on.",
             parts = mapOf(
                 Element.EARTH to listOf("Health", "Home and care"),
-                Element.WATER to listOf("People", "Community"),
+                Element.WATER to listOf("People", "Children", "Community"),
                 Element.FIRE to listOf("Purpose"),
-                Element.WIND to listOf("Growth"),
+                Element.WIND to listOf("Growth", "Making"),
                 Element.VOID to listOf("Rest", "Own time")
             ),
             shape = mapOf(

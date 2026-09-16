@@ -110,17 +110,23 @@ class SumiRepository(private val db: SumiDatabase) {
      * use for are removed, so choosing a different life never costs anybody the
      * words they had built up.
      */
-    suspend fun applyPreset(parts: Map<Element, List<String>>) = db.withTransaction {
+    suspend fun applyPreset(preset: Preset) = db.withTransaction {
+        val parts = preset.parts
         Element.entries.forEach { element ->
-            // The set decides the order, not what exists: every part of life Sumi
-            // knows about stays under its element, so there is always somewhere to
-            // put an hour. Choosing a life only says which comes first, and the
-            // first is the name on the pentagon.
-            val chosen = parts[element].orEmpty().map { it.trim() }.filter { it.isNotBlank() }
-            val rest = Domains.under(element).map { it.name }.filter { idea ->
-                chosen.none { it.equals(idea, ignoreCase = true) }
-            }
-            val wanted = chosen + rest
+            // An element holds what the chosen life says it holds, and nothing
+            // else: a list of every part of life Sumi knows about would put twenty
+            // of them in front of somebody who chose five. Anything already in use
+            // survives, and moves to the end rather than being taken away.
+            val wanted = parts[element].orEmpty().map { it.trim() }.filter { it.isNotBlank() }
+
+            dao.getDomains()
+                .filter { it.element == element.name }
+                .filter { domain -> wanted.none { it.equals(domain.name, ignoreCase = true) } }
+                .filter { dao.timesUsed(it.id) == 0 }
+                .forEach { unused ->
+                    dao.untagDomain(unused.id)
+                    dao.deleteDomain(unused.id)
+                }
 
             wanted.forEachIndexed { index, name ->
                 val existing = dao.domainNamed(element.name, name)
@@ -137,7 +143,14 @@ class SumiRepository(private val db: SumiDatabase) {
                 .sortedBy { it.position }
                 .forEachIndexed { index, kept -> dao.setDomainPosition(kept.id, wanted.size + index) }
 
-            nameSpokeAfterFirstDomain(element.name)
+            // "None of these" leaves the spokes unnamed, so the pentagon shows the
+            // elements themselves and nothing pretends to be a choice somebody made.
+            // The parts of life stay either way: there is always somewhere to log.
+            if (preset.isBlank) {
+                dao.setGoalNameForElement(element.name, "")
+            } else {
+                nameSpokeAfterFirstDomain(element.name)
+            }
         }
         markEveryMonthDirty()
     }
