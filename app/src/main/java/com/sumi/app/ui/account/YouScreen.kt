@@ -100,8 +100,9 @@ fun YouScreen(
 
         SectionTitle("Your five")
         Text(
-            text = "The five things you most want your time to go to. Each gets an element; " +
-                "tap an element in the composer and that time is logged to it.",
+            text = "The five things your time is sorted into. Turn the wheel to the life closest to " +
+                "yours, or write your own five below. Each keeps its element, and tapping that " +
+                "element in the composer logs the time to it.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

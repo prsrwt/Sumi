@@ -1,6 +1,5 @@
 package com.sumi.app.ui.account
 
-import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.foundation.Canvas
@@ -80,7 +79,16 @@ fun FiveChooser(
     modifier: Modifier = Modifier,
     /** Fewer rows and a flatter drawing where the page cannot scroll. */
     visibleRows: Int = 5,
-    previewAspect: Float = 1.45f
+    previewAspect: Float = 1.45f,
+    /** What each set gives up. Worth reading in You, too much to read on page 3. */
+    showBlurb: Boolean = true,
+    /**
+     * Take whatever the wheel rests on, with no button to press. Only for the
+     * introduction, where the five are still empty and there is a Next button
+     * waiting: one choice, one press. It stands down the moment the names are
+     * somebody's own writing, which is the one case worth a question.
+     */
+    applyOnSettle: Boolean = false
 ) {
     val goals by setup.goals.collectAsStateWithLifecycle()
     val names by setup.names.collectAsStateWithLifecycle()
@@ -95,14 +103,17 @@ fun FiveChooser(
     // swapping one ready-made set for another just happens.
     val chosen = Presets.matching(goals, current)
     val theirOwn = chosen == null && current.any { it.isNotBlank() }
+    val automatic = applyOnSettle && !theirOwn
 
     PresetPicker(
         startAt = Presets.all.indexOf(chosen).coerceAtLeast(0),
         onApply = { preset ->
             if (theirOwn) pending = preset else setup.applyPreset(preset)
         },
+        onSettle = if (automatic) ({ preset -> setup.applyPreset(preset) }) else null,
         visibleRows = visibleRows,
         previewAspect = previewAspect,
+        showBlurb = showBlurb,
         modifier = modifier
     )
 
@@ -134,8 +145,11 @@ fun FiveChooser(
 private fun PresetPicker(
     startAt: Int,
     onApply: (Preset) -> Unit,
+    /** Set when resting on a name is the whole choice, which leaves no button. */
+    onSettle: ((Preset) -> Unit)?,
     visibleRows: Int,
     previewAspect: Float,
+    showBlurb: Boolean,
     modifier: Modifier = Modifier
 ) {
     val presets = Presets.all
@@ -169,16 +183,20 @@ private fun PresetPicker(
     }
 
     // A light tick as each name passes the middle, the way a dial clicks under a
-    // finger, and a softer one when the wheel comes to rest, so a hand knows it has
-    // landed without looking. Android silences both if haptics are turned off.
+    // finger. Nothing marks the stop: the feel belongs to the turning. Android
+    // silences it if haptics are turned off.
     LaunchedEffect(state) {
         snapshotFlow { centre }.drop(1).collect { view.wheelTick() }
     }
-    LaunchedEffect(state) {
-        snapshotFlow { state.isScrollInProgress }
-            .drop(1)
-            .filter { !it }
-            .collect { view.wheelSettled() }
+
+    // Where there is no button, the wheel coming to rest is the choice.
+    if (onSettle != null) {
+        LaunchedEffect(state) {
+            snapshotFlow { state.isScrollInProgress }
+                .drop(1)
+                .filter { !it }
+                .collect { onSettle(presets[centre]) }
+        }
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -239,21 +257,27 @@ private fun PresetPicker(
             }
         }
 
-        Text(
-            text = presets[centre].blurb,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
+        if (showBlurb) {
+            Text(
+                text = presets[centre].blurb,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
 
-        OutlinedButton(
-            onClick = {
-                view.wheelSettled()
-                onApply(presets[centre])
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(if (presets[centre].isBlank) "Clear the five" else "Use these five")
+        if (onSettle == null) {
+            OutlinedButton(
+                onClick = {
+                    view.wheelTick()
+                    onApply(presets[centre])
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // "Clear" is a threat on the first morning, when there is nothing
+                // to clear; naming them yourself is what the blank rows are for.
+                Text(if (presets[centre].isBlank) "Name them myself" else "Use these five")
+            }
         }
     }
 }
@@ -350,21 +374,10 @@ private fun ShapePreview(
 /**
  * The tick of one name passing the middle of the wheel.
  *
- * Android 14 brought a tick made for exactly this, a scale or a dial moving under
- * a finger, lighter than anything older. Before that, the clock tick a time picker
- * uses is the closest thing and is just as quiet.
+ * The keyboard tap, deliberately: it is the lightest effect every phone actually
+ * implements. The newer ticks meant for dials, and the clock tick, are silent on
+ * some makers' software, and the confirm effect is a thump rather than a tick.
  */
 private fun View.wheelTick() {
-    performHapticFeedback(
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) HapticFeedbackConstants.SEGMENT_FREQUENT_TICK
-        else HapticFeedbackConstants.CLOCK_TICK
-    )
-}
-
-/** The rounder one for landing on a name, and for taking it. */
-private fun View.wheelSettled() {
-    performHapticFeedback(
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM
-        else HapticFeedbackConstants.CLOCK_TICK
-    )
+    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
 }

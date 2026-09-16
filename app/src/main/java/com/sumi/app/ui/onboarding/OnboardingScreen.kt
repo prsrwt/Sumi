@@ -248,16 +248,27 @@ private fun HowItWorksPage(setup: SetupViewModel) {
  */
 @Composable
 private fun StartFromPage(setup: SetupViewModel) {
-    Page(title = "Start from one of these") {
-        Body("Turn the wheel and take whichever is closest. You can change every name on the next page.")
+    Page(title = "How does your life look now?") {
+        Body(
+            "Turn the wheel to the one closest to yours. It becomes the five things Sumi sorts your " +
+                "time into, and you can change any of them on the next page."
+        )
         FiveChooser(
             setup = setup,
             // The page does not scroll, so the wheel shows three names rather than
-            // five and the drawing sits flatter.
+            // five, the drawing sits flatter, and what each set gives up is left
+            // for You, where there is room to read it.
             visibleRows = 3,
-            previewAspect = 1.9f
+            previewAspect = 1.9f,
+            showBlurb = false,
+            // No button here: the wheel is the choice, and Next is the only thing
+            // to press on a page of the introduction.
+            applyOnSettle = true
         )
-        Body("Most weeks lean. Yours will too: the shape is an example, not something to match.")
+        Body(
+            "The drawing is what a week of that life often looks like. Most weeks lean, and yours " +
+                "will too: it is an example, never something to match."
+        )
     }
 }
 

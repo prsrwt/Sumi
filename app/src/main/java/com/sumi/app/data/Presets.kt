@@ -37,8 +37,8 @@ object Presets {
 
     val all: List<Preset> = listOf(
         Preset(
-            title = "A balanced life",
-            blurb = "A good start when none of the others fit. Unpaid work at home has no spoke of its own.",
+            title = "A bit of everything",
+            blurb = "No single thing has taken over your week. Unpaid work at home has no spoke of its own here.",
             names = mapOf(
                 Element.EARTH to "Health",
                 Element.WATER to "People",
@@ -55,8 +55,8 @@ object Presets {
             )
         ),
         Preset(
-            title = "Work and home",
-            blurb = "A job and a household, the double shift. Learning gives up its place.",
+            title = "A job and a home",
+            blurb = "You work, and you run a household. The double shift, so learning gives up its place.",
             names = mapOf(
                 Element.EARTH to "Health",
                 Element.WATER to "People",
@@ -74,7 +74,7 @@ object Presets {
         ),
         Preset(
             title = "The home is the work",
-            blurb = "The house and the people in it are the work. Paid work gives up its place.",
+            blurb = "The house and the people in it are your work. Paid work gives up its place.",
             names = mapOf(
                 Element.EARTH to "Health",
                 Element.WATER to "Family",
@@ -92,7 +92,7 @@ object Presets {
         ),
         Preset(
             title = "Studying",
-            blurb = "Study is the work, and skills are what you build beside it. Paid work gives up its place.",
+            blurb = "Study is your work, and skills are what you build beside it. Paid work gives up its place.",
             names = mapOf(
                 Element.EARTH to "Health",
                 Element.WATER to "Family and friends",
@@ -109,8 +109,8 @@ object Presets {
             )
         ),
         Preset(
-            title = "My own work",
-            blurb = "Your own trade, shop or practice: earning today is not the same time as building the thing.",
+            title = "My own trade",
+            blurb = "You work for yourself. Earning today and building the thing are different time.",
             names = mapOf(
                 Element.EARTH to "Health",
                 Element.WATER to "People",
@@ -128,7 +128,7 @@ object Presets {
         ),
         Preset(
             title = "Later life",
-            blurb = "Where the work becomes purpose: community, family, what you pass on.",
+            blurb = "Work has become purpose: community, family, what you pass on.",
             names = mapOf(
                 Element.EARTH to "Health",
                 Element.WATER to "People",
@@ -145,8 +145,8 @@ object Presets {
             )
         ),
         Preset(
-            title = "Start blank",
-            blurb = "Five empty rows to name yourself.",
+            title = "None of these",
+            blurb = "Five empty rows, to name your own way.",
             names = Element.entries.associateWith { "" },
             shape = Element.entries.associateWith { 0f }
         )

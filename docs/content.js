@@ -78,15 +78,16 @@ window.SUMI_GUIDE = [
       {
         title: "Ready-made fives",
         body: `
-          <p>Five empty rows on day one is a hard question, so the You screen has a wheel of ready-made sets, and the pentagon above it changes shape as the wheel turns.</p>
+          <p>Five empty rows on day one is a hard question, so the You screen has a wheel of ready-made sets, and the pentagon above it changes shape as the wheel turns. The wheel asks how your life looks now, not what your goals are: "A job and a home", "The home is the work", "Studying", "My own trade", "Later life".</p>
           <p>The sets come from the UN classification for time use statistics (ICATUS 2016), which splits all human activity into nine divisions: employment, production for own use, unpaid domestic services, unpaid caregiving, volunteer work, learning, socialising and community, culture and leisure, and self care. Sumi has five spokes, so every preset is one way of collapsing nine into five, and each one drops something. "Work and home" gives a spoke to unpaid work at home and loses learning; "Studying" makes study the work and loses the paid job. The blurb under each name says what it gives up rather than pretending one set fits everyone.</p>
           <p>Unpaid domestic and care work gets its own spoke in two of the sets because worldwide it is 4 hours 25 minutes a day for women against 1 hour 23 for men (ILO), and 708 million women are outside the labour force because of it. A set of five that only knows about paid jobs would erase the largest block of time in hundreds of millions of lives.</p>
-          <p>Names must be broad enough to hold many activities over years. "Health" holds the run, the cooking, the sleep you protect and the doctor. "Gym" holds one hour a week and would sit near the centre of the pentagon forever, which is why no preset names an activity.</p>`,
+          <p>Names must be broad enough to hold many activities over years. "Health" holds the run, the cooking, the sleep you protect and the doctor. "Gym" holds one hour a week and would sit near the centre of the pentagon forever, which is why no preset names an activity.</p>
+          <p>The same reasoning removed the text fields. Each of the five opens a sheet with ten domains in it, each with a line saying what it holds, and "Write my own" last for a life those words do not fit. A name another goal already holds is left out of the list, so no two spokes can be called the same thing.</p>`,
         code: {
           file: "app/src/main/java/com/sumi/app/data/Presets.kt",
           text: `Preset(
-    title = "Work and home",
-    blurb = "A job and a household, the double shift. Learning gives up its place.",
+    title = "A job and a home",
+    blurb = "You work, and you run a household. The double shift, so learning gives up its place.",
     names = mapOf(
         Element.EARTH to "Health",
         Element.WATER to "People",
@@ -1073,7 +1074,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
           <ol>
             <li>墨 Sumi</li>
             <li>How it works</li>
-            <li>Start from one of these</li>
+            <li>How does your life look now?</li>
             <li>Your five</li>
             <li>Rhythm</li>
             <li>Add the widget</li>
@@ -1101,7 +1102,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
       {
         title: "Reuse, not copies",
         body: `
-          <p>The goal rows, the rhythm tabs, the quiet hours buttons, the add-widget button and the Sheets section on these pages are the same composables and the same <code>SetupViewModel</code> that Setup uses. The wheel of ready-made fives is the same <code>FiveChooser</code> the You screen shows, asked for three rows instead of five and a flatter drawing, because these pages do not scroll.</p>`,
+          <p>The goal rows, the rhythm tabs, the quiet hours buttons, the add-widget button and the Sheets section on these pages are the same composables and the same <code>SetupViewModel</code> that Setup uses. The wheel of ready-made fives is the same <code>FiveChooser</code> the You screen shows, asked for three rows instead of five and a flatter drawing, because these pages do not scroll. It has no button either: on that page the wheel coming to rest is the choice, and Next is the only thing to press. The moment the five are somebody's own writing, the button comes back and asks before replacing them.</p>`,
         why: `Two copies of the goal editor would eventually behave differently. One copy cannot.`
       },
       {

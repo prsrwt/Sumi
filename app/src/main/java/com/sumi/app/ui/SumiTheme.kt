@@ -21,7 +21,16 @@ private val DarkScheme = darkColorScheme(
     onSurfaceVariant = Color(0xFF9BA09C),
     primary = Color(0xFFE8C45C),
     onPrimary = Color(0xFF241C05),
-    outline = Color(0xFF3A403C)
+    outline = Color(0xFF3A403C),
+    // Menus, dialogs and sheets are drawn on these, and Material's own defaults
+    // are tinted violet. Left alone, every popup in the app would arrive in a
+    // colour that belongs to no other part of it.
+    surfaceVariant = Color(0xFF272B29),
+    surfaceContainerLowest = Color(0xFF060807),
+    surfaceContainerLow = Color(0xFF0E1110),
+    surfaceContainer = Color(0xFF141817),
+    surfaceContainerHigh = Color(0xFF1B201E),
+    surfaceContainerHighest = Color(0xFF232826)
 )
 
 private val LightScheme = lightColorScheme(
@@ -32,7 +41,13 @@ private val LightScheme = lightColorScheme(
     onSurfaceVariant = Color(0xFF5C625E),
     primary = Color(0xFF7A5E12),
     onPrimary = Color(0xFFFFFFFF),
-    outline = Color(0xFFD3D0C9)
+    outline = Color(0xFFD3D0C9),
+    surfaceVariant = Color(0xFFEDEAE4),
+    surfaceContainerLowest = Color(0xFFFFFFFF),
+    surfaceContainerLow = Color(0xFFFBF9F5),
+    surfaceContainer = Color(0xFFF4F1EB),
+    surfaceContainerHigh = Color(0xFFEFECE5),
+    surfaceContainerHighest = Color(0xFFE9E5DD)
 )
 
 /**
