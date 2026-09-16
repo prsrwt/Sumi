@@ -22,7 +22,8 @@ No streaks, no scores, no notifications. A missed hour is just a missed hour.
 - **One tap to log.** Tap a kanji to log the time to that goal, type a line for anything else, or both.
 - **Five goals, five elements.** Your goals are paired with the Godai, the five classical Japanese elements: 地 Earth, 水 Water, 火 Fire, 風 Wind and 空 Void. Name Fire "Workout" and it is called Workout everywhere. Time with no element is 無, untagged.
 - **Ready-made fives.** Behind the mark at the top left: a wheel asking how your life looks now, with the pentagon beside it changing shape as the wheel turns. The sets come from the nine divisions of the UN time use classification, collapsed five different ways, and each one says what it gives up.
-- **Domains, not activities.** Each of the five is chosen from a list of ten domains, each with a line saying what it holds, because "Health" grows over a year while "gym" stays a sliver. Writing your own is always the last choice.
+- **Domains, not activities.** Each of the five is chosen from a list of domains, each with a line saying what it holds, because "Health" grows over a year while "gym" stays a sliver. Writing your own is always the last choice.
+- **Your own words.** An element can hold several domains, and a domain holds the words you actually use. Type something new and one chip offers to keep it; after that, tapping the word is a whole log.
 - **Today.** The day as a timesheet, with unlogged gaps you can tap to fill.
 - **Balance.** A pentagon of the last 7 or 14 days and a dated 30-day grid, showing where to push and where you may be pushing too hard: a gentle note when a goal has been quiet lately, or when one has taken more than half your time.
 - **Shape, not figures.** Balance carries no hours at all: the length of a spoke and of a bar is the amount. The exact times stay where they are needed, in the composer, on Today, in your Google Sheet, and in what a screen reader reads aloud.
@@ -56,7 +57,7 @@ Sumi borrows two methods from psychology: **experience sampling**, which prompts
 | Sync | Google Play services authorization, the Sheets and Drive REST APIs over plain HTTPS, WorkManager |
 | Android | 8.0 (API 26) and later, built for Android 16 (API 36) |
 
-To learn how every part works, read **Inside Sumi**: 15 short chapters with the real code, from the idea to release. Open it in the app from **Setup, About, Inside Sumi**, or read [`docs/index.html`](docs/index.html) (once GitHub Pages is on, at [prsrwt.github.io/Sumi](https://prsrwt.github.io/Sumi/)).
+To learn how every part works, read **Inside Sumi**: 16 short chapters with the real code, from the idea to release. Open it in the app from **Setup, About, Inside Sumi**, or read [`docs/index.html`](docs/index.html) (once GitHub Pages is on, at [prsrwt.github.io/Sumi](https://prsrwt.github.io/Sumi/)).
 
 ## Build it
 

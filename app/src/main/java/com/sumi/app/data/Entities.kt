@@ -164,12 +164,28 @@ fun List<Goal>.nameFor(element: Element?): String =
     if (element == null) Untagged.NAME
     else firstOrNull { it.element == element }?.displayName ?: element.displayName
 
+/** An activity with the element of the domain holding it, as the composer needs it. */
+data class ActivityWithElement(
+    val id: Long,
+    val name: String,
+    val domainId: Long,
+    val element: String
+)
+
 /** One of an element's parts of life, as the app talks about it. */
 data class Domain(
     val id: Long,
     val name: String,
     val element: Element,
     val position: Int
+)
+
+/** A word the composer can offer: what it is called, and where it belongs. */
+data class Word(
+    val id: Long,
+    val name: String,
+    val domainId: Long,
+    val element: Element
 )
 
 /** A word inside a domain, with how much it has been used. */

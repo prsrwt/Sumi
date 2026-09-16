@@ -25,6 +25,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import com.sumi.app.data.Word
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -190,6 +194,8 @@ fun ComposerScreen(
                     onRange = viewModel::setRange,
                     onSend = viewModel::send,
                     onElement = viewModel::commitWith,
+                    onWord = viewModel::logWord,
+                    onKeep = viewModel::toggleKeeping,
                     onDelete = viewModel::delete
                 )
             }
@@ -213,6 +219,8 @@ private fun ComposerCard(
     onRange: (java.time.LocalTime, java.time.LocalTime) -> Unit,
     onSend: () -> Unit,
     onElement: (Element) -> Unit,
+    onWord: (Word) -> Unit,
+    onKeep: () -> Unit,
     onDelete: () -> Unit
 ) {
     val focus = remember { FocusRequester() }
@@ -272,6 +280,12 @@ private fun ComposerCard(
             }
         )
 
+        WordRow(
+            state = state,
+            onWord = onWord,
+            onKeep = onKeep
+        )
+
         ElementRow(
             goals = state.goals,
             selected = state.element,
@@ -292,6 +306,98 @@ private fun ComposerCard(
                 Text("Delete entry")
             }
         }
+    }
+}
+
+/**
+ * Your own words, most recently used first, and the offer to keep a new one.
+ *
+ * Tapping a word is a whole log: it carries its own element, so nothing else has
+ * to be chosen. Typing something Sumi has not seen shows one quiet offer to keep
+ * it, the way a new board appears when you pin to it; ignoring the offer logs the
+ * line as a note and keeps nothing.
+ */
+@Composable
+private fun WordRow(
+    state: ComposerState,
+    onWord: (Word) -> Unit,
+    onKeep: () -> Unit
+) {
+    val typed = state.text.trim()
+    val alreadyKnown = state.words.any { it.name.equals(typed, ignoreCase = true) }
+    val canKeep = typed.isNotEmpty() && !alreadyKnown && state.editingId == null
+    if (state.words.isEmpty() && !canKeep) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (canKeep) {
+            WordChip(
+                label = "keep \u201C$typed\u201D",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                selected = state.keeping,
+                enabled = !state.saving,
+                description = if (state.keeping) "Keeping $typed as one of your words. Tap to stop"
+                else "Keep $typed as one of your words",
+                onClick = onKeep
+            )
+        }
+        state.words.forEach { word ->
+            WordChip(
+                label = word.name,
+                kanji = word.element.kanji,
+                color = Color(word.element.color),
+                selected = false,
+                enabled = !state.saving,
+                description = "Log ${word.name}",
+                onClick = { onWord(word) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun WordChip(
+    label: String,
+    color: Color,
+    selected: Boolean,
+    enabled: Boolean,
+    description: String,
+    onClick: () -> Unit,
+    kanji: String? = null
+) {
+    val ink = MaterialTheme.colorScheme.onSurface
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (selected) color.copy(alpha = 0.14f) else Color.Transparent)
+            .border(1.dp, if (selected) color.copy(alpha = 0.5f) else ink.copy(alpha = 0.14f), RoundedCornerShape(16.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
+            .clearAndSetSemantics {
+                role = Role.Button
+                contentDescription = description
+            },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (kanji != null) {
+            Text(
+                text = kanji,
+                color = color,
+                fontSize = 15.sp,
+                fontFamily = SumiFonts.mincho,
+                modifier = Modifier.padding(end = 6.dp)
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = if (selected) ink else ink.copy(alpha = 0.85f),
+            maxLines = 1
+        )
     }
 }
 

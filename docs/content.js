@@ -775,6 +775,47 @@ if (canBeExact) {
 
   // ---------------------------------------------------------------------------
   {
+    id: "words",
+    kanji: "語",
+    element: "wind",
+    title: "Domains and your own words",
+    blurb: "Three levels: five elements, several domains each, and the words you use.",
+    slides: [
+      {
+        title: "Why three levels",
+        body: `
+          <p>An element is one of five and never changes. A <strong>domain</strong> is a part of your life under it: Health under 地, Work and Building under 火. An <strong>activity</strong> is a word you actually used: run, thesis, cooking.</p>
+          <p>This is what keeps the pentagon readable while the words stay yours. "Gym" would be a spoke that can never grow; as a word inside Health it is recorded exactly, and Health is what the drawing measures.</p>`,
+        why: `Sumi had one name per element until domains arrived, which forced every preset to drop something: a job and a household could not both fit. Several domains per element removed that whole compromise.`
+      },
+      {
+        title: "Words are kept only when you ask",
+        body: `
+          <p>Type something Sumi has not seen and one quiet chip appears: <em>keep "guitar"</em>. Ignore it and the line is logged as a note, the way it always was. Tap it and the word is kept in the first domain of whichever element you then log to.</p>
+          <p>After that the word is a chip of its own. Tapping it is a whole log: it carries its element and its domain, so nothing else has to be chosen.</p>`,
+        code: {
+          file: "app/src/main/java/com/sumi/app/data/SumiRepository.kt",
+          text: `suspend fun keepWord(element: Element, name: String, goalName: String): Word? {
+    ...
+    val existing = dao.activityUnder(element.name, clean)
+    if (existing != null) return@withTransaction existing.toWord()
+    val domain = dao.firstDomain(element.name) ?: ...
+    val id = dao.insertActivity(ActivityEntity(domainId = domain.id, name = clean))
+}`
+        },
+        why: `Nothing is collected silently. A list that fills itself with everything you ever typed becomes a list nobody wants to look at.`
+      },
+      {
+        title: "What the entry remembers",
+        body: `
+          <p>An entry stores the element it was logged under, and references to the domain and activity. References rather than copies, so renaming a word carries its whole history with it, and moving it between domains takes its entries along.</p>
+          <p>Deleting a word does not delete anything you logged. The entry keeps its note and its element, and simply loses the tag, which is the honest outcome: the hour still happened.</p>`
+      }
+    ]
+  },
+
+  // ---------------------------------------------------------------------------
+  {
     id: "views",
     kanji: "衡",
     element: "earth",

@@ -143,6 +143,42 @@ class SumiRepository(private val db: SumiDatabase) {
     suspend fun recentActivities(element: Element, limit: Int = RECENT_ACTIVITIES): List<Activity> =
         dao.recentActivities(element.name, limit).map { it.toActivity() }
 
+    /** The same, across all five, for the composer before an element is chosen. */
+    suspend fun recentWords(limit: Int = RECENT_ACTIVITIES): List<Word> =
+        dao.recentActivitiesEverywhere(limit).mapNotNull { it.toWord() }
+
+    /** The word already known under this element, if the typed line is one of them. */
+    suspend fun wordUnder(element: Element, name: String): Word? {
+        val clean = name.trim()
+        if (clean.isBlank()) return null
+        return dao.activityUnder(element.name, clean)?.toWord()
+    }
+
+    /**
+     * Keeps a word under an element, in the first domain that element was given.
+     * Where an element has no domain yet, one is made from the name on the goal,
+     * so a word never has nowhere to live.
+     */
+    suspend fun keepWord(element: Element, name: String, goalName: String): Word? {
+        val clean = name.trim()
+        if (clean.isBlank()) return null
+        return db.withTransaction {
+            val existing = dao.activityUnder(element.name, clean)
+            if (existing != null) return@withTransaction existing.toWord()
+            val domain = dao.firstDomain(element.name)
+                ?: run {
+                    val fallback = goalName.trim().ifBlank { element.displayName }
+                    val id = dao.insertDomain(
+                        DomainEntity(name = fallback, element = element.name, position = 0)
+                    )
+                    if (id <= 0) null else dao.domainNamed(element.name, fallback)
+                }
+                ?: return@withTransaction null
+            val id = dao.insertActivity(ActivityEntity(domainId = domain.id, name = clean))
+            if (id <= 0) null else Word(id, clean, domain.id, element)
+        }
+    }
+
     // ---- settings ----
 
     fun observeSettings(): Flow<Settings> =
@@ -393,6 +429,11 @@ class SumiRepository(private val db: SumiDatabase) {
         element = Element.fromStored(element) ?: Element.EARTH,
         position = position
     )
+
+    private fun ActivityWithElement.toWord(): Word? {
+        val known = Element.fromStored(element) ?: return null
+        return Word(id = id, name = name, domainId = domainId, element = known)
+    }
 
     private fun ActivityEntity.toActivity() = Activity(
         id = id,

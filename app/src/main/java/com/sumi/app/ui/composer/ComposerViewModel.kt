@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.sumi.app.data.Element
 import com.sumi.app.data.Goal
 import com.sumi.app.data.Prompts
+import com.sumi.app.data.Word
+import com.sumi.app.data.nameFor
 import com.sumi.app.data.RangeSuggestion
 import com.sumi.app.data.SumiRepository
 import com.sumi.app.data.SumiRepository.SaveResult
@@ -31,6 +33,10 @@ data class ComposerState(
     /** The element an edited entry already has; always null for a new entry. */
     val element: Element? = null,
     val goals: List<Goal> = emptyList(),
+    /** Your own words, most recently used first. Empty until you have used any. */
+    val words: List<Word> = emptyList(),
+    /** Whether the line you have typed should be kept as a word of your own. */
+    val keeping: Boolean = false,
     val question: String = Prompts.DEFAULT,
     val message: String? = null,
     val saving: Boolean = false,
@@ -57,6 +63,7 @@ class ComposerViewModel(
         val presetEnd = savedState.get<Long>(ComposerActivity.EXTRA_END)?.takeIf { it > 0 }
 
         viewModelScope.launch {
+            val words = repository.recentWords()
             val goals = repository.goalsNow()
             val settings = repository.settingsNow()
             val latest = repository.latestEntry()
@@ -73,6 +80,7 @@ class ComposerViewModel(
                     text = editing.text.orEmpty(),
                     element = editing.element,
                     goals = goals,
+                    words = words,
                     question = "Edit this entry"
                 )
 
@@ -81,6 +89,7 @@ class ComposerViewModel(
                     start = Instant.ofEpochMilli(presetStart),
                     end = Instant.ofEpochMilli(presetEnd),
                     goals = goals,
+                    words = words,
                     question = "What filled this gap?"
                 )
 
@@ -91,6 +100,7 @@ class ComposerViewModel(
                         start = range.start,
                         end = range.endInclusive,
                         goals = goals,
+                        words = words,
                         question = question
                     )
                 }
@@ -98,7 +108,23 @@ class ComposerViewModel(
         }
     }
 
-    fun onTextChange(text: String) = _state.update { it.copy(text = text, message = null) }
+    fun onTextChange(text: String) = _state.update {
+        // A line that has changed is no longer the line that was going to be kept.
+        it.copy(text = text, message = null, keeping = it.keeping && text.isBlank())
+    }
+
+    /** The toggle beside a new line: keep this word, or let it be a note and go. */
+    fun toggleKeeping() = _state.update { it.copy(keeping = !it.keeping) }
+
+    /**
+     * A word tapped is a whole log: its element, its domain, and the word itself as
+     * the line, unless something has already been typed.
+     */
+    fun logWord(word: Word) {
+        val s = _state.value
+        if (s.saving || s.loading) return
+        commit(element = word.element, word = word, line = s.text.ifBlank { word.name })
+    }
 
     /** Both ends at once, from the From | To picker. See [TimeRange] for how days are chosen. */
     fun setRange(from: LocalTime, to: LocalTime) = _state.update { s ->
@@ -121,16 +147,26 @@ class ComposerViewModel(
         }
     }
 
-    private fun commit(element: Element?) {
+    private fun commit(element: Element?, word: Word? = null, line: String? = null) {
         val s = _state.value
         if (s.saving || s.loading) return
         _state.update { it.copy(saving = true, message = null) }
 
         viewModelScope.launch {
+            val text = line ?: s.text
+            // Either the word that was tapped, the word this line already is, or a
+            // new one if the keep toggle is on. Nothing is kept without being asked.
+            val tagged = when {
+                word != null -> word
+                element == null || text.isBlank() -> null
+                s.keeping -> repository.keepWord(element, text, s.goals.nameFor(element))
+                else -> repository.wordUnder(element, text)
+            }
+
             val result = if (s.editingId == null) {
-                repository.log(s.start, s.end, s.text, element)
+                repository.log(s.start, s.end, text, element, tagged?.id)
             } else {
-                repository.update(s.editingId, s.start, s.end, s.text, element)
+                repository.update(s.editingId, s.start, s.end, text, element, tagged?.id)
             }
 
             when (result) {
