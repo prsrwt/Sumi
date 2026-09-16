@@ -36,12 +36,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -94,6 +104,7 @@ fun OnboardingScreen(
 ) {
     val pager = rememberPagerState { PAGE_COUNT }
     val scope = rememberCoroutineScope()
+    var showAside by rememberSaveable { mutableStateOf(false) }
     val page = pager.currentPage
     val isLast = page == PAGE_COUNT - 1
 
@@ -116,9 +127,16 @@ fun OnboardingScreen(
                 .fillMaxWidth()
                 .height(56.dp)
                 .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Only where a page uses a word somebody may not have met before.
+            val aside = asideFor(page)
+            if (aside != null) {
+                IconButton(onClick = { showAside = true }) {
+                    Icon(Icons.Outlined.Info, contentDescription = "What this means")
+                }
+            }
+            Spacer(Modifier.weight(1f))
             AnimatedVisibility(visible = !isLast, enter = fadeIn(tween(FADE_MILLIS)), exit = fadeOut(tween(FADE_MILLIS))) {
                 TextButton(onClick = onFinish) { Text("Skip") }
             }
@@ -128,6 +146,10 @@ fun OnboardingScreen(
             state = pager,
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.Top,
+            // Back and Next turn the pages. A swipe that also turned them would
+            // carry people past a choice they were in the middle of making, and
+            // one of these pages holds a wheel that wants the same gesture.
+            userScrollEnabled = false,
             // The neighbouring pages are built ahead of time, so a turn never has
             // to lay out five text fields in its first frames and drop them.
             beyondViewportPageCount = 1
@@ -153,6 +175,10 @@ fun OnboardingScreen(
                     else -> ReadyPage()
                 }
             }
+        }
+
+        asideFor(page)?.let { aside ->
+            if (showAside) AsideSheet(aside = aside, onDismiss = { showAside = false })
         }
 
         Row(
@@ -187,6 +213,88 @@ fun OnboardingScreen(
                         label = "next-label"
                     ) { Text(it) }
                 }
+            }
+        }
+    }
+}
+
+/** A plain-words answer to "what is this, and what has it got to do with me?". */
+private data class Aside(val title: String, val body: List<String>)
+
+private fun asideFor(page: Int): Aside? = when (page) {
+    1 -> Aside(
+        "What is it actually for?",
+        listOf(
+            "By Friday, most of us cannot say where the week went. Not because it was wasted, but because nobody was keeping the receipt.",
+            "Sumi keeps it. Every so often the clock on your home screen turns into a question, you answer in one line, and that line is the receipt.",
+            "There is no streak to keep and nothing to fail. A missed hour is just a missed hour."
+        )
+    )
+    2 -> Aside(
+        "Why am I choosing a life?",
+        listOf(
+            "Sumi sorts your time into five parts. Which five depends on the life you are living: a student's five are not a shopkeeper's five.",
+            "These are common shapes, so you do not have to invent yours on the first morning. Take the nearest one.",
+            "The drawing beside the wheel is what a week of that life often looks like. It leans, because every real week leans. Nothing here is a target."
+        )
+    )
+    3 -> Aside(
+        "What are these five?",
+        listOf(
+            "Think of five boxes. Everything you log goes into one of them, or into none.",
+            "Each box carries one of five old Japanese symbols: earth, water, fire, wind and emptiness. They are there so the widget can show a whole box in one small mark.",
+            "Keep the boxes wide. \"Health\" holds the walk, the cooking, the sleep you protect and the doctor. \"Gym\" is one thing you did, and that belongs inside Health, not instead of it."
+        )
+    )
+    4 -> Aside(
+        "How often will it ask?",
+        listOf(
+            "The widget turns into a question once this much time has passed since your last entry. Not on a timer, not on the hour: only after you have been quiet for a while.",
+            "It never sends a notification. If you do not look at your home screen, nothing happens at all.",
+            "Quiet hours are the stretch when it will not ask, however long you have been quiet. Sleep goes in there."
+        )
+    )
+    5 -> Aside(
+        "What is a widget?",
+        listOf(
+            "A small panel that sits on your home screen beside your apps, like a clock or a weather square.",
+            "Sumi's shows the time, and now and then becomes a question instead. Tapping it opens one line to answer in.",
+            "Without it Sumi still works, but nothing will ever ask you, and the asking is the point."
+        )
+    )
+    6 -> Aside(
+        "What is the spreadsheet for?",
+        listOf(
+            "Sumi keeps your log on this phone. If the phone is lost, the log is lost with it.",
+            "Connecting Google Sheets makes a copy in your own Google Drive, one tab per month, kept up to date in the background. It is your file, in your account.",
+            "Sumi can only see the one file it made, never anything else in your Drive. It is optional, and can be turned off later."
+        )
+    )
+    else -> null
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AsideSheet(aside: Aside, onDismiss: () -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 40.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(aside.title, style = MaterialTheme.typography.headlineSmall)
+            aside.body.forEach { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
