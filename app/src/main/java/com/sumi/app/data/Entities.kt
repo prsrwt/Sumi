@@ -169,7 +169,9 @@ data class ActivityWithElement(
     val id: Long,
     val name: String,
     val domainId: Long,
-    val element: String
+    val element: String,
+    val uses: Int,
+    val lastUsedAt: Long?
 )
 
 /** One of an element's parts of life, as the app talks about it. */

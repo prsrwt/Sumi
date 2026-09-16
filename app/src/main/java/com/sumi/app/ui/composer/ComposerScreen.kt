@@ -191,15 +191,21 @@ fun ComposerScreen(
                 tonalElevation = 2.dp,
                 shadowElevation = 12.dp
             ) {
-                ComposerCard(
+                val saved = state.askedAfterSaving
+                if (saved != null) {
+                    KeptWherePrompt(
+                        saved = saved,
+                        domains = state.domains,
+                        onChoose = viewModel::keepInto,
+                        onSkip = viewModel::keepNothing
+                    )
+                } else ComposerCard(
                     state = state,
                     onTextChange = viewModel::onTextChange,
                     onRange = viewModel::setRange,
                     onSend = viewModel::send,
                     onElement = viewModel::commitWith,
                     onWord = viewModel::logWord,
-                    onKeep = viewModel::askWhereItGoes,
-                    onKeepInto = viewModel::keepInto,
                     onDelete = viewModel::delete
                 )
             }
@@ -224,8 +230,6 @@ private fun ComposerCard(
     onSend: () -> Unit,
     onElement: (Element) -> Unit,
     onWord: (Word) -> Unit,
-    onKeep: () -> Unit,
-    onKeepInto: (Domain) -> Unit,
     onDelete: () -> Unit
 ) {
     val focus = remember { FocusRequester() }
@@ -287,26 +291,15 @@ private fun ComposerCard(
 
         WordRow(
             state = state,
-            onWord = onWord,
-            onKeep = onKeep
+            onWord = onWord
         )
 
-        if (state.choosingHome) {
-            WhereItGoes(
-                word = state.text.trim(),
-                domains = state.domains,
-                enabled = !state.saving,
-                onChoose = onKeepInto,
-                onCancel = onKeep
-            )
-        } else {
-            ElementRow(
-                goals = state.goals,
-                selected = state.element,
-                enabled = !state.saving,
-                onElement = onElement
-            )
-        }
+        ElementRow(
+            goals = state.goals,
+            selected = state.element,
+            enabled = !state.saving,
+            onElement = onElement
+        )
 
         state.message?.let {
             Text(
@@ -335,14 +328,9 @@ private fun ComposerCard(
 @Composable
 private fun WordRow(
     state: ComposerState,
-    onWord: (Word) -> Unit,
-    onKeep: () -> Unit
+    onWord: (Word) -> Unit
 ) {
-    val typed = state.text.trim()
-    val alreadyKnown = state.words.any { it.name.equals(typed, ignoreCase = true) }
-    val canKeep = typed.isNotEmpty() && !alreadyKnown && state.editingId == null &&
-        state.domains.isNotEmpty()
-    if (state.words.isEmpty() && !canKeep) return
+    if (state.words.isEmpty()) return
 
     Row(
         modifier = Modifier
@@ -350,16 +338,6 @@ private fun WordRow(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        if (canKeep) {
-            WordChip(
-                label = "keep \u201C$typed\u201D",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                selected = state.choosingHome,
-                enabled = !state.saving,
-                description = "Keep $typed as one of your words",
-                onClick = onKeep
-            )
-        }
         state.words.forEach { word ->
             WordChip(
                 label = word.name,
@@ -370,62 +348,6 @@ private fun WordRow(
                 description = "Log ${word.name}",
                 onClick = { onWord(word) }
             )
-        }
-    }
-}
-
-/**
- * Where a new word belongs, asked plainly and answered in one tap.
- *
- * Choosing a part of life says the element as well, so this replaces the row of
- * kanji rather than sitting beside it: one question at a time.
- */
-@Composable
-private fun WhereItGoes(
-    word: String,
-    domains: List<Domain>,
-    enabled: Boolean,
-    onChoose: (Domain) -> Unit,
-    onCancel: () -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "Where does \u201C$word\u201D go?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
-            TextButton(onClick = onCancel) { Text("Not now") }
-        }
-        Column(
-            modifier = Modifier
-                .heightIn(max = 168.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            domains.forEach { domain ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable(enabled = enabled) { onChoose(domain) }
-                        .padding(vertical = 9.dp, horizontal = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = domain.element.kanji,
-                        color = Color(domain.element.color),
-                        fontFamily = SumiFonts.mincho,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(end = 10.dp)
-                    )
-                    Text(
-                        text = domain.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
         }
     }
 }
@@ -469,6 +391,84 @@ private fun WordChip(
             color = if (selected) ink else ink.copy(alpha = 0.85f),
             maxLines = 1
         )
+    }
+}
+
+/**
+ * Asked after the entry is saved, never before it: the hour is already logged, and
+ * this is only about whether the word is worth keeping.
+ *
+ * Grouped under each element with the kanji shown once, because a flat list
+ * repeats the same mark down the side and reads like five of the same thing.
+ */
+@Composable
+private fun KeptWherePrompt(
+    saved: Saved,
+    domains: List<Domain>,
+    onChoose: (Domain) -> Unit,
+    onSkip: () -> Unit
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Logged. Keep \u201C${saved.word}\u201D?",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Put it with a part of your life and it becomes one tap next time.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            TextButton(onClick = onSkip) { Text("No need") }
+        }
+
+        Column(
+            modifier = Modifier
+                .heightIn(max = 260.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Element.entries.forEach { element ->
+                val here = domains.filter { it.element == element }
+                if (here.isEmpty()) return@forEach
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 2.dp)
+                ) {
+                    Text(
+                        text = element.kanji,
+                        color = Color(element.color),
+                        fontFamily = SumiFonts.mincho,
+                        fontSize = 17.sp,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+                    // The element's own name, not the goal's: the goal's name is
+                    // the first row underneath, and saying it twice reads as a bug.
+                    Text(
+                        text = element.displayName,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                here.forEach { domain ->
+                    Text(
+                        text = domain.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onChoose(domain) }
+                            .padding(vertical = 9.dp, horizontal = 26.dp)
+                    )
+                }
+            }
+        }
     }
 }
 

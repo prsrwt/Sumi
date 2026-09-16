@@ -82,6 +82,8 @@ window.SUMI_GUIDE = [
           <p>The sets come from the UN classification for time use statistics (ICATUS 2016), which splits all human activity into nine divisions: employment, production for own use, unpaid domestic services, unpaid caregiving, volunteer work, learning, socialising and community, culture and leisure, and self care. Sumi has five spokes, so every preset is one way of collapsing nine into five, and each one drops something. "Work and home" gives a spoke to unpaid work at home and loses learning; "Studying" makes study the work and loses the paid job. The blurb under each name says what it gives up rather than pretending one set fits everyone.</p>
           <p>Unpaid domestic and care work gets its own spoke in two of the sets because worldwide it is 4 hours 25 minutes a day for women against 1 hour 23 for men (ILO), and 708 million women are outside the labour force because of it. A set of five that only knows about paid jobs would erase the largest block of time in hundreds of millions of lives.</p>
           <p>Names must be broad enough to hold many activities over years. "Health" holds the run, the cooking, the sleep you protect and the doctor. "Gym" holds one hour a week and would sit near the centre of the pentagon forever, which is why no preset names an activity.</p>
+          <p>A part of life from the list arrives with its own words, taken from the American Time Use Survey's lexicon of around 460 activities and stripped of survey language: Health starts with walk, run, gym, yoga, sport, stretching, sleep and doctor. They count as unused until they are used, so they always sit behind your own words. The composer takes them a turn at a time from each element, or the row would open with eight words from whichever part of life was created first.</p>
+          <p>The list is meant to fit a life anywhere, which is why it holds the work most apps leave out: unpaid work at home, looking after an elder, and the land and livestock that ICATUS counts as production for own use, where a great deal of the world's time actually goes.</p>
           <p>The same reasoning removed the text fields. Each of the five opens a sheet holding the parts of life under that element, with a list of suggestions to add from and "Write my own" last. The first part of life is the name the pentagon shows, which is why the order can be rearranged.</p>
           <p>Choosing a different life never costs you anything you have built: applying a set removes only the empty parts it has no use for, and any part holding words you have used is kept and moved to the end of its element.</p>`,
         code: {
@@ -790,10 +792,11 @@ if (canBeExact) {
         why: `Sumi had one name per element until domains arrived, which forced every preset to drop something: a job and a household could not both fit. Several domains per element removed that whole compromise.`
       },
       {
-        title: "Words are kept only when you ask",
+        title: "Words are kept only when you ask, and only after the log",
         body: `
-          <p>Type something Sumi has not seen and one quiet chip appears: <em>keep "guitar"</em>. Ignore it and the line is logged as a note, the way it always was. Tap it and the word is kept in the first domain of whichever element you then log to.</p>
-          <p>After that the word is a chip of its own. Tapping it is a whole log: it carries its element and its domain, so nothing else has to be chosen.</p>`,
+          <p>Log a line Sumi has not seen and the hour is saved first, always. Only then does the card become one question: <em>Logged. Keep "chai with dad"?</em>, with your parts of life grouped under their elements and "No need" beside it. Ignoring it leaves the line as a note; choosing a part of life keeps the word there and puts it on the entry that was just saved.</p>
+          <p>After that the word is a chip of its own. Tapping it is a whole log: it carries its element and its domain, so nothing else has to be chosen.</p>
+          <p>Asking after rather than before matters. A question in the way of logging is a reason not to log; a question after it is an offer.</p>`,
         code: {
           file: "app/src/main/java/com/sumi/app/data/SumiRepository.kt",
           text: `suspend fun keepWord(element: Element, name: String, goalName: String): Word? {

@@ -73,7 +73,7 @@ fun TodayScreen(
             if (!state.goalsNamed) {
                 item {
                     Text(
-                        text = "Name your five in setup →",
+                        text = "Name your five, top left →",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier

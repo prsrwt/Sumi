@@ -23,6 +23,9 @@ import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
 
+/** An entry that is already logged, and the new word it was logged with. */
+data class Saved(val entryId: Long, val word: String)
+
 data class ComposerState(
     val loading: Boolean = true,
     /** Non-null when an existing entry is being edited rather than a new one logged. */
@@ -37,8 +40,12 @@ data class ComposerState(
     val words: List<Word> = emptyList(),
     /** Every part of life, for choosing where a new word belongs. */
     val domains: List<Domain> = emptyList(),
-    /** True while the "keep this word" question is open. */
-    val choosingHome: Boolean = false,
+    /**
+     * Set once an entry is saved with a word Sumi has not seen: the hour is already
+     * recorded, and this is the question of where the word belongs. Answering it or
+     * ignoring it both close the composer.
+     */
+    val askedAfterSaving: Saved? = null,
     val question: String = Prompts.DEFAULT,
     val message: String? = null,
     val saving: Boolean = false,
@@ -114,27 +121,24 @@ class ComposerViewModel(
         }
     }
 
-    fun onTextChange(text: String) = _state.update {
-        // A line that has changed is no longer the line the question was about.
-        it.copy(text = text, message = null, choosingHome = false)
-    }
-
-    /** Opens, or closes, the question of where a new word belongs. */
-    fun askWhereItGoes() = _state.update { it.copy(choosingHome = !it.choosingHome) }
+    fun onTextChange(text: String) = _state.update { it.copy(text = text, message = null) }
 
     /**
-     * Keeps the typed word in the part of life the user pointed at, and logs it
-     * there in the same move. Choosing a domain says the element too, so nothing
-     * else is left to answer.
+     * Keeps the word in the part of life the user pointed at and puts it on the
+     * entry that was just saved. The hour was never waiting on this.
      */
     fun keepInto(domain: Domain) {
-        val s = _state.value
-        if (s.saving || s.loading || s.text.isBlank()) return
+        val saved = _state.value.askedAfterSaving ?: return
         viewModelScope.launch {
-            val word = repository.keepWordIn(domain, s.text)
-            commit(element = domain.element, word = word, line = s.text)
+            val word = repository.keepWordIn(domain, saved.word)
+            if (word != null) repository.tagEntry(saved.entryId, word)
+            WidgetSync.onEntriesChanged(getApplication())
+            _state.update { it.copy(askedAfterSaving = null, done = true) }
         }
     }
+
+    /** Ignoring the question is an answer: the line stays a note and nothing is kept. */
+    fun keepNothing() = _state.update { it.copy(askedAfterSaving = null, done = true) }
 
     /**
      * A word tapped is a whole log: its element, its domain, and the word itself as
@@ -191,7 +195,17 @@ class ComposerViewModel(
             when (result) {
                 is SaveResult.Saved -> {
                     WidgetSync.onEntriesChanged(getApplication())
-                    _state.update { it.copy(saving = false, done = true) }
+                    // A word Sumi has not seen is worth one question, and only once
+                    // the hour is safely logged.
+                    val unknown = s.editingId == null && tagged == null && element != null &&
+                        text.isNotBlank() && s.domains.isNotEmpty()
+                    _state.update {
+                        if (unknown) {
+                            it.copy(saving = false, askedAfterSaving = Saved(result.id, text.trim()))
+                        } else {
+                            it.copy(saving = false, done = true)
+                        }
+                    }
                 }
 
                 is SaveResult.Invalid -> _state.update {

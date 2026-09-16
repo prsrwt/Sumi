@@ -105,6 +105,15 @@ fun FiveChooser(
     val theirOwn = chosen == null && current.any { it.isNotBlank() }
     val automatic = applyOnSettle && !theirOwn
 
+    // On the introduction page the wheel is the choice, and the one it opens on is
+    // a choice too: without this, pressing Next without touching it would leave
+    // somebody with five unnamed spokes.
+    LaunchedEffect(automatic, current) {
+        if (automatic && current.all { it.isBlank() }) {
+            Presets.all.firstOrNull()?.let { setup.applyPreset(it) }
+        }
+    }
+
     PresetPicker(
         startAt = Presets.all.indexOf(chosen).coerceAtLeast(0),
         onApply = { preset ->

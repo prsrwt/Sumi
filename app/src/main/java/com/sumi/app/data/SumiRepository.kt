@@ -69,6 +69,7 @@ class SumiRepository(private val db: SumiDatabase) {
             if (existing != null) return@withTransaction existing.toDomain()
             val position = dao.nextDomainPosition(element.name)
             val id = dao.insertDomain(DomainEntity(name = clean, element = element.name, position = position))
+            if (id > 0) seedWords(id, clean)
             nameSpokeAfterFirstDomain(element.name)
             if (id <= 0) null else Domain(id, clean, element, position)
         }
@@ -124,7 +125,8 @@ class SumiRepository(private val db: SumiDatabase) {
             wanted.forEachIndexed { index, name ->
                 val existing = dao.domainNamed(element.name, name)
                 if (existing == null) {
-                    dao.insertDomain(DomainEntity(name = name, element = element.name, position = index))
+                    val id = dao.insertDomain(DomainEntity(name = name, element = element.name, position = index))
+                    if (id > 0) seedWords(id, name)
                 } else {
                     dao.setDomainPosition(existing.id, index)
                 }
@@ -138,6 +140,29 @@ class SumiRepository(private val db: SumiDatabase) {
             nameSpokeAfterFirstDomain(element.name)
         }
         markEveryMonthDirty()
+    }
+
+    /**
+     * Puts the word on an entry that is already saved, which is how the question
+     * after logging works: the hour is recorded first, and where it belongs is
+     * answered afterwards or not at all.
+     */
+    suspend fun tagEntry(entryId: Long, word: Word) = db.withTransaction {
+        dao.tagEntry(entryId, word.domainId, word.id)
+        dao.touchActivity(word.id, System.currentTimeMillis())
+        val entry = dao.getEntry(entryId) ?: return@withTransaction
+        markDirty(entry.startMillis, entry.zoneId)
+    }
+
+    /**
+     * A part of life from the list arrives with its own words, so the composer has
+     * something to offer before anybody has typed anything. They count as unused
+     * until they are used, so they sit behind your own words, never in front.
+     */
+    private suspend fun seedWords(domainId: Long, name: String) {
+        Domains.wordsFor(name).forEach { word ->
+            dao.insertActivity(ActivityEntity(domainId = domainId, name = word))
+        }
     }
 
     /** How many words a domain holds, for the line under its name. */
@@ -223,9 +248,32 @@ class SumiRepository(private val db: SumiDatabase) {
     suspend fun recentActivities(element: Element, limit: Int = RECENT_ACTIVITIES): List<Activity> =
         dao.recentActivities(element.name, limit).map { it.toActivity() }
 
-    /** The same, across all five, for the composer before an element is chosen. */
-    suspend fun recentWords(limit: Int = RECENT_ACTIVITIES): List<Word> =
-        dao.recentActivitiesEverywhere(limit).mapNotNull { it.toWord() }
+    /**
+     * What the composer offers: the words you have used, most recent first, and
+     * then the ones your parts of life came with.
+     *
+     * The fresh ones are taken a turn at a time from each element rather than in
+     * the order they were stored, or the row would open with eight words from
+     * whichever part of life happened to be created first.
+     */
+    suspend fun recentWords(limit: Int = RECENT_ACTIVITIES): List<Word> {
+        val rows = dao.recentActivitiesEverywhere(limit * 8)
+        val used = rows.filter { it.lastUsedAt != null }.mapNotNull { it.toWord() }
+        if (used.size >= limit) return used.take(limit)
+
+        val fresh = Element.entries.map { element ->
+            rows.filter { it.lastUsedAt == null && it.element == element.name }.mapNotNull { it.toWord() }
+        }
+        val spread = mutableListOf<Word>()
+        var round = 0
+        while (spread.size + used.size < limit && fresh.any { it.size > round }) {
+            fresh.forEach { forElement ->
+                forElement.getOrNull(round)?.let { if (spread.size + used.size < limit) spread.add(it) }
+            }
+            round++
+        }
+        return used + spread
+    }
 
     /** The word already known under this element, if the typed line is one of them. */
     suspend fun wordUnder(element: Element, name: String): Word? {

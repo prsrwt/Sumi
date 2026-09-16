@@ -133,15 +133,17 @@ abstract class SumiDao {
      * belongs to. What the composer offers before an element has been chosen.
      */
     @Query(
-        "SELECT a.id AS id, a.name AS name, a.domainId AS domainId, d.element AS element " +
+        "SELECT a.id AS id, a.name AS name, a.domainId AS domainId, d.element AS element, " +
+            "a.uses AS uses, a.lastUsedAt AS lastUsedAt " +
             "FROM activities a JOIN domains d ON a.domainId = d.id " +
-            "ORDER BY a.lastUsedAt IS NULL, a.lastUsedAt DESC, a.uses DESC, a.name LIMIT :limit"
+            "ORDER BY a.lastUsedAt IS NULL, a.lastUsedAt DESC, a.uses DESC, a.id LIMIT :limit"
     )
     abstract suspend fun recentActivitiesEverywhere(limit: Int): List<ActivityWithElement>
 
     /** The word by that name under an element, whichever domain holds it. */
     @Query(
-        "SELECT a.id AS id, a.name AS name, a.domainId AS domainId, d.element AS element " +
+        "SELECT a.id AS id, a.name AS name, a.domainId AS domainId, d.element AS element, " +
+            "a.uses AS uses, a.lastUsedAt AS lastUsedAt " +
             "FROM activities a JOIN domains d ON a.domainId = d.id " +
             "WHERE d.element = :element AND a.name = :name COLLATE NOCASE LIMIT 1"
     )
@@ -154,6 +156,9 @@ abstract class SumiDao {
     /** Entries keep their note when a tag disappears, rather than pointing at nothing. */
     @Query("UPDATE entries SET activityId = NULL WHERE activityId = :id")
     abstract suspend fun untagActivity(id: Long)
+
+    @Query("UPDATE entries SET domainId = :domainId, activityId = :activityId WHERE id = :id")
+    abstract suspend fun tagEntry(id: Long, domainId: Long, activityId: Long)
 
     @Query("UPDATE entries SET domainId = NULL, activityId = NULL WHERE domainId = :id")
     abstract suspend fun untagDomain(id: Long)
