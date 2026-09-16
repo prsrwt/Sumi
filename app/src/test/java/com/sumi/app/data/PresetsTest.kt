@@ -1,6 +1,7 @@
 package com.sumi.app.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -69,6 +70,29 @@ class PresetsTest {
         val to = Presets.all[1]
         assertEquals(from.shape, Presets.shapeBetween(from, to, -2f))
         assertEquals(to.shape, Presets.shapeBetween(from, to, 4f))
+    }
+
+    @Test
+    fun `names that came from a preset are recognised as that preset`() {
+        val goals = defaultGoals()
+        Presets.all.forEach { preset ->
+            val names = Presets.namesForSlots(preset, goals)
+            assertEquals(preset.title, preset, Presets.matching(goals, names))
+        }
+    }
+
+    @Test
+    fun `blank rows are the blank preset, and anything hand written is nobody's preset`() {
+        val goals = defaultGoals()
+        assertEquals(Presets.all.last(), Presets.matching(goals, List(5) { "" }))
+        assertNull(Presets.matching(goals, listOf("Gym", "Amma", "Thesis", "Guitar", "Walks")))
+        // One name changed is no longer the preset, so replacing it has to ask.
+        val edited = Presets.namesForSlots(Presets.all.first(), goals).toMutableList().also { it[2] = "Thesis" }
+        assertNull(Presets.matching(goals, edited))
+    }
+
+    private fun defaultGoals() = Element.entries.mapIndexed { slot, element ->
+        Goal(slot = slot, name = "", element = element)
     }
 
     /** Elements can be moved between goals, so names follow the element, not the row. */

@@ -67,6 +67,7 @@ import com.sumi.app.ui.SumiFonts
 import com.sumi.app.ui.setup.AddWidgetButton
 import com.sumi.app.ui.setup.GoalRow
 import com.sumi.app.ui.setup.SetupViewModel
+import com.sumi.app.ui.account.FiveChooser
 import com.sumi.app.ui.setup.SheetsSection
 import com.sumi.app.ui.setup.TimeButton
 import kotlinx.coroutines.launch
@@ -76,7 +77,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 
 /**
- * The first-launch introduction: seven quiet pages from what Sumi is for to a
+ * The first-launch introduction: eight quiet pages from what Sumi is for to a
  * ready home screen.
  *
  * Every choice on these pages is the real setting, saved the moment it changes,
@@ -144,10 +145,11 @@ fun OnboardingScreen(
                 when (index) {
                     0 -> WelcomePage()
                     1 -> HowItWorksPage(setup)
-                    2 -> FivePage(setup)
-                    3 -> RhythmPage(setup)
-                    4 -> WidgetPage()
-                    5 -> SheetsPage()
+                    2 -> StartFromPage(setup)
+                    3 -> FivePage(setup)
+                    4 -> RhythmPage(setup)
+                    5 -> WidgetPage()
+                    6 -> SheetsPage()
                     else -> ReadyPage()
                 }
             }
@@ -238,6 +240,27 @@ private fun HowItWorksPage(setup: SetupViewModel) {
     }
 }
 
+/**
+ * Five empty rows is a hard question on the first morning, so the wheel comes
+ * first: turn it, see the shape a life like that tends to draw, and take the set
+ * closest to yours. The next page is the same five with the names filled in,
+ * where any of them can be changed.
+ */
+@Composable
+private fun StartFromPage(setup: SetupViewModel) {
+    Page(title = "Start from one of these") {
+        Body("Turn the wheel and take whichever is closest. You can change every name on the next page.")
+        FiveChooser(
+            setup = setup,
+            // The page does not scroll, so the wheel shows three names rather than
+            // five and the drawing sits flatter.
+            visibleRows = 3,
+            previewAspect = 1.9f
+        )
+        Body("Most weeks lean. Yours will too: the shape is an example, not something to match.")
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FivePage(setup: SetupViewModel) {
@@ -245,7 +268,7 @@ private fun FivePage(setup: SetupViewModel) {
     val names by setup.names.collectAsStateWithLifecycle()
 
     Page(title = "Your five", scrollable = WindowInsets.isImeVisible) {
-        Body("The five things you most want your time to go to. Each gets one of the classical Japanese elements.")
+        Body("Each gets one of the classical Japanese elements. Change any name that does not fit your life.")
         val current = names
         if (current != null && goals.size == GOAL_COUNT) {
             goals.sortedBy { it.slot }.forEach { goal ->
@@ -459,6 +482,6 @@ private fun Dots(current: Int, modifier: Modifier = Modifier) {
     }
 }
 
-private const val PAGE_COUNT = 7
+private const val PAGE_COUNT = 8
 private const val PAGE_TURN_MILLIS = 560
 private const val FADE_MILLIS = 260

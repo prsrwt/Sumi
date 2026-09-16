@@ -172,4 +172,16 @@ object Presets {
      */
     fun namesForSlots(preset: Preset, goals: List<Goal>): List<String> =
         goals.sortedBy { it.slot }.map { preset.names[it.element] ?: "" }
+
+    /**
+     * The preset these five names came from, if they came from one at all.
+     *
+     * It is what tells a ready-made five apart from a five somebody wrote. There
+     * is nothing to warn about when swapping one ready-made set for another: the
+     * only names worth asking about are the ones a person typed themselves.
+     */
+    fun matching(goals: List<Goal>, names: List<String>): Preset? =
+        all.firstOrNull { preset ->
+            namesForSlots(preset, goals) == names.map { it.trim() }
+        }
 }

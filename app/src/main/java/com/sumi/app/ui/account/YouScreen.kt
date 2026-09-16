@@ -16,17 +16,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,7 +32,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.GOAL_COUNT
-import com.sumi.app.data.Preset
 import com.sumi.app.ui.SumiFonts
 import com.sumi.app.ui.setup.GoalRow
 import com.sumi.app.ui.setup.SectionTitle
@@ -89,9 +83,6 @@ fun YouScreen(
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val names by viewModel.names.collectAsStateWithLifecycle()
 
-    // A preset waiting for a yes, because it would write over names already there.
-    var pending by remember { mutableStateOf<Preset?>(null) }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -117,15 +108,9 @@ fun YouScreen(
 
         val currentNames = names
         if (currentNames != null && goals.size == GOAL_COUNT) {
-            PresetPicker(
-                goals = goals,
-                onApply = { preset ->
-                    // Turning the wheel changes nothing. Pressing the button does,
-                    // and it asks first if there is anything to lose.
-                    if (currentNames.any { it.isNotBlank() }) pending = preset else viewModel.applyPreset(preset)
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Turning the wheel changes nothing. Pressing its button does, and it
+            // asks first if there is anything to lose.
+            FiveChooser(setup = viewModel, modifier = Modifier.fillMaxWidth())
 
             Text(
                 text = "Most weeks lean. Yours will too: the shape above is an example, not something to match.",
@@ -147,26 +132,4 @@ fun YouScreen(
         SheetsSection()
     }
 
-    pending?.let { preset ->
-        AlertDialog(
-            onDismissRequest = { pending = null },
-            title = { Text(if (preset.isBlank) "Clear your five?" else "Replace your five?") },
-            text = {
-                Text(
-                    if (preset.isBlank) "The five names are emptied so you can write your own. Nothing you have logged is lost."
-                    else "The names you have now are replaced by ${preset.title.lowercase()}. " +
-                        "Nothing you have logged is lost: entries are kept by element, so your history keeps its shape."
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.applyPreset(preset)
-                    pending = null
-                }) { Text(if (preset.isBlank) "Clear" else "Replace") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pending = null }) { Text("Keep mine") }
-            }
-        )
-    }
 }

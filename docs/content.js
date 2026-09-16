@@ -131,7 +131,7 @@ window.SUMI_GUIDE = [
             <li><strong>Balance.</strong> A pentagon of the last 7 or 14 days and a 30-day grid.</li>
             <li><strong>Setup.</strong> Behind the gear: the rhythm, quiet hours, resets, about. Sumi's own settings.</li>
             <li><strong>You.</strong> Behind the mark at the top left: your five, a wheel of ready-made fives, and the Google account your log is copied to.</li>
-            <li><strong>Introduction.</strong> Seven pages on first launch.</li>
+            <li><strong>Introduction.</strong> Eight pages on first launch.</li>
             <li><strong>Sync.</strong> Invisible: copies the log to Google Sheets in the background.</li>
           </ul>`
       },
@@ -990,14 +990,15 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
     kanji: "迎",
     element: "void",
     title: "The introduction",
-    blurb: "Seven pages on first launch, built from Setup's own parts.",
+    blurb: "Eight pages on first launch, built from the parts Setup and You already use.",
     slides: [
       {
-        title: "Seven pages, every one skippable",
+        title: "Eight pages, every one skippable",
         body: `
           <ol>
             <li>墨 Sumi</li>
             <li>How it works</li>
+            <li>Start from one of these</li>
             <li>Your five</li>
             <li>Rhythm</li>
             <li>Add the widget</li>
@@ -1025,7 +1026,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
       {
         title: "Reuse, not copies",
         body: `
-          <p>The goal rows, the rhythm tabs, the quiet hours buttons, the add-widget button and the Sheets section on these pages are the same composables and the same <code>SetupViewModel</code> that Setup uses.</p>`,
+          <p>The goal rows, the rhythm tabs, the quiet hours buttons, the add-widget button and the Sheets section on these pages are the same composables and the same <code>SetupViewModel</code> that Setup uses. The wheel of ready-made fives is the same <code>FiveChooser</code> the You screen shows, asked for three rows instead of five and a flatter drawing, because these pages do not scroll.</p>`,
         why: `Two copies of the goal editor would eventually behave differently. One copy cannot.`
       },
       {

@@ -13,15 +13,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,9 +47,10 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sumi.app.data.Element
-import com.sumi.app.data.Goal
+import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Preset
 import com.sumi.app.data.Presets
+import com.sumi.app.ui.setup.SetupViewModel
 import com.sumi.app.ui.SumiFonts
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -55,9 +61,6 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Rows visible at once, with the chosen one in the middle. Odd, so there is a middle. */
-private const val VISIBLE_ROWS = 5
-
 /**
  * A turning wheel of ready-made fives, with the shape such a life tends to draw
  * changing as the wheel turns.
@@ -67,15 +70,74 @@ private const val VISIBLE_ROWS = 5
  * already named.
  */
 @Composable
-fun PresetPicker(
-    goals: List<Goal>,
+fun FiveChooser(
+    setup: SetupViewModel,
+    modifier: Modifier = Modifier,
+    /** Fewer rows and a flatter drawing where the page cannot scroll. */
+    visibleRows: Int = 5,
+    previewAspect: Float = 1.45f
+) {
+    val goals by setup.goals.collectAsStateWithLifecycle()
+    val names by setup.names.collectAsStateWithLifecycle()
+    val current = names ?: return
+    if (goals.size != GOAL_COUNT) return
+
+    // A preset waiting for a yes, because it would write over names somebody wrote.
+    var pending by remember { mutableStateOf<Preset?>(null) }
+
+    // Where the wheel opens, and whether replacing needs asking at all. Five names
+    // that came from a preset are not "yours" in any sense worth protecting, so
+    // swapping one ready-made set for another just happens.
+    val chosen = Presets.matching(goals, current)
+    val theirOwn = chosen == null && current.any { it.isNotBlank() }
+
+    PresetPicker(
+        startAt = Presets.all.indexOf(chosen).coerceAtLeast(0),
+        onApply = { preset ->
+            if (theirOwn) pending = preset else setup.applyPreset(preset)
+        },
+        visibleRows = visibleRows,
+        previewAspect = previewAspect,
+        modifier = modifier
+    )
+
+    pending?.let { preset ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(if (preset.isBlank) "Clear your five?" else "Replace your five?") },
+            text = {
+                Text(
+                    if (preset.isBlank) "The five names are emptied so you can write your own. Nothing you have logged is lost."
+                    else "The names you have now are replaced by ${preset.title.lowercase()}. " +
+                        "Nothing you have logged is lost: entries are kept by element, so your history keeps its shape."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    setup.applyPreset(preset)
+                    pending = null
+                }) { Text(if (preset.isBlank) "Clear" else "Replace") }
+            },
+            dismissButton = {
+                TextButton(onClick = { pending = null }) { Text("Keep mine") }
+            }
+        )
+    }
+}
+
+@Composable
+private fun PresetPicker(
+    startAt: Int,
     onApply: (Preset) -> Unit,
+    visibleRows: Int,
+    previewAspect: Float,
     modifier: Modifier = Modifier
 ) {
     val presets = Presets.all
     val bandInk = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
     val itemHeight = 44.dp
-    val state = rememberLazyListState()
+    // Opens on the set the five already came from, so the wheel says where you are.
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = startAt)
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
 
@@ -109,6 +171,7 @@ fun PresetPicker(
         ShapePreview(
             preset = presets[centre],
             shape = shape,
+            aspect = previewAspect,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
@@ -120,14 +183,14 @@ fun PresetPicker(
             horizontalAlignment = Alignment.CenterHorizontally,
             // Two blank rows above and below, so the first and last names can
             // reach the middle of the wheel like any other.
-            contentPadding = PaddingValues(vertical = itemHeight * (VISIBLE_ROWS / 2)),
+            contentPadding = PaddingValues(vertical = itemHeight * (visibleRows / 2)),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(itemHeight * VISIBLE_ROWS)
+                .height(itemHeight * visibleRows)
                 .drawBehind {
                     // The window the wheel turns behind: two hairlines, so it is
                     // never a guess which name is the chosen one.
-                    val band = size.height / VISIBLE_ROWS
+                    val band = size.height / visibleRows
                     val top = (size.height - band) / 2f
                     val line = 1.dp.toPx()
                     drawLine(bandInk, Offset(0f, top), Offset(size.width, top), line)
@@ -184,6 +247,7 @@ fun PresetPicker(
 private fun ShapePreview(
     preset: Preset,
     shape: Map<Element, Float>,
+    aspect: Float,
     modifier: Modifier = Modifier
 ) {
     val ink = MaterialTheme.colorScheme.onBackground
@@ -195,7 +259,7 @@ private fun ShapePreview(
 
     Canvas(
         modifier = modifier
-            .aspectRatio(1.45f)
+            .aspectRatio(aspect)
             .clearAndSetSemantics { contentDescription = description }
     ) {
         val center = Offset(size.width / 2, size.height / 2)
