@@ -782,7 +782,7 @@ val perElement = Element.entries.associateWith { element ->
       {
         title: "The pentagon",
         body: `
-          <p>Five spokes, one per element. Each spoke's length is that element's time relative to the most-used one. It is drawn on a Compose <code>Canvas</code>, with the kanji, your goal's name and the time at each tip.</p>
+          <p>Five spokes, one per element. Each spoke's length is that element's time relative to the most-used one. It is drawn on a Compose <code>Canvas</code>, with the kanji and your goal's name at each tip. No hours are printed: the length is the amount, and the exact figures live in the composer and in the Google Sheet.</p>
           <p>It grows from the centre over 700 ms when Balance opens, and each spoke glides to its new length over 520 ms when you switch windows. Before anything is logged it still shows, empty, so the screen explains itself.</p>`,
         why: `Relative length is a ratio, not a score. A short spoke is simply small; nothing is marked as behind.`
       },
@@ -797,7 +797,7 @@ val perElement = Element.entries.associateWith { element ->
         body: `
           <p>The quiet note shows where to push. Its calm opposite shows where you may be pushing too hard, with one of two lines:</p>
           <ul>
-            <li><strong>"Deep work has averaged more than 55 hours a week lately."</strong> The WHO and ILO found that 55 or more working hours a week raises the risk of stroke by about 35% and of dying from heart disease by about 17%.</li>
+            <li><strong>"Deep work has been taking long weeks lately."</strong> A long week here means the pace of 55 hours or more, the level at which the WHO and ILO found the risk of stroke rises by about 35% and of dying from heart disease by about 17%. The number stays out of the sentence; the screen carries no figures.</li>
             <li><strong>"Deep work has taken more than half your time lately."</strong> Balance research measures balance as time shared across the parts of life that matter; more than half in one of five outweighs all the others together.</li>
           </ul>
           <p>Neither appears in the first days of use, and shares are only spoken of once at least 10 hours are logged.</p>`,

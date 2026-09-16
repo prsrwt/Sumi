@@ -115,7 +115,7 @@ fun BalanceScreen(
         snapshot.heavy?.let { heavy ->
             val name = state.goals.nameFor(heavy.element)
             Text(
-                text = if (heavy.longWeeks) "$name has averaged more than 55 hours a week lately."
+                text = if (heavy.longWeeks) "$name has been taking long weeks lately."
                 else "$name has taken more than half your time lately.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -182,11 +182,9 @@ fun BalanceScreen(
 @Composable
 private fun Pentagon(snapshot: BalanceSnapshot, goals: List<Goal>, modifier: Modifier = Modifier) {
     val ink = MaterialTheme.colorScheme.onBackground
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val measurer = rememberTextMeasurer()
     val kanjiStyle = TextStyle(fontFamily = SumiFonts.mincho, fontSize = 22.sp)
     val nameStyle = TextStyle(fontSize = 12.sp, color = ink)
-    val hoursStyle = TextStyle(fontSize = 11.sp, color = muted)
 
     val maxMinutes = snapshot.perElement.values.maxOf { it.toMinutes() }.coerceAtLeast(1)
 
@@ -252,8 +250,9 @@ private fun Pentagon(snapshot: BalanceSnapshot, goals: List<Goal>, modifier: Mod
                 drawCircle(Color(element.color), 3.5.dp.toPx(), vertex(i, radius * shares[i].value * growth.value))
             }
 
-            // Kanji, the goal's own name, then its time, stacked and centred on the
-            // spoke's end. Long names are cut short rather than colliding.
+            // Kanji and the goal's own name, stacked and centred on the spoke's end.
+            // No hours: the length of the spoke is the amount. Long names are cut
+            // short rather than colliding.
             val labelCenter = vertex(i, radius * 1.40f)
             val kanji = measurer.measure(element.kanji, kanjiStyle.copy(color = Color(element.color)))
             val name = measurer.measure(
@@ -263,10 +262,8 @@ private fun Pentagon(snapshot: BalanceSnapshot, goals: List<Goal>, modifier: Mod
                 maxLines = 1,
                 constraints = Constraints(maxWidth = (size.width * 0.28f).toInt())
             )
-            val hours = measurer.measure(Format.duration(time), hoursStyle)
-
-            var y = labelCenter.y - (kanji.size.height + name.size.height + hours.size.height) / 2f
-            for (line in listOf(kanji, name, hours)) {
+            var y = labelCenter.y - (kanji.size.height + name.size.height) / 2f
+            for (line in listOf(kanji, name)) {
                 drawText(line, topLeft = Offset(labelCenter.x - line.size.width / 2f, y))
                 y += line.size.height
             }
@@ -311,7 +308,14 @@ private fun BreakdownRow(kanji: String, color: Color, name: String, time: Durati
         animationSpec = tween(RESHAPE_MILLIS, easing = FastOutSlowInEasing),
         label = "bar-$key"
     )
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    // Nothing on the row says the amount out loud, so the row says it for a screen
+    // reader, which has no bar to look at.
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.clearAndSetSemantics {
+            contentDescription = "$name, ${Format.spokenDuration(time)}"
+        }
+    ) {
         Text(
             text = kanji,
             fontFamily = SumiFonts.mincho,
@@ -343,12 +347,6 @@ private fun BreakdownRow(kanji: String, color: Color, name: String, time: Durati
                 )
             }
         }
-        Text(
-            text = Format.duration(time),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 12.dp)
-        )
     }
 }
 

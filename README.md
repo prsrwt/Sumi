@@ -23,6 +23,7 @@ No streaks, no scores, no notifications. A missed hour is just a missed hour.
 - **Five goals, five elements.** Your goals are paired with the Godai, the five classical Japanese elements: 地 Earth, 水 Water, 火 Fire, 風 Wind and 空 Void. Name Fire "Workout" and it is called Workout everywhere. Time with no element is 無, untagged.
 - **Today.** The day as a timesheet, with unlogged gaps you can tap to fill.
 - **Balance.** A pentagon of the last 7 or 14 days and a dated 30-day grid, showing where to push and where you may be pushing too hard: a gentle note when a goal has been quiet lately, or when one has taken more than half your time.
+- **Shape, not figures.** Balance carries no hours at all: the length of a spoke and of a bar is the amount. The exact times stay where they are needed, in the composer, on Today, in your Google Sheet, and in what a screen reader reads aloud.
 - **Every day you have logged.** Tap the grid to open month calendars you can scroll back through, and tap any day to see what it held.
 - **Google Sheets, optional.** Behind the mark at the top left, Sumi keeps a spreadsheet in your own Google Drive up to date, one tab per month, even after being offline.
 - **Inside Sumi.** A slideshow study guide to how the app is built, readable inside the app.
