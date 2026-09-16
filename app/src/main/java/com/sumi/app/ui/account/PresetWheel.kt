@@ -1,5 +1,8 @@
 package com.sumi.app.ui.account
 
+import android.os.Build
+import android.view.HapticFeedbackConstants
+import android.view.View
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -37,8 +40,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
@@ -55,6 +57,7 @@ import com.sumi.app.data.Presets
 import com.sumi.app.ui.setup.SetupViewModel
 import com.sumi.app.ui.SumiFonts
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.abs
@@ -141,7 +144,7 @@ private fun PresetPicker(
     // Opens on the set the five already came from, so the wheel says where you are.
     val state = rememberLazyListState(initialFirstVisibleItemIndex = startAt)
     val scope = rememberCoroutineScope()
-    val haptics = LocalHapticFeedback.current
+    val view = LocalView.current
 
     // Where the wheel is standing, as a fraction: 2.4 means the third row has
     // passed the middle and the fourth is coming up. Measured from where the rows
@@ -165,11 +168,17 @@ private fun PresetPicker(
         derivedStateOf { position.value.roundToInt().coerceIn(0, presets.lastIndex) }
     }
 
-    // A small tick as each name passes the centre, the way a dial clicks.
+    // A light tick as each name passes the middle, the way a dial clicks under a
+    // finger, and a softer one when the wheel comes to rest, so a hand knows it has
+    // landed without looking. Android silences both if haptics are turned off.
     LaunchedEffect(state) {
-        snapshotFlow { centre }.drop(1).collect {
-            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        }
+        snapshotFlow { centre }.drop(1).collect { view.wheelTick() }
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.isScrollInProgress }
+            .drop(1)
+            .filter { !it }
+            .collect { view.wheelSettled() }
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -238,7 +247,10 @@ private fun PresetPicker(
         )
 
         OutlinedButton(
-            onClick = { onApply(presets[centre]) },
+            onClick = {
+                view.wheelSettled()
+                onApply(presets[centre])
+            },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(if (presets[centre].isBlank) "Clear the five" else "Use these five")
@@ -333,4 +345,26 @@ private fun ShapePreview(
             }
         }
     }
+}
+
+/**
+ * The tick of one name passing the middle of the wheel.
+ *
+ * Android 14 brought a tick made for exactly this, a scale or a dial moving under
+ * a finger, lighter than anything older. Before that, the clock tick a time picker
+ * uses is the closest thing and is just as quiet.
+ */
+private fun View.wheelTick() {
+    performHapticFeedback(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) HapticFeedbackConstants.SEGMENT_FREQUENT_TICK
+        else HapticFeedbackConstants.CLOCK_TICK
+    )
+}
+
+/** The rounder one for landing on a name, and for taking it. */
+private fun View.wheelSettled() {
+    performHapticFeedback(
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) HapticFeedbackConstants.CONFIRM
+        else HapticFeedbackConstants.CLOCK_TICK
+    )
 }
