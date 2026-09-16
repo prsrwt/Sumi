@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -65,9 +66,13 @@ fun HistorySheet(
         containerColor = MaterialTheme.colorScheme.background
     ) {
         LazyColumn(
-            modifier = Modifier.padding(horizontal = 20.dp),
+            // About two thirds of the screen: enough for a month at a glance,
+            // little enough that the sheet still reads as a sheet.
+            modifier = Modifier
+                .fillMaxHeight(0.68f)
+                .padding(horizontal = 20.dp),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 40.dp),
-            verticalArrangement = Arrangement.spacedBy(28.dp)
+            verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -106,7 +111,7 @@ private fun MonthCalendar(
         DateTimeFormatter.ofPattern("MMMM yyyy", locale).format(month.month)
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             text = title,
             fontFamily = SumiFonts.mincho,
@@ -161,11 +166,11 @@ private fun DayCell(day: HistoryDay, today: LocalDate, onOpenDay: (LocalDate) ->
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp),
         modifier = Modifier
-            .padding(vertical = 4.dp)
+            .padding(vertical = 2.dp)
             .clip(RoundedCornerShape(12.dp))
             .then(if (future) Modifier else Modifier.clickable { onOpenDay(day.date) })
             .clearAndSetSemantics { if (description.isNotEmpty()) contentDescription = description }
-            .padding(vertical = 6.dp)
+            .padding(vertical = 4.dp)
     ) {
         Canvas(
             modifier = Modifier
