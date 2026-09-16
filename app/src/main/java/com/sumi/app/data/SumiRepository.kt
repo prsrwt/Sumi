@@ -101,6 +101,45 @@ class SumiRepository(private val db: SumiDatabase) {
         markEveryMonthDirty()
     }
 
+    /**
+     * Lays out the five as a ready-made set describes them.
+     *
+     * A part of life holding words the user has used is never thrown away: it is
+     * kept and moved to the end of its element. Only empty ones the new set has no
+     * use for are removed, so choosing a different life never costs anybody the
+     * words they had built up.
+     */
+    suspend fun applyPreset(parts: Map<Element, List<String>>) = db.withTransaction {
+        Element.entries.forEach { element ->
+            val wanted = parts[element].orEmpty().map { it.trim() }.filter { it.isNotBlank() }
+            val here = dao.getDomains().filter { it.element == element.name }
+
+            here.filter { domain -> wanted.none { it.equals(domain.name, ignoreCase = true) } }
+                .filter { dao.activityCount(it.id) == 0 }
+                .forEach { empty ->
+                    dao.untagDomain(empty.id)
+                    dao.deleteDomain(empty.id)
+                }
+
+            wanted.forEachIndexed { index, name ->
+                val existing = dao.domainNamed(element.name, name)
+                if (existing == null) {
+                    dao.insertDomain(DomainEntity(name = name, element = element.name, position = index))
+                } else {
+                    dao.setDomainPosition(existing.id, index)
+                }
+            }
+
+            dao.getDomains()
+                .filter { it.element == element.name && wanted.none { w -> w.equals(it.name, ignoreCase = true) } }
+                .sortedBy { it.position }
+                .forEachIndexed { index, kept -> dao.setDomainPosition(kept.id, wanted.size + index) }
+
+            nameSpokeAfterFirstDomain(element.name)
+        }
+        markEveryMonthDirty()
+    }
+
     /** How many words a domain holds, for the line under its name. */
     suspend fun wordCount(domainId: Long): Int = dao.activityCount(domainId)
 
@@ -172,6 +211,10 @@ class SumiRepository(private val db: SumiDatabase) {
         dao.deleteActivity(id)
         markEveryMonthDirty()
     }
+
+    /** Every word by id, for writing the sheet. */
+    suspend fun wordNames(): Map<Long, String> =
+        dao.allActivities().associate { it.id to it.name }
 
     suspend fun activitiesIn(domainId: Long): List<Activity> =
         dao.activitiesIn(domainId).map { it.toActivity() }

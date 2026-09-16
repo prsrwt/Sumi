@@ -61,7 +61,13 @@ class SetupViewModel(app: Application) : AndroidViewModel(app) {
      * moved an element from one goal to another.
      */
     fun applyPreset(preset: Preset) {
-        _names.value = Presets.namesForSlots(preset, goals.value)
+        viewModelScope.launch {
+            repository.applyPreset(preset.parts)
+            // The names are the first domain of each element now, so they are read
+            // back rather than set here, and any save still waiting is replaced.
+            _names.value = repository.goalsNow().sortedBy { it.slot }.map { it.name }
+            SheetsSync.requestIfNeeded(getApplication())
+        }
     }
 
     /** Swaps with whichever goal already had this element, keeping the mapping one-to-one. */

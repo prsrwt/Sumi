@@ -82,18 +82,19 @@ window.SUMI_GUIDE = [
           <p>The sets come from the UN classification for time use statistics (ICATUS 2016), which splits all human activity into nine divisions: employment, production for own use, unpaid domestic services, unpaid caregiving, volunteer work, learning, socialising and community, culture and leisure, and self care. Sumi has five spokes, so every preset is one way of collapsing nine into five, and each one drops something. "Work and home" gives a spoke to unpaid work at home and loses learning; "Studying" makes study the work and loses the paid job. The blurb under each name says what it gives up rather than pretending one set fits everyone.</p>
           <p>Unpaid domestic and care work gets its own spoke in two of the sets because worldwide it is 4 hours 25 minutes a day for women against 1 hour 23 for men (ILO), and 708 million women are outside the labour force because of it. A set of five that only knows about paid jobs would erase the largest block of time in hundreds of millions of lives.</p>
           <p>Names must be broad enough to hold many activities over years. "Health" holds the run, the cooking, the sleep you protect and the doctor. "Gym" holds one hour a week and would sit near the centre of the pentagon forever, which is why no preset names an activity.</p>
-          <p>The same reasoning removed the text fields. Each of the five opens a sheet with ten domains in it, each with a line saying what it holds, and "Write my own" last for a life those words do not fit. A name another goal already holds is left out of the list, so no two spokes can be called the same thing.</p>`,
+          <p>The same reasoning removed the text fields. Each of the five opens a sheet holding the parts of life under that element, with a list of suggestions to add from and "Write my own" last. The first part of life is the name the pentagon shows, which is why the order can be rearranged.</p>
+          <p>Choosing a different life never costs you anything you have built: applying a set removes only the empty parts it has no use for, and any part holding words you have used is kept and moved to the end of its element.</p>`,
         code: {
           file: "app/src/main/java/com/sumi/app/data/Presets.kt",
           text: `Preset(
     title = "A job and a home",
-    blurb = "You work, and you run a household. The double shift, so learning gives up its place.",
-    names = mapOf(
-        Element.EARTH to "Health",
-        Element.WATER to "People",
-        Element.FIRE to "Job",
-        Element.WIND to "Home and care",
-        Element.VOID to "Rest"
+    blurb = "You work, and you run a household. The double shift.",
+    parts = mapOf(
+        Element.EARTH to listOf("Home and care", "Health"),
+        Element.WATER to listOf("People"),
+        Element.FIRE to listOf("Work", "Money and admin"),
+        Element.WIND to listOf("Growth"),
+        Element.VOID to listOf("Rest")
     ),
     ...
 )`
@@ -1043,7 +1044,8 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
       {
         title: "Rewrite a month, never patch a row",
         body: `
-          <p>Every change marks its month "dirty" in the same database transaction as the change itself. A sync takes each dirty month, reads its entries, clears the tab's columns A to H and writes them again, all in one batch that Sheets applies completely or not at all.</p>
+          <p>Every change marks its month "dirty" in the same database transaction as the change itself. A sync takes each dirty month, reads its entries, rewrites the header, clears Sumi's columns and writes them again, all in one batch that Sheets applies completely or not at all. The header is rewritten every time because a tab written by an older version has fewer columns, and the new ones would otherwise sit under the wrong names.</p>
+          <p>A row carries the date, the start and end, the minutes, the element, the goal, the part of life, the word and the note, with Sumi's own id last.</p>
           <p>Patching single rows would mean tracking which row holds which entry, and rows shift when something is deleted. Rewriting has nothing to drift out of step, and running it twice gives the same sheet.</p>`,
         code: {
           file: "app/src/main/java/com/sumi/app/sync/SheetsSync.kt",

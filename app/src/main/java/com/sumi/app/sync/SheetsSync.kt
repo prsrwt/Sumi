@@ -147,6 +147,8 @@ object SheetsSync {
     private suspend fun push(repository: SumiRepository, link: SheetsLink, http: GoogleHttp) {
         val spreadsheetId = liveSheet(repository, link, http)
         val goals = repository.goalsNow()
+        val domainNames = repository.domainsNow().associate { it.id to it.name }
+        val wordNames = repository.wordNames()
         var tabs = Timesheet.tabs(http, spreadsheetId)
 
         for (month in repository.dirtyMonths()) {
@@ -154,7 +156,14 @@ object SheetsSync {
             // month is being written queues it again rather than being lost.
             repository.clearDirty(month)
             try {
-                val requests = TimesheetLayout.rewriteMonth(month, repository.entriesForMonth(month), goals, tabs)
+                val requests = TimesheetLayout.rewriteMonth(
+                    month = month,
+                    entries = repository.entriesForMonth(month),
+                    goals = goals,
+                    existing = tabs,
+                    domains = domainNames,
+                    words = wordNames
+                )
                 if (requests.length() > 0) {
                     Timesheet.batchUpdate(http, spreadsheetId, requests)
                     if (tabs.none { it.sheetId == TimesheetLayout.sheetIdFor(month) }) {

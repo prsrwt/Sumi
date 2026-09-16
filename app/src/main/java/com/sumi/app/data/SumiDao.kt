@@ -90,6 +90,9 @@ abstract class SumiDao {
     @Query("SELECT * FROM activities ORDER BY name")
     abstract fun observeActivities(): Flow<List<ActivityEntity>>
 
+    @Query("SELECT * FROM activities")
+    abstract suspend fun allActivities(): List<ActivityEntity>
+
     @Query("SELECT * FROM activities WHERE domainId = :domainId ORDER BY name")
     abstract suspend fun activitiesIn(domainId: Long): List<ActivityEntity>
 

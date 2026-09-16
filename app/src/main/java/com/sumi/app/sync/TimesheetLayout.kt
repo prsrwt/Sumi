@@ -35,7 +35,9 @@ object TimesheetLayout {
     const val MARKER_KEY = "sumi"
     const val MARKER_VALUE = "timesheet"
 
-    val HEADER = listOf("Date", "Start", "End", "Minutes", "Element", "Goal", "Note", "Sumi ID")
+    val HEADER = listOf(
+        "Date", "Start", "End", "Minutes", "Element", "Goal", "Part of life", "Word", "Note", "Sumi ID"
+    )
 
     /** Drive search for the sheet: Sumi's marker, and not in the bin. */
     val FIND_QUERY = "appProperties has { key='$MARKER_KEY' and value='$MARKER_VALUE' } and trashed = false"
@@ -87,14 +89,8 @@ object TimesheetLayout {
             )
         )
 
-        val headerCells = JSONArray()
-        HEADER.forEach { name ->
-            headerCells.put(
-                JSONObject()
-                    .put("userEnteredValue", JSONObject().put("stringValue", name))
-                    .put("userEnteredFormat", JSONObject().put("textFormat", JSONObject().put("bold", true)))
-            )
-        }
+        val headerCells = headerCells()
+
         val header = JSONObject().put(
             "updateCells", JSONObject()
                 .put("start", JSONObject().put("sheetId", sheetId).put("rowIndex", 0).put("columnIndex", 0))
@@ -125,7 +121,12 @@ object TimesheetLayout {
      * a note like "=SUM(A1)" or "1/2" stays exactly that text instead of turning
      * into a formula or a date.
      */
-    fun rows(entries: List<Entry>, goals: List<Goal>): JSONArray {
+    fun rows(
+        entries: List<Entry>,
+        goals: List<Goal>,
+        domains: Map<Long, String> = emptyMap(),
+        words: Map<Long, String> = emptyMap()
+    ): JSONArray {
         val rows = JSONArray()
         entries.sortedWith(compareBy({ it.start }, { it.id })).forEach { entry ->
             val start = entry.start.atZone(entry.zone)
@@ -137,6 +138,8 @@ object TimesheetLayout {
                 .put(numberCell(ChronoUnit.MINUTES.between(entry.start, entry.end).toDouble()))
                 .put(textCell(elementLabel(entry.element)))
                 .put(textCell(entry.element?.let { goals.nameFor(it) }))
+                .put(textCell(entry.domainId?.let { domains[it] }))
+                .put(textCell(entry.activityId?.let { words[it] }))
                 .put(textCell(entry.text))
                 .put(numberCell(entry.id.toDouble()))
             rows.put(JSONObject().put("values", cells))
@@ -160,7 +163,9 @@ object TimesheetLayout {
         entries: List<Entry>,
         goals: List<Goal>,
         existing: List<Tab>,
-        locale: Locale = Locale.getDefault()
+        locale: Locale = Locale.getDefault(),
+        domains: Map<Long, String> = emptyMap(),
+        words: Map<Long, String> = emptyMap()
     ): JSONArray {
         val sheetId = sheetIdFor(month)
         val tab = existing.firstOrNull { it.sheetId == sheetId }
@@ -170,6 +175,17 @@ object TimesheetLayout {
             if (entries.isEmpty()) return requests
             addMonthTab(month, existing, locale).let { add -> (0 until add.length()).forEach { requests.put(add.get(it)) } }
         } else {
+            // The header too, not only the rows: a tab written by an older version
+            // has fewer columns, and a rewrite that left the old header in place
+            // would put the new columns under the wrong names.
+            requests.put(
+                JSONObject().put(
+                    "updateCells", JSONObject()
+                        .put("start", JSONObject().put("sheetId", sheetId).put("rowIndex", 0).put("columnIndex", 0))
+                        .put("rows", JSONArray().put(JSONObject().put("values", headerCells())))
+                        .put("fields", "userEnteredValue,userEnteredFormat.textFormat.bold")
+                )
+            )
             requests.put(
                 JSONObject().put(
                     "updateCells", JSONObject()
@@ -203,12 +219,28 @@ object TimesheetLayout {
                 JSONObject().put(
                     "updateCells", JSONObject()
                         .put("start", JSONObject().put("sheetId", sheetId).put("rowIndex", 1).put("columnIndex", 0))
-                        .put("rows", rows(entries, goals))
+                        .put("rows", rows(entries, goals, domains, words))
                         .put("fields", ROW_FIELDS)
                 )
             )
         }
         return requests
+    }
+
+    /** The header row, bold, as Sheets wants it. */
+    private fun headerCells(): JSONArray {
+        val cells = JSONArray()
+        HEADER.forEach { name ->
+            cells.put(
+                JSONObject()
+                    .put("userEnteredValue", JSONObject().put("stringValue", name))
+                    .put(
+                        "userEnteredFormat",
+                        JSONObject().put("textFormat", JSONObject().put("bold", true))
+                    )
+            )
+        }
+        return cells
     }
 
     private const val ROW_FIELDS = "userEnteredValue,userEnteredFormat.numberFormat"

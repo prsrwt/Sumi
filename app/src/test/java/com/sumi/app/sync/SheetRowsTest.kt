@@ -88,8 +88,10 @@ class SheetRowsTest {
         assertEquals(45.0, row.number(3), 0.0)
         assertEquals("火 Fire", row.text(4))
         assertEquals("Workout", row.text(5))
-        assertEquals("Gym", row.text(6))
-        assertEquals(7.0, row.number(7), 0.0)
+        assertEquals(null, row.text(6))
+        assertEquals(null, row.text(7))
+        assertEquals("Gym", row.text(8))
+        assertEquals(7.0, row.number(9), 0.0)
         assertEquals("DATE", row.cell(0).getJSONObject("userEnteredFormat").getJSONObject("numberFormat").getString("type"))
     }
 
@@ -111,7 +113,7 @@ class SheetRowsTest {
     fun `a note that looks like a formula stays plain text`() {
         val row = TimesheetLayout.rows(listOf(entry(1, "2026-09-15T09:00", "2026-09-15T10:00", "=SUM(A1:A9)", null)), goals)
             .getJSONObject(0)
-        val value = row.cell(6).getJSONObject("userEnteredValue")
+        val value = row.cell(8).getJSONObject("userEnteredValue")
         assertEquals("=SUM(A1:A9)", value.getString("stringValue"))
         assertFalse(value.has("formulaValue"))
     }
@@ -125,7 +127,7 @@ class SheetRowsTest {
             ),
             goals
         )
-        assertEquals("earlier", rows.getJSONObject(0).text(6))
+        assertEquals("earlier", rows.getJSONObject(0).text(8))
     }
 
     // ---- rewriting a month ----
@@ -137,9 +139,11 @@ class SheetRowsTest {
         val requests = TimesheetLayout.rewriteMonth(
             september, listOf(entry(1, "2026-09-15T09:00", "2026-09-15T10:00", "x", null)), goals, listOf(septemberTab), Locale.ENGLISH
         )
-        assertEquals(listOf("updateCells", "updateCells"), requests.kinds())
+        // Header, then the clear, then the rows: an older tab has fewer columns
+        // and its header has to be rewritten or the new ones sit under the wrong names.
+        assertEquals(listOf("updateCells", "updateCells", "updateCells"), requests.kinds())
 
-        val clear = requests.getJSONObject(0).getJSONObject("updateCells")
+        val clear = requests.getJSONObject(1).getJSONObject("updateCells")
         assertFalse(clear.has("rows"))
         assertEquals(1, clear.getJSONObject("range").getInt("startRowIndex"))
         assertEquals(TimesheetLayout.HEADER.size, clear.getJSONObject("range").getInt("endColumnIndex"))
@@ -156,7 +160,7 @@ class SheetRowsTest {
     @Test
     fun `an emptied month clears its tab`() {
         val requests = TimesheetLayout.rewriteMonth(september, emptyList(), goals, listOf(septemberTab), Locale.ENGLISH)
-        assertEquals(listOf("updateCells"), requests.kinds())
+        assertEquals(listOf("updateCells", "updateCells"), requests.kinds())
     }
 
     @Test
@@ -168,7 +172,35 @@ class SheetRowsTest {
     fun `a month that outgrows its grid gets more rows first`() {
         val entries = (1..12L).map { entry(it, "2026-09-15T09:00", "2026-09-15T09:30", "x", null) }
         val requests = TimesheetLayout.rewriteMonth(september, entries, goals, listOf(septemberTab.copy(rowCount = 10)), Locale.ENGLISH)
-        assertEquals(listOf("updateCells", "appendDimension", "updateCells"), requests.kinds())
-        assertTrue(requests.getJSONObject(1).getJSONObject("appendDimension").getInt("length") >= 3)
+        assertEquals(listOf("updateCells", "updateCells", "appendDimension", "updateCells"), requests.kinds())
+        assertTrue(requests.getJSONObject(2).getJSONObject("appendDimension").getInt("length") >= 3)
+    }
+
+    // ---- the part of life and the word ----
+
+    @Test
+    fun `an entry carries the part of life and the word it was logged with`() {
+        val tagged = entry(3, "2026-09-15T09:00", "2026-09-15T10:00", "morning run", Element.FIRE)
+            .copy(domainId = 4, activityId = 9)
+        val row = TimesheetLayout.rows(
+            entries = listOf(tagged),
+            goals = goals,
+            domains = mapOf(4L to "Health"),
+            words = mapOf(9L to "run")
+        ).getJSONObject(0)
+
+        assertEquals("Health", row.text(6))
+        assertEquals("run", row.text(7))
+        assertEquals("morning run", row.text(8))
+    }
+
+    @Test
+    fun `a tag whose name has gone leaves its cell empty rather than an id`() {
+        val tagged = entry(3, "2026-09-15T09:00", "2026-09-15T10:00", "x", Element.FIRE)
+            .copy(domainId = 4, activityId = 9)
+        val row = TimesheetLayout.rows(listOf(tagged), goals).getJSONObject(0)
+
+        assertEquals(null, row.text(6))
+        assertEquals(null, row.text(7))
     }
 }
