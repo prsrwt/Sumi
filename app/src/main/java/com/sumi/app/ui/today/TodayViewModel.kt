@@ -74,6 +74,9 @@ class TodayViewModel(app: Application) : AndroidViewModel(app) {
 
     fun previousDay() = date.update { it.minusDays(1) }
 
+    /** Back to the day you are living in. */
+    fun showToday() = date.update { LocalDate.now(zone) }
+
     /** Opens a day chosen elsewhere, such as from the history sheet. */
     fun showDay(day: LocalDate) = date.update { if (day.isAfter(LocalDate.now(zone))) it else day }
 

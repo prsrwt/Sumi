@@ -1,5 +1,7 @@
 package com.sumi.app.ui.composer
 
+import androidx.activity.compose.BackHandler
+
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.first
 import androidx.compose.ui.platform.LocalFocusManager
@@ -114,6 +116,10 @@ fun ComposerScreen(
 
     // How much of the screen the keyboard still covers, readable from a coroutine.
     val imeBottom by rememberUpdatedState(WindowInsets.ime.getBottom(LocalDensity.current))
+
+    // Back closes the sheet the same way saving does, rather than snapping the
+    // window shut with the keyboard still up.
+    BackHandler(enabled = !closing) { close() }
 
     LaunchedEffect(state.loading) {
         if (!state.loading) shown.targetState = true

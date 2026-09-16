@@ -94,7 +94,17 @@ private fun SumiHome(
         else -> Screen.HOME
     }
 
-    BackHandler(enabled = screen == Screen.SETUP) { showSetup = false }
+    val todayState by today.state.collectAsStateWithLifecycle()
+
+    // Back always walks home: to Today, on today's date. Only from there, already
+    // on today, does it leave the app.
+    BackHandler(enabled = screen == Screen.SETUP) {
+        showSetup = false
+        selectedTab = 0
+        today.showToday()
+    }
+    BackHandler(enabled = screen == Screen.HOME && selectedTab != 0) { selectedTab = 0 }
+    BackHandler(enabled = screen == Screen.HOME && selectedTab == 0 && !todayState.isToday) { today.showToday() }
 
     // Each screen fades over the last rather than replacing it in a single frame.
     AnimatedContent(
