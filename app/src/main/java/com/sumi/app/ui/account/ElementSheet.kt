@@ -52,6 +52,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.Activity
 import com.sumi.app.data.Domain
+import com.sumi.app.data.DomainIdea
 import com.sumi.app.data.Domains
 import com.sumi.app.data.Element
 import com.sumi.app.data.SumiRepository
@@ -174,15 +175,30 @@ fun ElementSheet(
 
             if (domains.isEmpty()) {
                 Text(
-                    text = "Nothing here yet. Add the parts of your life that belong to this one.",
+                    text = "Nothing here yet. Pick what belongs to this one.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(vertical = 12.dp)
                 )
             }
 
+            // The ones this element usually holds, listed here rather than hidden
+            // behind a button: an element with nothing in it has to be able to show
+            // what could go in it, or choosing "None of these" leaves five dead ends.
+            val taken = domains.map { it.name.lowercase() }.toSet()
+            val usually = Domains.under(element).filter { it.name.lowercase() !in taken }
+            if (usually.isNotEmpty()) {
+                Text(
+                    text = if (domains.isEmpty()) "Parts of life that usually sit here" else "You could also add",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 18.dp, bottom = 2.dp)
+                )
+                Suggestions(usually) { viewModel.addDomain(it, element) }
+            }
+
             TextButton(onClick = { adding = true }, modifier = Modifier.padding(top = 4.dp)) {
-                Text("Add a part of life")
+                Text("Something else")
             }
         }
     }
@@ -533,7 +549,7 @@ private fun AddDomainSheet(
                     }
                 }
             } else {
-                Suggestions(here, onAdd)
+                if (here.isNotEmpty()) Suggestions(here, onAdd)
                 if (elsewhere.isNotEmpty()) {
                     Text(
                         text = "From other elements, if this is where it belongs in your life",
@@ -552,7 +568,7 @@ private fun AddDomainSheet(
 }
 
 @Composable
-private fun Suggestions(ideas: List<com.sumi.app.data.DomainIdea>, onAdd: (String) -> Unit) {
+private fun Suggestions(ideas: List<DomainIdea>, onAdd: (String) -> Unit) {
     ideas.forEachIndexed { index, idea ->
         Row(
             modifier = Modifier

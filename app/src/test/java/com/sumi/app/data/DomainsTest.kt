@@ -39,6 +39,34 @@ class DomainsTest {
         }
     }
 
+    /**
+     * A word is a whole log: tapping it says which part of life and which element
+     * at once. The same word under two parts of life would be a question with no
+     * answer, and the composer would show it twice.
+     */
+    @Test
+    fun `no word appears under two parts of life`() {
+        val seen = mutableMapOf<String, String>()
+        Domains.common.forEach { domain ->
+            domain.words.forEach { word ->
+                val already = seen.put(word.lowercase(), domain.name)
+                assertNull("$word is under both $already and ${domain.name}", already)
+            }
+        }
+    }
+
+    /** Every name a ready-made life offers has to be one the catalogue can seed. */
+    @Test
+    fun `every part of life a preset names is in the catalogue`() {
+        val known = Domains.common.map { it.name.lowercase() }.toSet()
+        Presets.all.forEach { preset ->
+            preset.parts.values.flatten().forEach { name ->
+                assertTrue("${preset.title}: $name", name.lowercase() in known)
+                assertTrue("${preset.title}: $name", Domains.wordsFor(name).isNotEmpty())
+            }
+        }
+    }
+
     /** Words are what you did, not parts of life: no word repeats a domain's name. */
     @Test
     fun `no word is the name of a domain`() {

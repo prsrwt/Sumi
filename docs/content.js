@@ -792,6 +792,26 @@ if (canBeExact) {
         why: `Sumi had one name per element until domains arrived, which forced every preset to drop something: a job and a household could not both fit. Several domains per element removed that whole compromise.`
       },
       {
+        title: "The catalogue is code, your list is yours",
+        body: `
+          <p>Sumi knows 24 parts of life across the five elements, and 205 words under them, sorted from the UN time use classification (ICATUS 2016) and the American Time Use Survey lexicon. They are meant to fit a life anywhere, so the list holds unpaid housework, looking after an elder, a stall or a trade of your own, and land and livestock.</p>
+          <p>All of it lives in <code>Domains.kt</code>, in code. None of it is written to your phone until you choose it. Your database holds the handful of parts of life you picked and the words under those, which is what lets every screen show a short list that is recognisably yours.</p>
+          <p>No word appears under two parts of life. A word is a whole log, carrying its part of life and its element with it, so the same word in two places would be a question with no answer.</p>`,
+        code: {
+          file: "app/src/main/java/com/sumi/app/data/Domains.kt",
+          text: `DomainIdea(
+    name = "Land and livestock",
+    holds = "growing, keeping animals, fetching water or fuel for the house",
+    element = Element.EARTH,
+    words = listOf(
+        "field", "livestock", "milking", "sowing", "harvest",
+        "watering", "fetching water", "firewood", "feed", "market day"
+    )
+)`
+        },
+        why: `One build seeded the whole catalogue into every database, and a person who had chosen five parts of life was asked to pick from twenty. Version 6 of the database takes back what nobody chose, and only where the whole catalogue is still sitting there untouched.`
+      },
+      {
         title: "Words are kept only when you ask, and only after the log",
         body: `
           <p>Log a line Sumi has not seen and the hour is saved first, always. Only then does the card become one question: <em>Logged. Keep "chai with dad"?</em>, with your parts of life grouped under their elements and "No need" beside it. Ignoring it leaves the line as a note; choosing a part of life keeps the word there and puts it on the entry that was just saved.</p>
