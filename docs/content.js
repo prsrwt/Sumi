@@ -78,7 +78,7 @@ window.SUMI_GUIDE = [
       {
         title: "Ready-made fives",
         body: `
-          <p>Five empty rows on day one is a hard question, so the You screen has a wheel of ready-made sets, and the pentagon above it changes shape as the wheel turns. The wheel asks how your life looks now, not what your goals are: "A job and a home", "The home is the work", "Studying", "My own trade", "Later life".</p>
+          <p>Five empty rows on day one is a hard question, so the You screen has a wheel of ready-made sets, and the pentagon above it changes shape as the wheel turns. The wheel asks how your life looks now, not what your goals are: "A bit of everything", "A job and a home", "The home is the work", "Studying", "My own trade", "Later life", and "None of these" for five empty spokes. Where your five are already your own, the wheel carries them as a row of its own, "The five you have now", so the name it rests on is always the life you actually have.</p>
           <p>The sets come from the UN classification for time use statistics (ICATUS 2016), which splits all human activity into nine divisions: employment, production for own use, unpaid domestic services, unpaid caregiving, volunteer work, learning, socialising and community, culture and leisure, and self care. Sumi has five spokes, so every preset is one way of collapsing nine into five, and each one drops something. "Work and home" gives a spoke to unpaid work at home and loses learning; "Studying" makes study the work and loses the paid job. The blurb under each name says what it gives up rather than pretending one set fits everyone.</p>
           <p>Unpaid domestic and care work gets its own spoke in two of the sets because worldwide it is 4 hours 25 minutes a day for women against 1 hour 23 for men (ILO), and 708 million women are outside the labour force because of it. A set of five that only knows about paid jobs would erase the largest block of time in hundreds of millions of lives.</p>
           <p>Names must be broad enough to hold many activities over years. "Health" holds the run, the cooking, the sleep you protect and the doctor. "Gym" holds one hour a week and would sit near the centre of the pentagon forever, which is why no preset names an activity.</p>
@@ -113,6 +113,107 @@ window.SUMI_GUIDE = [
             <li>Does anything on any screen tell you that you did badly?</li>
           </ol>
           <p>You will find the answers to 1 and 2 in the chapters on Rhythm and the Composer. The answer to 3 should be no.</p>`
+      }
+    ]
+  },
+
+  // ---------------------------------------------------------------------------
+  {
+    id: "story",
+    kanji: "道",
+    element: "wind",
+    title: "How the idea came together",
+    blurb: "The question, the papers that answered parts of it, and the turn each one forced.",
+    slides: [
+      {
+        title: "The question",
+        body: `
+          <p>It started as a complaint about every other time app. You cannot give equal time to everything. Some demands are not yours to choose: a shift, a child, an ill parent, a field that needs watering. Study and the gym are not comparable, and no week will ever make them equal.</p>
+          <p>So the question was not "how do I split my time evenly". It was harder, and it is the one Sumi is built around:</p>
+          <blockquote><p>Where do I need to push, and where am I pushing too hard, when every demand is different and most of them are not optional?</p></blockquote>
+          <p>Everything below is the search for an answer, and each thing found changed the app.</p>`,
+        why: `Naming the question this way ruled out the obvious app immediately. An app that answers "are you balanced" needs a definition of balance. An app that answers "where is the pressure" only needs an honest record.`
+      },
+      {
+        title: "First turn: ask now, not at bedtime",
+        body: `
+          <p>Two methods from psychology settle how the recording works.</p>
+          <p><strong>Experience sampling</strong> (Csikszentmihalyi and Larson, 1987) prompts people at intervals to write down what they are doing at that moment, because a day recalled at night is a story, not a record. <strong>The Day Reconstruction Method</strong> (Kahneman, Krueger, Schkade, Schwarz and Stone, 2004) rebuilds a day as episodes, each with a start and an end, rather than as a list of tags.</p>
+          <p>That is the widget and the entry. The widget quietly becomes a question now and then; an entry is a stretch of time with two ends, not a checkbox.</p>`,
+        why: `It also explains what Sumi never does: a prompt you can ignore with no consequence. In experience sampling, a missed signal is a missed signal, not a failure, and the method still works.`
+      },
+      {
+        title: "Second turn: five slots have to be able to grow",
+        body: `
+          <p>The first draft let people name anything: "gym", "thesis", "guitar". Two official classifications killed that idea.</p>
+          <p>The <strong>UN classification for time use statistics</strong> (ICATUS 2016) divides all human activity into nine divisions, from employment to unpaid care to self-care. The <strong>American Time Use Survey activity lexicon</strong> names around 460 activities inside eighteen categories. Both sort by what a thing is for, never by how interesting it is.</p>
+          <p>Read against the averages, "gym" is a trap: worldwide, sport and exercise average roughly twenty to thirty minutes a day and socialising about thirty-five, while paid work runs to hours. A spoke called "gym" would sit at the centre of the pentagon forever beside a spoke called "work".</p>
+          <p>So Sumi has three levels instead. Five elements, parts of life under them, and the words you actually use under those. "Health" can hold the run, the cooking, the sleep you protect and the doctor, and it can grow for years.</p>`
+      },
+      {
+        title: "Third turn: the work most apps pretend does not exist",
+        body: `
+          <p>The ILO's <em>Care work and care jobs for the future of decent work</em> (2018) put a number on unpaid work: <strong>4 hours 25 minutes a day for women, against 1 hour 23 for men</strong>, worldwide. It is the largest block of work on the planet and almost no productivity app has a place to put it.</p>
+          <p>That is why two of the ready-made lives give unpaid work at home its own spoke, and why the catalogue holds Home and care, Children, Looking after someone, and Land and livestock, which ICATUS counts as production for own use.</p>`,
+        why: `An app that cannot record the hours somebody actually spends will tell them their life is empty. For a great many people, most of the day is exactly this work.`
+      },
+      {
+        title: "Fourth turn: make it fit a life anywhere",
+        body: `
+          <p>The first catalogue was quietly written for an office worker in a rich country. Two national datasets fixed that: <strong>India's Time Use Survey (2019)</strong>, where employment runs to about 429 minutes a day per participant and unpaid domestic work dominates women's days, and the <strong>OECD time use database</strong>, where the same activities appear in very different proportions country to country.</p>
+          <p>What changed: field, livestock, harvest, fetching water and firewood became real words under a real part of life. So did a stall, stock and suppliers, for someone whose work is their own trade rather than a job. None of it is decoration; for hundreds of millions of people it is the day.</p>`
+      },
+      {
+        title: "The wall: there is no number for balance",
+        body: `
+          <p>The plan at this point was obvious and wrong: let people set a target shape, then measure the distance to it. A draggable pentagon was designed, and then dropped, because of one paper.</p>
+          <p><strong>Sheldon, Cummins and Kamble (2010)</strong> measured life balance two different ways: how evenly time is spread across life domains, and how closely actual time matches the time a person says they want. Both predicted wellbeing, in the United States and in India, and both tracked wellbeing week to week. But the two measures <em>barely agreed with each other</em>. Two people can be equally in balance with entirely different shapes, and so can the same person in two different years.</p>
+          <p>That is the wall. There is no ideal pentagon to draw, so Sumi draws none, and asks for no target.</p>`,
+        why: `This is the decision the rest of the app hangs from. Once you accept there is no correct shape, a score becomes impossible to justify, and everything that usually follows a score, the streak, the badge, the red, goes with it.`
+      },
+      {
+        title: "The two edges that do exist",
+        body: `
+          <p>Research is not silent, though. It is firm at the extremes, and the extremes are limits, not aims.</p>
+          <ul>
+            <li><strong>Long weeks harm you.</strong> The WHO and ILO joint estimates (Pega and colleagues, 2021) link working 55 hours a week or more to roughly a 35 percent higher risk of stroke and 17 percent higher risk of dying from heart disease, compared with a 35 to 40 hour week.</li>
+            <li><strong>Discretionary time follows an inverted U.</strong> Sharif, Mogilner and Hershfield (2021) found wellbeing falls when free time is very scarce, and falls again when there is a great deal of it. More free time is not linearly better.</li>
+          </ul>
+          <p>So Sumi asserts exactly two things about your life, and only when the log is old enough to mean anything: one element has been quiet lately, and one element has been taking long weeks. Both are descriptions. Neither is advice.</p>`
+      },
+      {
+        title: "How it comes together",
+        body: `
+          <p>Put the turns in order and the app is already designed:</p>
+          <ol>
+            <li>A widget asks in the moment, and an ignored question costs nothing. <em>(experience sampling)</em></li>
+            <li>What you log is a stretch of time with two ends. <em>(day reconstruction)</em></li>
+            <li>It lands in one of five elements, through a part of your life wide enough to grow, in a word you would actually say. <em>(ICATUS, ATUS)</em></li>
+            <li>The parts of life include the unpaid and the unglamorous, everywhere in the world. <em>(ILO, India TUS, OECD)</em></li>
+            <li>Balance draws a pentagon with no target and no numbers, because no correct shape exists. <em>(Sheldon, Cummins and Kamble)</em></li>
+            <li>Two calm sentences mark the quiet edge and the harmful edge, once each. <em>(WHO and ILO, Sharif and colleagues)</em></li>
+          </ol>
+          <p><strong>What Sumi actually does for you</strong> is narrower than most apps claim, and that is the point. It does not know what your life should look like. It keeps an honest record you can glance at, shows you the shape your weeks really make, and speaks twice: where something has gone quiet, and where something is taking more than is good for you. What to do about either is yours.</p>`,
+        why: `Every feature that was ever cut, the target shape, the streaks, the score, the levels, was cut by one of these findings rather than by taste. That is why the design has stayed still.`
+      },
+      {
+        title: "Everything we read",
+        body: `
+          <p>The full list, and the one thing each changed.</p>
+          <table>
+            <tr><th>Source</th><th>What it changed</th></tr>
+            <tr><td>Csikszentmihalyi and Larson (1987), <em>Validity and reliability of the Experience-Sampling Method</em>, Journal of Nervous and Mental Disease</td><td>The widget asks in the moment; a missed prompt costs nothing.</td></tr>
+            <tr><td>Kahneman, Krueger, Schkade, Schwarz and Stone (2004), <em>A survey method for characterizing daily life experience: the Day Reconstruction Method</em>, Science</td><td>An entry is an episode with a start and an end, not a tag.</td></tr>
+            <tr><td><a href="https://unstats.un.org/unsd/classifications/Family/Detail/2083">ICATUS 2016</a>, the UN International Classification of Activities for Time-Use Statistics</td><td>Five spokes built from the nine divisions; parts of life rather than activities.</td></tr>
+            <tr><td><a href="https://www.bls.gov/tus/lexicons.htm">American Time Use Survey activity lexicon</a>, US Bureau of Labor Statistics</td><td>The words under each part of life, in plain language.</td></tr>
+            <tr><td><a href="https://www.ilo.org/sites/default/files/wcmsp5/groups/public/@dgreports/@dcomm/@publ/documents/publication/wcms_633135.pdf">ILO (2018)</a>, <em>Care work and care jobs for the future of decent work</em></td><td>Unpaid work at home gets its own spoke in two of the ready-made lives.</td></tr>
+            <tr><td>National Statistical Office, India, <em>Time Use Survey</em> (2019)</td><td>Land, livestock, water and firewood became real words; the catalogue stopped being an office worker's.</td></tr>
+            <tr><td>OECD time use database</td><td>Checked that the same parts of life hold in very different countries.</td></tr>
+            <tr><td><a href="https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1467-6494.2010.00644.x">Sheldon, Cummins and Kamble (2010)</a>, <em>Life balance and well-being</em>, Journal of Personality</td><td>No target shape, no score, no ideal pentagon. The largest single decision in the app.</td></tr>
+            <tr><td><a href="https://www.who.int/news/item/17-05-2021-long-working-hours-increasing-deaths-from-heart-disease-and-stroke-who-ilo">WHO and ILO joint estimates</a> (Pega and colleagues, 2021), Environment International</td><td>The 55 hour line behind "taking long weeks lately".</td></tr>
+            <tr><td>Sharif, Mogilner and Hershfield (2021), <em>Having too little or too much time is linked to lower subjective well-being</em>, Journal of Personality and Social Psychology</td><td>Free time is not linearly good, so an empty spoke is never presented as a win.</td></tr>
+          </table>
+          <p>The argument about balance in full, with the thresholds as they appear in the code, is the chapter <strong>Where to push, and where you are pushing too hard</strong>.</p>`
       }
     ]
   },
@@ -380,6 +481,9 @@ open suspend fun assignElement(slot: Int, element: String) {
             <li><strong>Version 1:</strong> goals, entries, settings.</li>
             <li><strong>Version 2:</strong> added <code>sync_state</code> and <code>dirty_months</code> for Google Sheets.</li>
             <li><strong>Version 3:</strong> added <code>onboardedAt</code> to settings for the introduction.</li>
+            <li><strong>Version 4:</strong> added <code>domains</code> and <code>activities</code>, and the two columns on an entry that say which of each it was logged under. The five names people had already chosen became the first part of life under their element, so an upgrade opened with the life they had already described.</li>
+            <li><strong>Version 5:</strong> no table changed. It gave the parts of life already on a phone the words they would have arrived with.</li>
+            <li><strong>Version 6:</strong> no table changed either. It takes back a seeding that should never have happened, and it is the interesting one.</li>
           </ul>
           <p>Room writes each version's exact layout to <code>app/schemas/</code>, so a migration can be checked against what is really on people's phones.</p>`,
         code: {
@@ -391,6 +495,28 @@ open suspend fun assignElement(slot: Int, element: String) {
 }`
         },
         why: `If a migration's SQL differs even slightly from what Room expects, the app crashes on launch after the update. That is why each one was tested by installing the old version, adding data, then installing the new one.`
+      },
+      {
+        title: "Version 6: taking back what nobody chose",
+        body: `
+          <p>One build wrote every part of life Sumi knows about into every database, so a phone carried twenty of them and a hundred words, none of it chosen by the person holding the phone. The code was fixed the next day, but rows already written stay written: a fix in the code does nothing for the database that is already on somebody's phone. That is what a migration is for.</p>
+          <p>Two rules keep a repair honest. It runs only where it can see its own mistake, which here means a database carrying the whole catalogue under its own elements, something nobody would ever arrive at by choosing. And it never takes anything that has been used, or that the five are named after.</p>
+          <p>The surprise is in the second line of the loop. Deleting a part of life normally takes its words with it, because the foreign key says <code>ON DELETE CASCADE</code>. Room turns foreign keys off while a migration runs, so the cascade does not fire, and the first version of this repair left a hundred and fourteen orphaned words behind. Inside a migration, you clean up by hand.</p>`,
+        code: {
+          file: "app/src/main/java/com/sumi/app/data/SumiDatabase.kt",
+          text: `private val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        if (!carriesWholeCatalogue(db)) return
+        val keep = partsWorthKeeping(db)
+        everyDomain(db).forEach { (id, name, element) ->
+            val chosen = (element to name.trim().lowercase()) in keep
+            if (chosen || isInUse(db, id)) return@forEach
+            ...
+        }
+    }
+}`
+        },
+        why: `It was caught by reading the database after the migration rather than by trusting the schema: 11 parts of life and 215 words is not a number that makes sense, and it is the kind of thing no unit test was ever going to notice.`
       },
       {
         title: "The repository translates",
@@ -814,7 +940,9 @@ if (canBeExact) {
       {
         title: "Words are kept only when you ask, and only after the log",
         body: `
-          <p>Log a line Sumi has not seen and the hour is saved first, always. Only then does the card become one question: <em>Logged. Keep "chai with dad"?</em>, with your parts of life grouped under their elements and "No need" beside it. Ignoring it leaves the line as a note; choosing a part of life keeps the word there and puts it on the entry that was just saved.</p>
+          <p>Log a line Sumi has not seen and the hour is saved first, always. Only then does the card become one question: <em>Logged. Keep "chai with dad"?</em>, with "No need" beside it. Ignoring it leaves the line as a note.</p>
+          <p>Underneath are five rows, one for each element, each named the way the pentagon names it: the part of life at the head of that element, or the element itself where nothing has been put there yet. Choosing an empty one gives that element its first part of life, so a word is never stuck with nowhere to go.</p>
+          <p>When the word is one Sumi came with, its own home is offered above the five: <em>"cooking" usually goes with Home and care</em>, which adds that part of life if you do not have it and files the hour there. The offer is hidden when it would do exactly what the element row already does. It is worth having because tapping an element can only reach that element's first part of life, and cooking belongs with Home and care wherever that sits.</p>
           <p>After that the word is a chip of its own. Tapping it is a whole log: it carries its element and its domain, so nothing else has to be chosen.</p>
           <p>Asking after rather than before matters. A question in the way of logging is a reason not to log; a question after it is an offer.</p>`,
         code: {
@@ -1168,7 +1296,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
       {
         title: "Reuse, not copies",
         body: `
-          <p>The goal rows, the rhythm tabs, the quiet hours buttons, the add-widget button and the Sheets section on these pages are the same composables and the same <code>SetupViewModel</code> that Setup uses. The wheel of ready-made fives is the same <code>FiveChooser</code> the You screen shows, asked for three rows instead of five and a flatter drawing, because these pages do not scroll. It has no button either: on that page the wheel coming to rest is the choice, and Next is the only thing to press. The moment the five are somebody's own writing, the button comes back and asks before replacing them.</p>`,
+          <p>The goal rows, the rhythm tabs, the quiet hours buttons, the add-widget button and the Sheets section on these pages are the same composables and the same <code>SetupViewModel</code> that Setup uses. The wheel of ready-made fives is the same <code>FiveChooser</code> the You screen shows, asked for three rows instead of five and a flatter drawing, because these pages do not scroll. It has no button at all: on that page the wheel coming to rest is the choice, and Next is the only thing to press. Five that are already somebody's own are not overwritten for it, because they are on the wheel themselves, as the row it opens on.</p>`,
         why: `Two copies of the goal editor would eventually behave differently. One copy cannot.`
       },
       {

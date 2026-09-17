@@ -396,6 +396,26 @@
   .prose li { margin-bottom: 8px; }
   .prose li::marker { color: var(--muted); }
 
+  /* A reading list is a table, and a question worth sitting with is a quote. */
+  .prose table { width: 100%; border-collapse: collapse; margin: 0 0 16px; }
+  .prose th, .prose td {
+    text-align: left;
+    padding: 10px 12px 10px 0;
+    border-bottom: 1px solid var(--hair);
+    vertical-align: top;
+  }
+  .prose th { font-weight: 700; }
+  .prose td:first-child { padding-right: 22px; }
+  .prose blockquote {
+    margin: 0 0 16px;
+    padding: 2px 0 2px 18px;
+    border-left: 2px solid var(--hair);
+    font-family: var(--display);
+    font-size: 1.12em;
+    line-height: 1.4;
+  }
+  .prose blockquote p { margin: 0; }
+
   .note {
     margin-top: 26px;
     padding-top: 18px;
