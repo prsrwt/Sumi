@@ -3,6 +3,7 @@ package com.sumi.app.ui.setup
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sumi.app.data.Domain
 import com.sumi.app.data.Element
 import com.sumi.app.data.GOAL_COUNT
 import com.sumi.app.data.Goal
@@ -37,6 +38,14 @@ class SetupViewModel(app: Application) : AndroidViewModel(app) {
 
     val settings: StateFlow<Settings> = repository.observeSettings()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Settings.Default)
+
+    /**
+     * The parts of life as they stand, so the wheel can offer the five somebody
+     * already has as a row of its own. Null until the first read, because an empty
+     * list and an unread one mean opposite things to that row.
+     */
+    val domains: StateFlow<List<Domain>?> = repository.observeDomains()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The text fields own the names while typing; null until the first load. */
     private val _names = MutableStateFlow<List<String>?>(null)

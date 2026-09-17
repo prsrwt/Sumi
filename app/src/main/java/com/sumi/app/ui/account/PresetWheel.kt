@@ -93,38 +93,66 @@ fun FiveChooser(
 ) {
     val goals by setup.goals.collectAsStateWithLifecycle()
     val names by setup.names.collectAsStateWithLifecycle()
+    val here by setup.domains.collectAsStateWithLifecycle()
     val current = names ?: return
+    val domains = here ?: return
     if (goals.size != GOAL_COUNT) return
 
     // A preset waiting for a yes, because it would write over names somebody wrote.
     var pending by remember { mutableStateOf<Preset?>(null) }
 
+    // Once only, so choosing "None of these" is not undone the moment it lands.
+    var decided by rememberSaveable { mutableStateOf(false) }
+
+    /**
+     * Five that are somebody's own get a row of their own, taken once when the
+     * wheel opens. Without it the wheel would rest on a life nobody chose while
+     * the five underneath stayed as they were, and pressing Next would keep names
+     * the wheel was not showing. It restores too: turn away, turn back, and the
+     * five you arrived with are written again.
+     */
+    val yours = remember {
+        if (domains.isEmpty() || Presets.matching(goals, current) != null) null
+        else Preset(
+            title = "The five you have now",
+            blurb = "What is on your phone already, left exactly as it is.",
+            parts = Element.entries.associateWith { element ->
+                domains.filter { it.element == element }.sortedBy { it.position }.map { it.name }
+            },
+            // No example shape: Sumi has no idea what a week of your life draws,
+            // and the pentagon here is only ever an example.
+            shape = Element.entries.associateWith { 0f }
+        )
+    }
+    val rows = remember(yours) { listOfNotNull(yours) + Presets.all }
+
     // Where the wheel opens, and whether replacing needs asking at all. Five names
     // that came from a preset are not "yours" in any sense worth protecting, so
-    // swapping one ready-made set for another just happens.
-    // Empty five match the blank set, which is true but useless as a starting
-    // point: a wheel that opens on "None of these" shows nobody what it is for.
-    val chosen = Presets.matching(goals, current)?.takeIf { !it.isBlank }
-    val theirOwn = chosen == null && current.any { it.isNotBlank() }
+    // swapping one ready-made set for another just happens. Empty five match the
+    // blank set, which is true but useless as a starting point until somebody has
+    // chosen it: a wheel that opens on "None of these" on the first morning shows
+    // nobody what it is for.
+    val chosen = yours ?: Presets.matching(goals, current)?.takeIf { !it.isBlank || decided }
+    val theirOwn = yours != null
     // In the introduction the wheel is always the choice, with no button of its
     // own: Next is the only thing to press on those pages, whatever the five are
     // called already. Turning the wheel there is deliberate enough to act on.
     val automatic = applyOnSettle
-    val startAt = Presets.all.indexOf(chosen).coerceAtLeast(0)
+    val startAt = rows.indexOf(chosen).coerceAtLeast(0)
 
     // Where the wheel opens is a choice too: without this, pressing Next without
-    // touching it would leave somebody with five unnamed spokes. Once only, so
-    // choosing "None of these" is not undone the moment it takes effect.
-    var decided by rememberSaveable { mutableStateOf(false) }
+    // touching it would leave somebody with five unnamed spokes.
     LaunchedEffect(automatic, current) {
-        if (automatic && !decided && current.all { it.isBlank() }) {
+        if (automatic && !decided && yours == null && current.all { it.isBlank() }) {
             decided = true
-            Presets.all.getOrNull(startAt)?.takeIf { !it.isBlank }?.let { setup.applyPreset(it) }
+            rows.getOrNull(startAt)?.takeIf { !it.isBlank }?.let { setup.applyPreset(it) }
         }
     }
 
     PresetPicker(
+        presets = rows,
         startAt = startAt,
+        yoursAt = if (yours == null) null else 0,
         onApply = { preset ->
             if (theirOwn) pending = preset else setup.applyPreset(preset)
         },
@@ -164,7 +192,10 @@ fun FiveChooser(
 
 @Composable
 private fun PresetPicker(
+    presets: List<Preset>,
     startAt: Int,
+    /** The row that is the five somebody already has, which there is nothing to apply for. */
+    yoursAt: Int?,
     onApply: (Preset) -> Unit,
     /** Set when resting on a name is the whole choice, which leaves no button. */
     onSettle: ((Preset) -> Unit)?,
@@ -173,7 +204,6 @@ private fun PresetPicker(
     showBlurb: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val presets = Presets.all
     val bandInk = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
     val itemHeight = 44.dp
     // Opens on the set the five already came from, so the wheel says where you are.
@@ -222,6 +252,7 @@ private fun PresetPicker(
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ShapePreview(
+            presets = presets,
             preset = presets[centre],
             position = position,
             aspect = previewAspect,
@@ -287,7 +318,8 @@ private fun PresetPicker(
             )
         }
 
-        if (onSettle == null) {
+        // Nothing to press when the wheel is resting on the five already here.
+        if (onSettle == null && centre != yoursAt) {
             OutlinedButton(
                 onClick = {
                     view.wheelTick()
@@ -310,20 +342,20 @@ private fun PresetPicker(
  */
 @Composable
 private fun ShapePreview(
+    presets: List<Preset>,
     preset: Preset,
     /** Read inside the drawing, so turning the wheel redraws without recomposing. */
     position: State<Float>,
     aspect: Float,
     modifier: Modifier = Modifier
 ) {
-    val presets = Presets.all
     val ink = MaterialTheme.colorScheme.onBackground
     // Ten pieces of text are measured on every frame, more than the default cache
     // holds, which would throw every measurement away between frames.
     val measurer = rememberTextMeasurer(cacheSize = 16)
     val kanjiStyle = TextStyle(fontFamily = SumiFonts.mincho, fontSize = 18.sp)
     val nameStyle = TextStyle(fontSize = 11.sp, color = ink)
-    val description = if (preset.isBlank) "No example shape" else
+    val description = if (preset.shape.values.none { it > 0f }) "No example shape" else
         "An example of the shape ${preset.title} tends to draw"
 
     Canvas(
