@@ -25,7 +25,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import com.sumi.app.data.Domain
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.heightIn
 import com.sumi.app.data.Word
@@ -49,6 +48,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -88,6 +88,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sumi.app.data.Element
 import com.sumi.app.data.Goal
+import com.sumi.app.data.WordHome
+import com.sumi.app.data.nameFor
 import com.sumi.app.ui.Format
 import com.sumi.app.ui.SumiFonts
 import java.time.Instant
@@ -195,8 +197,10 @@ fun ComposerScreen(
                 if (saved != null) {
                     KeptWherePrompt(
                         saved = saved,
-                        domains = state.domains,
-                        onChoose = viewModel::keepInto,
+                        goals = state.goals,
+                        suggestion = state.suggestion,
+                        onElement = viewModel::keepUnder,
+                        onHome = viewModel::keepAtHome,
                         onSkip = viewModel::keepNothing
                     )
                 } else ComposerCard(
@@ -398,14 +402,22 @@ private fun WordChip(
  * Asked after the entry is saved, never before it: the hour is already logged, and
  * this is only about whether the word is worth keeping.
  *
- * Grouped under each element with the kanji shown once, because a flat list
- * repeats the same mark down the side and reads like five of the same thing.
+ * One row per element, named the way the pentagon names it: the part of life at
+ * the head of that element, or the element itself where nothing has been put there
+ * yet. Choosing an empty one gives that element its first part of life, so a word
+ * never has nowhere to go.
+ *
+ * Above them, when Sumi came with this word, the part of life it came from. That
+ * row can reach what the five cannot: tapping an element keeps a word in whatever
+ * sits at the head of it, and "cooking" belongs with Home and care wherever that is.
  */
 @Composable
 private fun KeptWherePrompt(
     saved: Saved,
-    domains: List<Domain>,
-    onChoose: (Domain) -> Unit,
+    goals: List<Goal>,
+    suggestion: WordHome?,
+    onElement: (Element) -> Unit,
+    onHome: (WordHome) -> Unit,
     onSkip: () -> Unit
 ) {
     Column(
@@ -420,7 +432,7 @@ private fun KeptWherePrompt(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Put it with a part of your life and it becomes one tap next time.",
+                    text = "Put it with one of your five and it becomes one tap next time.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -428,47 +440,82 @@ private fun KeptWherePrompt(
             TextButton(onClick = onSkip) { Text("No need") }
         }
 
-        // Tall enough that more than one element is always in view, so the list
-        // reads as a list of five rather than as one element's parts.
         Column(
             modifier = Modifier
                 .heightIn(max = 420.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            if (suggestion != null) {
+                Text(
+                    text = "\u201C${saved.word}\u201D usually goes with ${suggestion.name}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+                KeepRow(
+                    element = suggestion.element,
+                    name = suggestion.name,
+                    note = if (suggestion.yours) "where you keep it" else
+                        "adds it under ${suggestion.element.displayName}",
+                    onClick = { onHome(suggestion) }
+                )
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
             Element.entries.forEach { element ->
-                val here = domains.filter { it.element == element }
-                if (here.isEmpty()) return@forEach
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 10.dp, bottom = 2.dp)
-                ) {
-                    Text(
-                        text = element.kanji,
-                        color = Color(element.color),
-                        fontFamily = SumiFonts.mincho,
-                        fontSize = 17.sp,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                    // The element's own name, not the goal's: the goal's name is
-                    // the first row underneath, and saying it twice reads as a bug.
-                    Text(
-                        text = element.displayName,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                here.forEach { domain ->
-                    Text(
-                        text = domain.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onChoose(domain) }
-                            .padding(vertical = 7.dp, horizontal = 26.dp)
-                    )
-                }
+                KeepRow(
+                    element = element,
+                    name = goals.nameFor(element),
+                    note = null,
+                    onClick = { onElement(element) }
+                )
+            }
+        }
+    }
+}
+
+/** One thing the word could be kept under: its kanji, its name, and why. */
+@Composable
+private fun KeepRow(
+    element: Element,
+    name: String,
+    note: String?,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 9.dp, horizontal = 6.dp)
+            .clearAndSetSemantics {
+                role = Role.Button
+                contentDescription = if (note == null) "Keep it under $name" else "Keep it with $name, $note"
+            }
+    ) {
+        Text(
+            text = element.kanji,
+            color = Color(element.color),
+            fontFamily = SumiFonts.mincho,
+            fontSize = 19.sp,
+            modifier = Modifier.padding(end = 12.dp)
+        )
+        Column {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (note != null) {
+                Text(
+                    text = note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

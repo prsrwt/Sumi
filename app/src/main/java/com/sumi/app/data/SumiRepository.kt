@@ -297,6 +297,33 @@ class SumiRepository(private val db: SumiDatabase) {
         return dao.activityUnder(element.name, clean)?.toWord()
     }
 
+    /**
+     * Where a word Sumi already knows would go, when it is one of the catalogue's.
+     * A part of life you already have wins over the one the catalogue suggests:
+     * "cooking" belongs with your Home and care, wherever you have put it.
+     */
+    suspend fun homeFor(word: String): WordHome? {
+        val idea = Domains.ideaForWord(word) ?: return null
+        val mine = dao.getDomains().firstOrNull { it.name.equals(idea.name, ignoreCase = true) }
+        return if (mine == null) {
+            WordHome(idea.name, idea.element, yours = false)
+        } else {
+            WordHome(mine.name, Element.fromStored(mine.element) ?: idea.element, yours = true)
+        }
+    }
+
+    /**
+     * Keeps a word where it belongs, adding that part of life first where it is
+     * missing. Adding it names the spoke too if the element had no name yet, which
+     * is how 水 stops reading "Water" and starts reading "People".
+     */
+    suspend fun keepWordAtHome(home: WordHome, word: String): Word? {
+        val domain = dao.domainNamed(home.element.name, home.name)?.toDomain()
+            ?: addDomain(home.name, home.element)
+            ?: return null
+        return keepWordIn(domain, word)
+    }
+
     /** Keeps a word in the part of life the user pointed at. */
     suspend fun keepWordIn(domain: Domain, name: String): Word? {
         val clean = name.trim()

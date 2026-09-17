@@ -46,6 +46,17 @@ data class DomainIdea(
     val words: List<String>
 )
 
+/**
+ * Where a word Sumi already knows belongs: a part of life you have it under, or
+ * one the catalogue would add for it.
+ */
+data class WordHome(
+    val name: String,
+    val element: Element,
+    /** True when this is already one of your parts of life, not a new one. */
+    val yours: Boolean
+)
+
 object Domains {
 
     val common: List<DomainIdea> = listOf(
@@ -278,6 +289,16 @@ object Domains {
 
     /** The ones suggested first when adding a part of life under an element. */
     fun under(element: Element): List<DomainIdea> = common.filter { it.element == element }
+
+    /**
+     * The part of life a known word sits under. "gym" is Health's, "cooking" is
+     * Home and care's, and a word nobody has written down before is nobody's.
+     */
+    fun ideaForWord(word: String): DomainIdea? {
+        val clean = word.trim()
+        if (clean.isBlank()) return null
+        return common.firstOrNull { idea -> idea.words.any { it.equals(clean, ignoreCase = true) } }
+    }
 
     /** What a part of life from the catalogue holds, for the line under its name. */
     fun holdsFor(name: String): String? = ideaFor(name)?.holds

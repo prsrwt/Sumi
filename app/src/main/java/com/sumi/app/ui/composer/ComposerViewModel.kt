@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.sumi.app.data.Element
 import com.sumi.app.data.Domain
+import com.sumi.app.data.Element
 import com.sumi.app.data.Goal
+import com.sumi.app.data.WordHome
+import com.sumi.app.data.nameFor
 import com.sumi.app.data.Prompts
 import com.sumi.app.data.Word
 import com.sumi.app.data.RangeSuggestion
@@ -46,6 +48,12 @@ data class ComposerState(
      * ignoring it both close the composer.
      */
     val askedAfterSaving: Saved? = null,
+    /**
+     * Where Sumi knows this word goes, when it is one it came with. Offered above
+     * the five, because tapping an element can only reach that element's first
+     * part of life, and "cooking" belongs with Home and care wherever that sits.
+     */
+    val suggestion: WordHome? = null,
     val question: String = Prompts.DEFAULT,
     val message: String? = null,
     val saving: Boolean = false,
@@ -124,21 +132,35 @@ class ComposerViewModel(
     fun onTextChange(text: String) = _state.update { it.copy(text = text, message = null) }
 
     /**
-     * Keeps the word in the part of life the user pointed at and puts it on the
-     * entry that was just saved. The hour was never waiting on this.
+     * Keeps the word under one of the five and puts it on the entry that was just
+     * saved. An element with nothing under it gets its first part of life, named
+     * after the element itself, so a word always has somewhere to live. The hour
+     * was never waiting on this.
      */
-    fun keepInto(domain: Domain) {
+    fun keepUnder(element: Element) {
+        val s = _state.value
+        val saved = s.askedAfterSaving ?: return
+        keeping { repository.keepWord(element, saved.word, s.goals.nameFor(element)) }
+    }
+
+    /** Keeps the word where Sumi knows it goes, adding that part of life if it is missing. */
+    fun keepAtHome(home: WordHome) {
+        keeping { repository.keepWordAtHome(home, _state.value.askedAfterSaving?.word.orEmpty()) }
+    }
+
+    private fun keeping(keep: suspend () -> Word?) {
         val saved = _state.value.askedAfterSaving ?: return
         viewModelScope.launch {
-            val word = repository.keepWordIn(domain, saved.word)
+            val word = keep()
             if (word != null) repository.tagEntry(saved.entryId, word)
             WidgetSync.onEntriesChanged(getApplication())
-            _state.update { it.copy(askedAfterSaving = null, done = true) }
+            _state.update { it.copy(askedAfterSaving = null, suggestion = null, done = true) }
         }
     }
 
     /** Ignoring the question is an answer: the line stays a note and nothing is kept. */
-    fun keepNothing() = _state.update { it.copy(askedAfterSaving = null, done = true) }
+    fun keepNothing() =
+        _state.update { it.copy(askedAfterSaving = null, suggestion = null, done = true) }
 
     /**
      * A word tapped is a whole log: its element, its domain, and the word itself as
@@ -205,14 +227,25 @@ class ComposerViewModel(
                 is SaveResult.Saved -> {
                     WidgetSync.onEntriesChanged(getApplication())
                     // A word Sumi has not seen is worth one question, and only once
-                    // the hour is safely logged.
-                    // Sent without an element too: choosing a part of life answers
-                    // both questions at once, and an untagged hour finds its spoke.
-                    val unknown = s.editingId == null && tagged == null &&
-                        text.isNotBlank() && s.domains.isNotEmpty()
+                    // the hour is safely logged. Sent without an element too:
+                    // choosing one answers both questions at once, and an untagged
+                    // hour finds its spoke.
+                    val line = text.trim()
+                    val unknown = s.editingId == null && tagged == null && line.isNotBlank()
+                    // The offer is only worth making when it goes somewhere tapping
+                    // the element would not: the element's first part of life is
+                    // what that row already does.
+                    val home = if (!unknown) null else repository.homeFor(line)?.takeIf { found ->
+                        s.domains.filter { it.element == found.element }
+                            .minByOrNull { it.position }?.name?.equals(found.name, ignoreCase = true) != true
+                    }
                     _state.update {
                         if (unknown) {
-                            it.copy(saving = false, askedAfterSaving = Saved(result.id, text.trim()))
+                            it.copy(
+                                saving = false,
+                                askedAfterSaving = Saved(result.id, line),
+                                suggestion = home
+                            )
                         } else {
                             it.copy(saving = false, done = true)
                         }
