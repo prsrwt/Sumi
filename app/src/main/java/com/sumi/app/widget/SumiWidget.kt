@@ -5,6 +5,8 @@ import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.text.Layout
@@ -145,14 +147,16 @@ object SumiWidget {
                 RemoteViews(context.packageName, R.layout.widget_idle_compact).apply {
                     val clockDp = (heightDp * 0.40f).coerceIn(20f, 44f)
                     setTextViewTextSize(R.id.widget_clock, TypedValue.COMPLEX_UNIT_DIP, clockDp)
-                    // Room left beside the clock: side padding, the gap, and roughly
-                    // the clock's own width at this size.
-                    val roomDp = widthDp - 48f - 16f - clockDp * 2.6f
+                    // Room left beside the clock: side padding, the gap, and the
+                    // clock measured rather than guessed. The guess was a multiple
+                    // of the text size, which is how the date came to be cut short
+                    // on smaller widgets.
+                    val roomDp = widthDp - 36f - 16f - clockWidthDp(context, clockDp)
                     setImageViewBitmap(
                         R.id.widget_date,
                         InkText.render(
                             context, Sizes.SHORT_DATE.format(today), px((clockDp * 0.42f).coerceIn(12f, 17f)),
-                            style.inkMuted, px(roomDp).toInt(), maxLines = 1, minSizePx = px(11f)
+                            style.inkMuted, px(roomDp).toInt(), maxLines = 1, minSizePx = px(10f)
                         )
                     )
                 }
@@ -164,7 +168,7 @@ object SumiWidget {
                         R.id.widget_date,
                         InkText.render(
                             context, Sizes.LONG_DATE.format(today), px((clockDp * 0.30f).coerceIn(13f, 22f)),
-                            style.inkMuted, px(widthDp - 48f).toInt(), maxLines = 1
+                            style.inkMuted, px(widthDp - 32f).toInt(), maxLines = 1, minSizePx = px(11f)
                         )
                     )
                 }
@@ -172,8 +176,8 @@ object SumiWidget {
 
             is WidgetFace.Asking -> if (compact) {
                 RemoteViews(context.packageName, R.layout.widget_asking_compact).apply {
-                    // Side padding, the gap, and about the small clock's width.
-                    val room = px(widthDp - 48f - 12f - 40f).toInt()
+                    // Side padding, the gap, and the small clock as measured.
+                    val room = px(widthDp - 36f - 12f - clockWidthDp(context, 14f)).toInt()
                     val oneLineMin = px(15f)
                     // One line if it fits once shrunk a little; otherwise two smaller
                     // lines, so a longer question is never cut short at one row tall.
@@ -186,7 +190,8 @@ object SumiWidget {
                     } else {
                         InkText.render(
                             context, face.question, px((heightDp * 0.19f).coerceIn(12f, 16f)),
-                            style.ink, room, maxLines = 2, alignment = Layout.Alignment.ALIGN_NORMAL
+                            style.ink, room, maxLines = 2, minSizePx = px(11f),
+                            alignment = Layout.Alignment.ALIGN_NORMAL
                         )
                     }
                     setImageViewBitmap(R.id.widget_question, question)
@@ -196,7 +201,10 @@ object SumiWidget {
                     val questionDp = minOf(heightDp * 0.18f, widthDp * 0.08f).coerceIn(17f, 36f)
                     setImageViewBitmap(
                         R.id.widget_question,
-                        InkText.render(context, face.question, px(questionDp), style.ink, px(widthDp - 56f).toInt(), maxLines = 2)
+                        InkText.render(
+                            context, face.question, px(questionDp), style.ink,
+                            px(widthDp - 44f).toInt(), maxLines = 2, minSizePx = px(15f)
+                        )
                     )
                 }
             }
@@ -209,6 +217,24 @@ object SumiWidget {
             is WidgetFace.Asking -> views.setTextColor(R.id.widget_small_clock, style.ink)
         }
         return views
+    }
+
+    /**
+     * How wide the live clock will really be at this size, so whatever sits beside
+     * it is given the room that is actually left. A guessed multiple of the text
+     * size is what cut the date short on smaller widgets.
+     *
+     * Measured in the serif the layout asks for. It cannot be measured in the app's
+     * Mincho, because a launcher ignores a font resource from this package and
+     * falls back to its own font, which is why the clock is not in Mincho at all.
+     */
+    private fun clockWidthDp(context: Context, sizeDp: Float): Float {
+        val density = context.resources.displayMetrics.density
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = sizeDp * density
+            typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD)
+        }
+        return paint.measureText("00:00") / density
     }
 
     private object Sizes {

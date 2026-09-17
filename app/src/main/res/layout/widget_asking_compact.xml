@@ -9,8 +9,8 @@
     android:layout_height="match_parent"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="24dp"
-    android:paddingEnd="24dp">
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp">
 
     <ImageView
         android:id="@+id/widget_question"

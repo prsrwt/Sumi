@@ -2,15 +2,18 @@
 <!--
   The asking face: a question in place of the time, with the time kept small
   underneath so the widget never stops being useful as a clock. The question is
-  an image drawn in Mincho (see InkText); the time stays a live TextClock.
+  an image drawn in Mincho (see InkText); the time stays a live TextClock. It asks
+  for the generic serif rather than the app's own Mincho: a launcher honours a
+  family name here but ignores a font resource from this package, which was
+  measured on a device rather than assumed.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    android:paddingStart="28dp"
-    android:paddingEnd="28dp">
+    android:paddingStart="22dp"
+    android:paddingEnd="22dp">
 
     <ImageView
         android:id="@+id/widget_question"

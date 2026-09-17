@@ -5,8 +5,8 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="horizontal"
-    android:paddingStart="24dp"
-    android:paddingEnd="24dp">
+    android:paddingStart="18dp"
+    android:paddingEnd="18dp">
 
     <TextClock
         android:id="@+id/widget_clock"

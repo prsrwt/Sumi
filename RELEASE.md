@@ -134,7 +134,7 @@ No account. No advertising. No analytics. No tracking of any kind. Sumi has no
 servers, so there is nowhere for your time to go except your phone and, if you ask
 for it, your own spreadsheet. It works fully offline.
 
-Inside the app there is also a study guide: sixteen chapters explaining how Sumi
+Inside the app there is also a study guide: seventeen chapters explaining how Sumi
 was built and why each decision was made, with the real code.
 
 Free, open source, and made to be left alone for a week without guilt.
@@ -257,7 +257,69 @@ A workable order:
 
 ---
 
-## 9. After every release
+## 9. Handing it out from GitHub, before the store
+
+A GitHub release is the quickest honest way to let people try Sumi. They download
+one file and install it themselves.
+
+1. Build the **APK**, not the bundle. People cannot install an `.aab`.
+
+   ```bash
+   ./gradlew :app:assembleRelease
+   cp app/build/outputs/apk/release/app-release.apk sumi-1.0.0.apk
+   ```
+
+2. Tag the commit you built, and push the tag.
+3. On github.com, open **Releases, Draft a new release**, choose that tag, attach
+   `sumi-1.0.0.apk`, and paste the notes below.
+4. The link to hand out is the release page, not the raw file, so people can read
+   what they are installing.
+
+Keep using the same keystore for every build you publish this way. An APK signed
+with a different key will not install over an earlier one, and the only way out is
+for people to uninstall and lose their log.
+
+**Notes to paste**
+
+```text
+Sumi 1.0.0
+
+A quiet time log for Android. A widget on your home screen becomes a question now
+and then; answer it in a word and the hour is recorded. Balance draws a pentagon
+of where your time actually went. No account, no ads, no analytics, no streaks.
+
+Install
+1. Download sumi-1.0.0.apk below.
+2. Open it. Android will ask whether to allow installs from your browser or files
+   app; that prompt is normal for anything not from the Play Store.
+3. Android 8 and newer. Nothing else is needed.
+
+Optional Google Sheets sync
+Sumi can copy your log into a spreadsheet in your own Google Drive. It asks for one
+narrow permission and can only see the file it created. While Sumi is in Google's
+review queue, sign-in works only for accounts I have added as testers, so if you
+want sync, ask me. Everything else works fully offline.
+
+What it does not do
+No account. No advertising. No analytics. No tracking. Nothing leaves your phone
+unless you connect the sheet yourself.
+
+Privacy policy: https://prsrwt.github.io/Sumi/privacy.html
+How it is built, chapter by chapter: https://prsrwt.github.io/Sumi/
+```
+
+Two things to know before you point people at it:
+
+- **Sheets sync is capped until the consent screen is published.** In Testing mode
+  Google allows 100 named testers and their permission expires after seven days.
+  Section 5 fixes that, and it is worth doing before any post that might bring
+  people in.
+- **The APK you publish is signed with your own key.** Google Play will later sign
+  its copies with a different one (section 3), so a person who installs from GitHub
+  and later installs from Play will have to uninstall first. Worth a line in the
+  release notes when that day comes.
+
+## 10. After every release
 
 - Raise `versionCode` before the next build, always.
 - Tag the commit you shipped.

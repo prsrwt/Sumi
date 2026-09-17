@@ -68,6 +68,23 @@ object InkText {
             }
         }
 
+        // Shrinking beats cutting. A line that would spill past maxLines steps
+        // down in size until it fits or reaches minSizePx, so the end of a question
+        // is only ever lost when there is genuinely no room for it.
+        if (minSizePx < paint.textSize) {
+            var guard = 0
+            while (guard++ < 8 && paint.textSize > minSizePx) {
+                val room = maxWidthPx - 2 * (ceil(paint.strokeWidth).toInt() + 1)
+                val trial = StaticLayout.Builder
+                    .obtain(text, 0, text.length, paint, room.coerceAtLeast(1))
+                    .setIncludePad(false)
+                    .build()
+                if (trial.lineCount <= maxLines) break
+                paint.textSize = (paint.textSize * 0.92f).coerceAtLeast(minSizePx)
+                paint.strokeWidth = paint.textSize * EXTRA_WEIGHT
+            }
+        }
+
         // The stroke spreads each glyph slightly, so leave it room at the edges.
         val bleed = ceil(paint.strokeWidth).toInt() + 1
         val natural = ceil(StaticLayout.getDesiredWidth(text, paint)).toInt() + bleed * 2
