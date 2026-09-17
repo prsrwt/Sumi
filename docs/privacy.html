@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sumi Privacy Policy</title>
+<meta name="description" content="How Sumi handles your data: what stays on your phone, what is written to a Google Sheet you own, and what is never collected.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+  /* Tokens taken from the app's own theme, so the page reads as part of Sumi. */
+  :root {
+    --paper: #F7F5F1;
+    --surface: #FFFFFF;
+    --ink: #161A18;
+    --muted: #5C625E;
+    --hair: #D8D4CC;
+    --gold: #7A5E12;
+    --display: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif;
+    --body: "Zen Kaku Gothic New", "Hiragino Sans", "Segoe UI", system-ui, sans-serif;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0B0D0C;
+      --surface: #121514;
+      --ink: #F2EFE9;
+      --muted: #9BA09C;
+      --hair: #2A2F2C;
+      --gold: #E8C45C;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0B0D0C;
+    --surface: #121514;
+    --ink: #F2EFE9;
+    --muted: #9BA09C;
+    --hair: #2A2F2C;
+    --gold: #E8C45C;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  main {
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 4rem 16px 6rem;
+  }
+
+  .mark {
+    font-family: var(--display);
+    font-size: 2rem;
+    letter-spacing: 0.04em;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(1.9rem, 6vw, 2.6rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0.6rem 0 0.4rem;
+  }
+
+  h2 {
+    font-family: var(--display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 2.6rem 0 0.6rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 1.6rem 0 0.4rem;
+  }
+
+  p, li { color: var(--ink); }
+
+  .lede, .meta { color: var(--muted); }
+
+  .meta {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+
+  .summary {
+    background: var(--surface);
+    border: 1px solid var(--hair);
+    border-radius: 14px;
+    padding: 1.1rem 1.3rem;
+    margin: 2rem 0 0;
+  }
+
+  .summary p { margin: 0.4rem 0; }
+
+  ul { padding-left: 1.2rem; }
+
+  li { margin: 0.35rem 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.95rem;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.6rem;
+    border-bottom: 1px solid var(--hair);
+    vertical-align: top;
+  }
+
+  th { font-weight: 700; }
+
+  a { color: var(--gold); }
+
+  code {
+    font-size: 0.92em;
+    word-break: break-all;
+  }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.2rem;
+    border-top: 1px solid var(--hair);
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="mark">墨</div>
+  <h1>Sumi Privacy Policy</h1>
+  <p class="meta">Effective 17 September 2026. Applies to the Sumi Android application, package <code>io.github.prsrwt.sumi</code>.</p>
+
+  <div class="summary">
+    <p><strong>Sumi is a local app.</strong> What you log is kept in a database on your phone.</p>
+    <p><strong>Nothing is sent to us.</strong> Sumi has no servers, no accounts and no analytics. The developer never receives your data.</p>
+    <p><strong>One optional connection.</strong> If you turn on Google Sheets, Sumi writes your log to a spreadsheet in your own Google Drive, and nowhere else.</p>
+  </div>
+
+  <h2>1. What Sumi stores on your phone</h2>
+  <p>Everything Sumi records is written to a private database inside the app's own storage, which no other app can read:</p>
+  <ul>
+    <li>your entries: the start and end time, the time zone they were logged in, and the line you typed;</li>
+    <li>the five names your time is sorted into, the parts of life under each one, and the words you keep;</li>
+    <li>your settings: how often the widget asks, and the hours it stays quiet;</li>
+    <li>if you connect Google Sheets, the email address of the Google account you chose and the identifier of the spreadsheet Sumi made, so it keeps writing to the same one.</li>
+  </ul>
+  <p>Uninstalling Sumi deletes all of it from the phone. If you have Android's own backup switched on in your system settings, Android may include the app's data in the backup it keeps in your Google account. That backup belongs to you and to Google, is governed by Google's terms, and is not visible to the developer.</p>
+
+  <h2>2. What Sumi sends, and only if you ask it to</h2>
+  <p>Sumi makes no network requests until you connect Google Sheets from the You screen. Once connected, it writes your log into a spreadsheet it creates in your Google Drive, one tab per month, with these columns:</p>
+  <table>
+    <tr><th>Written to your sheet</th><th>Why</th></tr>
+    <tr><td>Date, start, end, minutes</td><td>The stretch of time you logged.</td></tr>
+    <tr><td>Element, goal, part of life, word</td><td>Where that time was filed.</td></tr>
+    <tr><td>Note</td><td>The line you typed.</td></tr>
+    <tr><td>Sumi ID</td><td>So an edited entry is updated rather than duplicated.</td></tr>
+  </table>
+  <p>The spreadsheet is in your Drive, under your account. You can open it, edit it, share it or delete it at any time. Deleting it does not affect the log on your phone.</p>
+
+  <h3>The permission Sumi asks Google for</h3>
+  <p>Sumi requests a single OAuth scope, <code>https://www.googleapis.com/auth/drive.file</code>. That scope allows an app to see and change only the files it created itself. Sumi cannot see, open or list any other file in your Drive, and it does not ask for any scope that would let it.</p>
+  <p>Access tokens are held by Google Play services on your device, not by Sumi. Sumi stores no password, no token and no credential of any kind. You can withdraw the permission at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>, or by disconnecting Google Sheets inside the app.</p>
+
+  <h3>Limited Use</h3>
+  <p>Sumi's use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. Data obtained through those APIs is used solely to provide the Google Sheets feature described above. It is never transferred to anyone else, never used for advertising, and never read by humans.</p>
+
+  <h2>3. What Sumi never does</h2>
+  <ul>
+    <li>No analytics, telemetry, crash reporting or usage tracking of any kind.</li>
+    <li>No advertising, advertising identifiers, or profiling.</li>
+    <li>No sale or sharing of personal information with anyone.</li>
+    <li>No account with the developer, and no server run by the developer.</li>
+    <li>No access to your contacts, location, photos, microphone, camera or files.</li>
+  </ul>
+
+  <h2>4. Permissions the app declares</h2>
+  <table>
+    <tr><th>Permission</th><th>Used for</th></tr>
+    <tr><td><code>INTERNET</code></td><td>Reaching Google Drive and Google Sheets, and only after you connect them.</td></tr>
+    <tr><td><code>RECEIVE_BOOT_COMPLETED</code></td><td>Restarting the widget's gentle reminders after the phone is switched on.</td></tr>
+  </table>
+
+  <h2>5. Children</h2>
+  <p>Sumi is a general-audience application and is not directed at children. It collects no personal information from anyone, children included.</p>
+
+  <h2>6. Your control</h2>
+  <ul>
+    <li><strong>Stop syncing:</strong> disconnect Google Sheets on the You screen. Sumi stops writing immediately and forgets the account and the spreadsheet identifier.</li>
+    <li><strong>Remove what was synced:</strong> delete the spreadsheet from your own Google Drive.</li>
+    <li><strong>Remove everything on the phone:</strong> uninstall the app, or clear its storage from Android's app settings.</li>
+    <li><strong>Withdraw Google access:</strong> remove Sumi at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+  </ul>
+  <p>Because the developer holds none of your data, there is nothing for us to export or erase on your behalf, and no request you need to make of us.</p>
+
+  <h2>7. Changes to this policy</h2>
+  <p>If Sumi ever handles data differently, this page is updated before that version is released, and the effective date at the top changes with it.</p>
+
+  <h2>8. Contact</h2>
+  <p>Questions about this policy or about Sumi's handling of data: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a>.</p>
+
+  <footer>
+    Sumi is open source. The behaviour described here can be read in the source, in
+    <code>app/src/main/java/com/sumi/app/sync/</code>, and is explained chapter by chapter in
+    <a href="index.html">Inside Sumi</a>.
+  </footer>
+</main>
+</body>
+</html>

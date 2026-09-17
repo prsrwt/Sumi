@@ -99,6 +99,12 @@ Google recognises the app by its package name and signing certificate, so no cli
 - Sumi uses the internet only to reach Google once you connect Google Sheets, and, in the study guide, to load its web fonts from Google Fonts.
 - With Sheets connected, Sumi can see only the one spreadsheet it creates (the `drive.file` permission), never the rest of your Drive.
 
+The policy published with the app is [`docs/privacy.html`](docs/privacy.html), served at [prsrwt.github.io/Sumi/privacy.html](https://prsrwt.github.io/Sumi/privacy.html) once GitHub Pages is on.
+
+## Releasing
+
+Version numbers live in [`version.properties`](version.properties), read by the build, and `versionCode` has to rise for every upload Google Play accepts. [`RELEASE.md`](RELEASE.md) is the whole route to the store: cutting a build, the listing copy, the data safety answers, the OAuth consent screen, and the certificate change that silently breaks Google Sheets if it is missed.
+
 ## Project layout
 
 ```text
@@ -116,7 +122,7 @@ app/src/main/java/com/sumi/app/
   sync/             Google authorization, HTTPS, the spreadsheet and WorkManager
 app/src/test/       unit tests
 app/schemas/        every database version's layout
-docs/               the study guide and these screenshots
+docs/               the study guide, the privacy policy and these screenshots
 ```
 
 ## Credits

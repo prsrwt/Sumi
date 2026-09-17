@@ -7,6 +7,17 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+/*
+ * Release numbers live in version.properties at the top of the repository, so a
+ * release is cut by editing one file rather than by hunting through the build
+ * script. Google Play refuses an upload whose versionCode it has seen before, so
+ * the number has to rise every time, which is easier to remember when there is
+ * one place to look.
+ */
+val versionProps = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.sumi.app"
     compileSdk = 36
@@ -15,8 +26,8 @@ android {
         applicationId = "io.github.prsrwt.sumi"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = versionProps.getProperty("versionCode").trim().toInt()
+        versionName = versionProps.getProperty("versionName").trim()
     }
 
     /*
