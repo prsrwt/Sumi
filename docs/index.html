@@ -439,9 +439,21 @@
   .aside { display: grid; gap: 20px; min-width: 0; }
 
   /* diagrams */
-  .pentagon { margin: 0; }
+  .pentagon, .figure { margin: 0; }
   .pentagon svg { display: block; width: 100%; max-width: 360px; margin: 0 auto; height: auto; }
-  .pentagon figcaption {
+  .figure svg { display: block; width: 100%; height: auto; }
+
+  /* Two widgets side by side, the same replica as the cover but smaller. */
+  .two-faces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .two-faces .wall { aspect-ratio: 1 / 0.86; padding: 6%; border-radius: 22px; }
+  .two-faces .wall::after { border-width: 12px; }
+  .two-faces .glass { min-height: 0; padding: 16px; border-radius: 18px; }
+  .two-faces .face .q { font-size: clamp(14px, 2.2vw, 19px); }
+  .two-faces .face .big { font-size: clamp(28px, 4vw, 40px); }
+  .two-faces .face .date, .two-faces .face .small { font-size: 12px; margin-top: 6px; }
+  .two-faces figcaption { grid-column: 1 / -1; }
+
+  .pentagon figcaption, .figure figcaption {
     font: 400 13px/1.55 var(--body);
     color: var(--muted);
     margin-top: 12px;

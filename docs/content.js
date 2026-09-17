@@ -418,6 +418,50 @@ var showSetup by rememberSaveable { mutableStateOf(false) }`
     slides: [
       {
         title: "Tables are Kotlin classes",
+        diagram: `
+          <figure class="figure">
+            <svg viewBox="0 0 480 300" role="img" aria-label="The seven tables in Sumi's database and the references between them">
+              <defs>
+                <marker id="tip" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+                  <path d="M 0 0 L 8 4 L 0 8 z" style="fill: var(--muted)"/>
+                </marker>
+              </defs>
+              <rect x="8" y="8" width="150" height="62" rx="12" style="fill: var(--surface); stroke: var(--hair)" stroke-width="1"/>
+              <text x="20" y="31" style="fill: var(--ink); font-family: var(--display); font-size: 14px">goals</text>
+              <text x="20" y="48" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">slot · name</text>
+              <text x="20" y="61" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">element</text>
+              <rect x="8" y="108" width="150" height="48" rx="12" style="fill: var(--surface); stroke: var(--hair)" stroke-width="1"/>
+              <text x="20" y="131" style="fill: var(--ink); font-family: var(--display); font-size: 14px">settings</text>
+              <text x="20" y="148" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">ask · quiet · onboardedAt</text>
+              <rect x="8" y="172" width="150" height="48" rx="12" style="fill: var(--surface); stroke: var(--hair)" stroke-width="1"/>
+              <text x="20" y="195" style="fill: var(--ink); font-family: var(--display); font-size: 14px">sync_state</text>
+              <text x="20" y="212" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">account · spreadsheetId</text>
+              <rect x="8" y="236" width="150" height="48" rx="12" style="fill: var(--surface); stroke: var(--hair)" stroke-width="1"/>
+              <text x="20" y="259" style="fill: var(--ink); font-family: var(--display); font-size: 14px">dirty_months</text>
+              <text x="20" y="276" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">month</text>
+              <rect x="182" y="8" width="138" height="62" rx="12" style="fill: var(--surface); stroke: var(--water)" stroke-width="1"/>
+              <text x="194" y="31" style="fill: var(--ink); font-family: var(--display); font-size: 14px">domains</text>
+              <text x="194" y="48" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">id · name</text>
+              <text x="194" y="61" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">element · position</text>
+              <rect x="182" y="118" width="138" height="74" rx="12" style="fill: var(--surface); stroke: var(--wind)" stroke-width="1"/>
+              <text x="194" y="141" style="fill: var(--ink); font-family: var(--display); font-size: 14px">activities</text>
+              <text x="194" y="158" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">id · domainId</text>
+              <text x="194" y="171" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">name · uses</text>
+              <text x="194" y="184" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">lastUsedAt</text>
+              <rect x="344" y="58" width="128" height="100" rx="12" style="fill: var(--surface); stroke: var(--fire)" stroke-width="1"/>
+              <text x="356" y="81" style="fill: var(--ink); font-family: var(--display); font-size: 14px">entries</text>
+              <text x="356" y="98" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">id · start · end</text>
+              <text x="356" y="111" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">zone · text</text>
+              <text x="356" y="124" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">element</text>
+              <text x="356" y="137" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">domainId</text>
+              <text x="356" y="150" style="fill: var(--muted); font-family: var(--mono); font-size: 10px">activityId</text>
+              <path d="M 251 70 L 251 114" style="stroke: var(--muted)" stroke-width="1" fill="none" marker-end="url(#tip)"/>
+              <text x="251" y="92" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 10px">one to many</text>
+              <path d="M 320 40 L 344 86" style="stroke: var(--muted)" stroke-width="1" fill="none" marker-end="url(#tip)"/>
+              <path d="M 320 150 L 344 128" style="stroke: var(--muted)" stroke-width="1" fill="none" marker-end="url(#tip)"/>
+            </svg>
+            <figcaption>Seven tables. An entry keeps its own element, so deleting a part of life loses the tag and never the hour.</figcaption>
+          </figure>`,
         body: `
           <p><strong>Room</strong> is Android's database library. You write a data class with <code>@Entity</code>, and Room creates a table for it.</p>
           <p>Times are stored as <strong>UTC milliseconds</strong> plus the <strong>time zone</strong> the entry was logged in. A timesheet then stays correct across daylight saving changes and travel.</p>`,
@@ -627,6 +671,33 @@ if (!start.isBefore(end)) start = endDay.minusDays(1).atTime(from).atZone(zone).
       },
       {
         title: "Gaps on the timesheet",
+        diagram: `
+          <figure class="figure">
+            <svg viewBox="0 0 460 110" role="img" aria-label="A morning as a bar: three logged stretches with unlogged gaps between them">
+              <rect x="20" y="46" width="81.6667" height="30" rx="7" style="fill: none; stroke: var(--hair)" stroke-dasharray="3 3"/>
+              <text x="60.8333" y="66" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 10px">+</text>
+              <rect x="101.667" y="46" width="40.8333" height="30" rx="7" style="fill: var(--earth)" fill-opacity="0.22"/>
+              <rect x="101.667" y="46" width="40.8333" height="30" rx="7" style="fill: none; stroke: var(--earth)" stroke-opacity="0.55"/>
+              <text x="122.083" y="38" text-anchor="middle" style="fill: var(--ink); font-family: var(--body); font-size: 10px">Morning run</text>
+              <rect x="142.5" y="46" width="17.5" height="30" rx="7" style="fill: none; stroke: var(--hair)" stroke-dasharray="3 3"/>
+              <text x="151.25" y="66" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 10px">+</text>
+              <rect x="160" y="46" width="29.1667" height="30" rx="7" style="fill: var(--water)" fill-opacity="0.22"/>
+              <rect x="160" y="46" width="29.1667" height="30" rx="7" style="fill: none; stroke: var(--water)" stroke-opacity="0.55"/>
+              <text x="174.583" y="24" text-anchor="middle" style="fill: var(--ink); font-family: var(--body); font-size: 10px">Breakfast</text>
+              <rect x="189.167" y="46" width="58.3333" height="30" rx="7" style="fill: none; stroke: var(--hair)" stroke-dasharray="3 3"/>
+              <text x="218.333" y="66" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 10px">+</text>
+              <rect x="247.5" y="46" width="140" height="30" rx="7" style="fill: var(--fire)" fill-opacity="0.22"/>
+              <rect x="247.5" y="46" width="140" height="30" rx="7" style="fill: none; stroke: var(--fire)" stroke-opacity="0.55"/>
+              <text x="317.5" y="38" text-anchor="middle" style="fill: var(--ink); font-family: var(--body); font-size: 10px">Deep work</text>
+              <rect x="387.5" y="46" width="52.5" height="30" rx="7" style="fill: none; stroke: var(--hair)" stroke-dasharray="3 3"/>
+              <text x="413.75" y="66" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 10px">+</text>
+              <text x="20" y="94" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">06:00</text>
+              <text x="160" y="94" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">08:00</text>
+              <text x="300" y="94" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">10:00</text>
+              <text x="440" y="94" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">12:00</text>
+            </svg>
+            <figcaption>Today builds the gaps rather than storing them: whatever is left between one entry and the next is unlogged, and tapping a gap opens the composer with that exact stretch already filled in.</figcaption>
+          </figure>`,
         body: `
           <p><code>Timeline.build</code> turns a day's entries into rows. Between two entries, a gap of at least <strong>5 minutes</strong> becomes an "unlogged" row you can tap to fill. Shorter gaps are just the day.</p>
           <p>There is no gap before the first entry (that was probably sleep), and a trailing gap up to now only appears on today. An entry crossing midnight is clipped to the day and says where it really began: "from 11:44 PM yesterday".</p>`,
@@ -719,6 +790,30 @@ return ColorUtils.calculateLuminance(colors.primaryColor.toArgb()) > LIGHT_WALLP
       },
       {
         title: "Two faces: resting and asking",
+        diagram: `
+          <figure class="figure two-faces">
+            <div>
+              <div class="wall">
+                <div class="glass">
+                  <div class="face">
+                    <div class="big" data-clock>9:20</div>
+                    <div class="date">Resting</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="wall">
+                <div class="glass">
+                  <div class="face">
+                    <div class="q">What has this hour held?</div>
+                    <div class="small" data-clock>9:20</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <figcaption>The same widget, both faces. It rests as a clock, and at the ask time it becomes the question. Same layout file, different views made visible, so the change costs one redraw and no animation.</figcaption>
+          </figure>`,
         body: `
           <p><code>WidgetFace.compute</code> decides which face to show. It asks once your ask interval has passed since your last entry ended, never during quiet hours, and straight away if nothing has ever been logged.</p>
           <p>Below about 150 dp tall the widget uses side-by-side layouts; above it, stacked ones, with text sizes scaling to the space.</p>`,
@@ -795,6 +890,38 @@ if (canBeExact) {
       },
       {
         title: "When the alarm fires",
+        diagram: `
+          <figure class="figure">
+            <svg viewBox="0 0 460 110" role="img" aria-label="A day as a strip, with quiet hours shaded and an asking tick every ninety minutes">
+              <rect x="20" y="40" width="420" height="34" rx="8" style="fill: var(--surface); stroke: var(--hair)"/>
+              <rect x="20" y="41" width="122.5" height="32" style="fill: var(--void)" fill-opacity="0.13"/>
+              <rect x="422.5" y="41" width="17.5" height="32" style="fill: var(--void)" fill-opacity="0.13"/>
+              <text x="81.25" y="32" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 10px">quiet hours</text>
+              <path d="M 142.5 47 L 142.5 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 168.75 47 L 168.75 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 195 47 L 195 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 221.25 47 L 221.25 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 247.5 47 L 247.5 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 273.75 47 L 273.75 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 300 47 L 300 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 326.25 47 L 326.25 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 352.5 47 L 352.5 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 378.75 47 L 378.75 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              <path d="M 405 47 L 405 67" style="stroke: var(--ink)" stroke-opacity="0.35" stroke-width="1"/>
+              
+              <text x="20" y="108" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">00</text>
+              <text x="125" y="108" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">06</text>
+              <text x="230" y="108" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">12</text>
+              <text x="335" y="108" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">18</text>
+              <text x="440" y="108" text-anchor="middle" style="fill: var(--muted); font-family: var(--mono); font-size: 9px">00</text>
+              <g>
+                <rect x="-1.5" y="36" width="3" height="42" rx="1.5" style="fill: var(--fire)" fill-opacity="0.85"/>
+                <animateTransform attributeName="transform" type="translate" dur="24s" repeatCount="indefinite"
+                  values="20 0;440 0" calcMode="linear"/>
+              </g>
+            </svg>
+            <figcaption>A tick every 90 minutes, and never inside the quiet hours. One alarm exists at a time. When it fires, the widget changes its face and the next one is set from the interval, skipped forward past the quiet hours. Nothing runs in between.</figcaption>
+          </figure>`,
         body: `
           <p>A <strong>BroadcastReceiver</strong> is code Android runs when something happens. <code>RhythmReceiver</code> handles the alarm, and also reboots (which clear alarms), clock changes and time zone changes (which move every boundary).</p>
           <p><code>goAsync()</code> gives the receiver a little time to finish work on a background thread instead of being cut off immediately.</p>`,
@@ -912,6 +1039,35 @@ if (canBeExact) {
     slides: [
       {
         title: "Why three levels",
+        diagram: `
+          <figure class="figure">
+            <svg viewBox="0 0 460 208" role="img" aria-label="Fire branching into three parts of life, and Work branching into four words">
+              <text x="66" y="36" text-anchor="end" style="fill: var(--muted); font-family: var(--body); font-size: 10px">element</text>
+              <text x="66" y="108" text-anchor="end" style="fill: var(--muted); font-family: var(--body); font-size: 10px">parts of life</text>
+              <text x="66" y="186" text-anchor="end" style="fill: var(--muted); font-family: var(--body); font-size: 10px">words</text>
+              <text x="266" y="42" text-anchor="middle" style="fill: var(--fire); font-family: var(--display); font-size: 26px">火</text>
+              <path d="M 266 52 L 266 64 M 136 64 L 396 64 M 136 64 L 136 82 M 266 64 L 266 82 M 396 64 L 396 82" style="stroke: var(--hair)" stroke-width="1" fill="none"/>
+              <rect x="80" y="82" width="112" height="46" rx="12" style="fill: var(--surface); stroke: var(--hair)"/>
+              <text x="136" y="102" text-anchor="middle" style="fill: var(--ink); font-family: var(--display); font-size: 14px">Work</text>
+              <text x="136" y="118" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">the job, whatever pays</text>
+              <rect x="210" y="82" width="112" height="46" rx="12" style="fill: var(--surface); stroke: var(--hair)"/>
+              <text x="266" y="102" text-anchor="middle" style="fill: var(--ink); font-family: var(--display); font-size: 14px">Business</text>
+              <text x="266" y="118" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">your own trade</text>
+              <rect x="340" y="82" width="112" height="46" rx="12" style="fill: var(--surface); stroke: var(--hair)"/>
+              <text x="396" y="102" text-anchor="middle" style="fill: var(--ink); font-family: var(--display); font-size: 14px">Study</text>
+              <text x="396" y="118" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">school, a course</text>
+              <path d="M 136 128 L 136 152 M 124 152 L 412 152 M 124 152 L 124 168 M 220 152 L 220 168 M 316 152 L 316 168 M 412 152 L 412 168" style="stroke: var(--hair)" stroke-width="1" fill="none"/>
+              <rect x="80" y="168" width="88" height="26" rx="13" style="fill: none; stroke: var(--hair)"/>
+              <text x="124" y="185" text-anchor="middle" style="fill: var(--ink); font-family: var(--body); font-size: 11px">deep work</text>
+              <rect x="176" y="168" width="88" height="26" rx="13" style="fill: none; stroke: var(--hair)"/>
+              <text x="220" y="185" text-anchor="middle" style="fill: var(--ink); font-family: var(--body); font-size: 11px">meetings</text>
+              <rect x="272" y="168" width="88" height="26" rx="13" style="fill: none; stroke: var(--hair)"/>
+              <text x="316" y="185" text-anchor="middle" style="fill: var(--ink); font-family: var(--body); font-size: 11px">email</text>
+              <rect x="368" y="168" width="88" height="26" rx="13" style="fill: none; stroke: var(--hair)"/>
+              <text x="412" y="185" text-anchor="middle" style="fill: var(--ink); font-family: var(--body); font-size: 11px">shift</text>
+            </svg>
+            <figcaption>An element never changes. A part of life is wide enough to grow for years. A word is what you actually did, and it belongs to one part of life, which is why one tap on a word says all three at once.</figcaption>
+          </figure>`,
         body: `
           <p>An element is one of five and never changes. A <strong>domain</strong> is a part of your life under it: Health under 地, Work and Building under 火. An <strong>activity</strong> is a word you actually used: run, thesis, cooking.</p>
           <p>This is what keeps the pentagon readable while the words stay yours. "Gym" would be a spoke that can never grow; as a word inside Health it is recorded exactly, and Health is what the drawing measures.</p>`,
@@ -1077,6 +1233,73 @@ if (tagged >= MIN_TAGGED_FOR_SHARE && time.toMinutes() > tagged.toMinutes() * MA
       },
       {
         title: "The 30-day grid",
+        diagram: `
+          <figure class="figure">
+            <svg viewBox="0 0 460 190" role="img" aria-label="Thirty days as dots, ten across, darker where more of the five had time">
+              <circle cx="30" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.48"/>
+              <text x="30" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">19</text>
+              <circle cx="74" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="74" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">20</text>
+              <circle cx="118" cy="26" r="9" style="fill: none; stroke: var(--ink)" stroke-opacity="0.14"/>
+              <text x="118" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">21</text>
+              <circle cx="162" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.80"/>
+              <text x="162" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">22</text>
+              <circle cx="206" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="206" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">23</text>
+              <circle cx="250" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.96"/>
+              <text x="250" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">24</text>
+              <circle cx="294" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.48"/>
+              <text x="294" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">25</text>
+              <circle cx="338" cy="26" r="9" style="fill: none; stroke: var(--ink)" stroke-opacity="0.14"/>
+              <text x="338" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">26</text>
+              <circle cx="382" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="382" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">27</text>
+              <circle cx="426" cy="26" r="9" style="fill: var(--ink)" fill-opacity="0.80"/>
+              <text x="426" y="49" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">28</text>
+              <circle cx="30" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="30" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">29</text>
+              <circle cx="74" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.48"/>
+              <text x="74" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">30</text>
+              <circle cx="118" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.80"/>
+              <text x="118" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">Oct</text>
+              <circle cx="162" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.96"/>
+              <text x="162" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">2</text>
+              <circle cx="206" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="206" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">3</text>
+              <circle cx="250" cy="86" r="9" style="fill: none; stroke: var(--ink)" stroke-opacity="0.14"/>
+              <text x="250" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">4</text>
+              <circle cx="294" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.48"/>
+              <text x="294" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">5</text>
+              <circle cx="338" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="338" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">6</text>
+              <circle cx="382" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.80"/>
+              <text x="382" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">7</text>
+              <circle cx="426" cy="86" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="426" y="109" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">8</text>
+              <circle cx="30" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.96"/>
+              <text x="30" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">9</text>
+              <circle cx="74" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.80"/>
+              <text x="74" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">10</text>
+              <circle cx="118" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.48"/>
+              <text x="118" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">11</text>
+              <circle cx="162" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="162" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">12</text>
+              <circle cx="206" cy="146" r="9" style="fill: none; stroke: var(--ink)" stroke-opacity="0.14"/>
+              <text x="206" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">13</text>
+              <circle cx="250" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.80"/>
+              <text x="250" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">14</text>
+              <circle cx="294" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <text x="294" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">15</text>
+              <circle cx="338" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.96"/>
+              <text x="338" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">16</text>
+              <circle cx="382" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.80"/>
+              <text x="382" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">17</text>
+              <circle cx="426" cy="146" r="9" style="fill: var(--ink)" fill-opacity="0.64"/>
+              <circle cx="426" cy="146" r="12" style="fill: none; stroke: var(--ink)" stroke-opacity="0.8"/>
+              <text x="426" y="169" text-anchor="middle" style="fill: var(--muted); font-family: var(--body); font-size: 9px">18</text>
+            </svg>
+            <figcaption>Thirty days, ten across, oldest first and today ringed. The darker the dot, the more of your five had time that day; a hollow one is a day with nothing logged. It rolls, so it never empties on the first of the month.</figcaption>
+          </figure>`,
         body: `
           <p>Thirty dots, ten across, oldest first and today last with a ring. Each fills darker with how many of your five got any time that day. Each dot carries its day number, and the 1st of a month shows the month's name.</p>
           <p>It is rolling, like the pentagon, so it never empties at the start of a month.</p>`
@@ -1430,7 +1653,7 @@ fun sheetIdFor(month: YearMonth): Int = month.year * 100 + month.monthValue`
     blurb: "What is tested, how, and what still needs a real phone.",
     slides: [
       {
-        title: "73 tests, all on your computer",
+        title: "103 tests, all on your computer",
         body: `
           <p>Sumi's tests are JVM unit tests: they run on your computer in seconds, without a phone. They cover the logic most likely to be subtly wrong:</p>
           <ul>
