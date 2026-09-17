@@ -1002,6 +1002,30 @@ val perElement = Element.entries.associateWith { element ->
         body: `
           <p>Five spokes, one per element. Each spoke's length is that element's time relative to the most-used one. It is drawn on a Compose <code>Canvas</code>, with the kanji and your goal's name at each tip. No hours are printed: the length is the amount, and the exact figures live in the composer and in the Google Sheet.</p>
           <p>It grows from the centre over 700 ms when Balance opens, and each spoke glides to its new length over 520 ms when you switch windows. Before anything is logged it still shows, empty, so the screen explains itself.</p>`,
+        diagram: `
+          <figure class="pentagon">
+            <svg viewBox="0 0 224 204" role="img" aria-label="A pentagon of five spokes changing shape between four different weeks">
+      <polygon points="112.0,80.7 132.3,95.4 124.5,119.3 99.5,119.3 91.7,95.4" fill="none" style="stroke: var(--hair)" stroke-width="1"/>
+      <polygon points="112.0,59.3 152.6,88.8 137.1,136.5 86.9,136.5 71.4,88.8" fill="none" style="stroke: var(--hair)" stroke-width="1"/>
+      <polygon points="112.0,38.0 172.9,82.2 149.6,153.8 74.4,153.8 51.1,82.2" fill="none" style="stroke: var(--hair)" stroke-width="1"/>
+      <line x1="112.0" y1="102.0" x2="112.0" y2="38.0" style="stroke: var(--hair)" stroke-width="1"/>
+      <line x1="112.0" y1="102.0" x2="172.9" y2="82.2" style="stroke: var(--hair)" stroke-width="1"/>
+      <line x1="112.0" y1="102.0" x2="149.6" y2="153.8" style="stroke: var(--hair)" stroke-width="1"/>
+      <line x1="112.0" y1="102.0" x2="74.4" y2="153.8" style="stroke: var(--hair)" stroke-width="1"/>
+      <line x1="112.0" y1="102.0" x2="51.1" y2="82.2" style="stroke: var(--hair)" stroke-width="1"/>
+              <polygon points="112.0,54.6 138.8,93.3 149.6,153.8 102.2,115.5 93.7,96.1" style="fill: var(--ink); stroke: var(--ink)" fill-opacity="0.08" stroke-opacity="0.45" stroke-width="1.5" stroke-linejoin="round">
+                <animate attributeName="points" dur="16.0s" repeatCount="indefinite"
+                  calcMode="spline" keyTimes="0.0000;0.0875;0.2000;0.2875;0.4000;0.4875;0.6000;0.6875;0.8000;0.8875;1.0000" keySplines="0 0 1 1;0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1;0 0 1 1;0.4 0 0.2 1"
+                  values="112.0,54.6 138.8,93.3 149.6,153.8 102.2,115.5 93.7,96.1;112.0,54.6 138.8,93.3 149.6,153.8 102.2,115.5 93.7,96.1;112.0,38.0 154.6,88.2 123.3,117.5 102.2,115.5 88.9,94.5;112.0,38.0 154.6,88.2 123.3,117.5 102.2,115.5 88.9,94.5;112.0,75.1 145.5,91.1 149.6,153.8 93.2,127.9 84.0,92.9;112.0,75.1 145.5,91.1 149.6,153.8 93.2,127.9 84.0,92.9;112.0,64.9 157.0,87.4 128.6,124.8 93.9,126.9 51.1,82.2;112.0,64.9 157.0,87.4 128.6,124.8 93.9,126.9 51.1,82.2;112.0,59.8 152.2,88.9 136.8,136.2 87.2,136.2 71.8,88.9;112.0,59.8 152.2,88.9 136.8,136.2 87.2,136.2 71.8,88.9;112.0,54.6 138.8,93.3 149.6,153.8 102.2,115.5 93.7,96.1"/>
+              </polygon>
+      <text x="112.0" y="17.2" text-anchor="middle" dominant-baseline="middle" style="fill: var(--earth); font-family: var(--display); font-size: 15px">地</text>
+      <text x="193.6" y="76.5" text-anchor="middle" dominant-baseline="middle" style="fill: var(--water); font-family: var(--display); font-size: 15px">水</text>
+      <text x="162.4" y="172.4" text-anchor="middle" dominant-baseline="middle" style="fill: var(--fire); font-family: var(--display); font-size: 15px">火</text>
+      <text x="61.6" y="172.4" text-anchor="middle" dominant-baseline="middle" style="fill: var(--wind); font-family: var(--display); font-size: 15px">風</text>
+      <text x="30.4" y="76.5" text-anchor="middle" dominant-baseline="middle" style="fill: var(--void); font-family: var(--display); font-size: 15px">空</text>
+            </svg>
+            <figcaption>Four real weeks, drawn from the example shapes the wheel offers: a job and a home, the home as the work, a student, a later life. The last is simply even. It is not the goal, and Sumi never draws it as one.</figcaption>
+          </figure>`,
         why: `Relative length is a ratio, not a score. A short spoke is simply small; nothing is marked as behind.`
       },
       {
